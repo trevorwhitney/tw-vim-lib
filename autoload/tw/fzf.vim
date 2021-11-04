@@ -13,14 +13,29 @@ function! tw#fzf#selectSplit(files) abort
   endif
 endfunction
 
-let g:fzf_action = {
-  \ 'ctrl-t': 'tab split',
-  \ 'ctrl-x': 'split',
-  \ 'ctrl-v': 'vsplit',
-  \ 'ctrl-s': 'FzfSelectSplit'}
+
+
+" FzfSelectSplit relies on coc-explorer
+" so we only define define it for nvim
+function! tw#fzf#defaultAction()
+  if has('nvim')
+    return {
+      \ 'ctrl-t': 'tab split',
+      \ 'ctrl-x': 'split',
+      \ 'ctrl-v': 'vsplit',
+      \ 'ctrl-s': 'FzfSelectSplit'}
+  else
+    return {
+      \ 'ctrl-t': 'tab split',
+      \ 'ctrl-x': 'split',
+      \ 'ctrl-v': 'vsplit' }
+  endif
+endfunction
+
+let g:fzf_action = tw#fzf#defaultAction()
 
 " Remap Rg function to allow more args to be passed
-function! tw#fzf#ripgrepFzf(query, fullscreen)
+function! tw#fzf#ripgrep(query, fullscreen)
   let command_fmt = 'rg --column --line-number --no-heading --color=always --smart-case %s -- %s || true'
 
   let extra_options = ""
