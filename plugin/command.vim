@@ -17,3 +17,6 @@ command! -nargs=0 ToggleGitStatus
       \ call tw#git#toggleGitStatus()
 
 command! -nargs=* -bang Rg call tw#fzf#ripgrep(<q-args>, <bang>0)
+
+command! -nargs=* GolangTestFocusedWithTags call tw#go#golangTestFocusedWithTags(<f-args>)
+command! -nargs=* DlvTestFocused call tw#go#dlvTestFocused(<f-args>)
