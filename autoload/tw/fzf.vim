@@ -14,7 +14,6 @@ function! tw#fzf#selectSplit(files) abort
 endfunction
 
 
-
 " FzfSelectSplit relies on coc-explorer
 " so we only define define it for nvim
 function! tw#fzf#defaultAction()
@@ -31,8 +30,6 @@ function! tw#fzf#defaultAction()
       \ 'ctrl-v': 'vsplit' }
   endif
 endfunction
-
-let g:fzf_action = tw#fzf#defaultAction()
 
 " Remap Rg function to allow more args to be passed
 function! tw#fzf#ripgrep(query, fullscreen)

@@ -2,6 +2,9 @@
 " cursor. It will combine nested tests with a / to allow you to run the
 " closest nested test to the cursor
 function tw#go#testName() abort
+  " finding the test name relies on the code being correctly formatted
+  call tw#format#Format()
+
   " search flags legend (used only)
   " 'b' search backward instead of forward
   " 'c' accept a match at the cursor position
@@ -44,7 +47,7 @@ function tw#go#testName() abort
     let l:nextInnerTest = tw#go#findNextInnerTest(l:nextInnerTest[0], l:nextInnerTest[1], l:outerTest)
   endwhile
 
-  call cursor(l:startingPos[1], l:startingPos[2])
+  call setpos('.', l:startingPos)
   return l:parentName . '/' . l:testNameChain
 endfunction
 
@@ -80,8 +83,6 @@ function tw#go#findNextInnerTest(line, column, outer) abort
   return l:innerTestPos
 endfunction
 
-let g:delve_use_vimux = 1
-
 "TODO: these functions could be smarter and could parse the current file to
 "look for relevant build tags at the top of the file
 function! tw#go#dlvTestFocused(...)
@@ -100,7 +101,6 @@ function! tw#go#dlvTestFocused(...)
     echo 'No test found'
   endif
 endfunction
-
 
 function! tw#go#golangTestFocusedWithTags(...)
   let l:buildFlags = (a:0 > 0) ? join(a:000, ',') : ''
