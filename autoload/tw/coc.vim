@@ -19,7 +19,7 @@ function! tw#coc#selectSplit(...) abort
 
   " use coc_explorer window selector to pick the window
   " to open in
-  let winnr = coc_explorer#select_wins#start([],[],0)
+  let winnr = tw#select#start([],[],0)
   for file in files
     if tw#coc#openInWin(file, winnr) > 0 && exists('where')
       exe where
