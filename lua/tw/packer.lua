@@ -5,13 +5,12 @@ function Packer.install(use)
     use 'wbthomason/packer.nvim' -- Package manager
     use 'trevorwhitney/tw-vim-lib' -- all my vim customizations
 
-    use 'AndrewRadev/bufferize.vim'
-    use 'LeafCage/yankround.vim'
-    use 'benmills/vimux'
-    use 'benmills/vimux-golang'
-    use 'christoomey/vim-tmux-navigator'
+    use 'AndrewRadev/bufferize.vim' -- open the output of any command in a buffer
+    use 'benmills/vimux' -- open commands in tmux split
+    use 'benmills/vimux-golang' -- go specific vimux actions
+    use 'christoomey/vim-tmux-navigator' -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
     use 'coachshea/vim-textobj-markdown'
-    use 'dense-analysis/ale'
+    use 'dense-analysis/ale' -- linter
     use 'easymotion/vim-easymotion'
     use 'folke/which-key.nvim'
     use 'google/vim-jsonnet'
@@ -19,13 +18,14 @@ function Packer.install(use)
     use 'jvirtanen/vim-hcl'
     use 'kana/vim-textobj-entire'
     use 'kana/vim-textobj-user'
-    use 'kyazdani42/nvim-web-devicons'
     use 'machakann/vim-highlightedyank'
-    use {'mg979/vim-visual-multi', branch = 'master' }
+    use {'mg979/vim-visual-multi', branch = 'master' } -- multi-cursor
     use 'nvim-treesitter/nvim-treesitter' -- Highlight, edit, and navigate code using a fast incremental parsing library
     use 'nvim-treesitter/nvim-treesitter-textobjects' -- Additional textobjects for treesitter
     use 'pedrohdz/vim-yaml-folds'
     use 'roxma/vim-tmux-clipboard'
+    use 'sebdah/vim-delve'
+    use 'shaunsingh/solarized.nvim'
     use 'tommcdo/vim-exchange'
     use 'tpope/vim-abolish'
     use 'tpope/vim-commentary'
@@ -47,8 +47,10 @@ function Packer.install(use)
     -- begin coc
     use {'neoclide/coc-highlight', run = 'yarn install --frozen-lockfile'}
     use {'neoclide/coc-pairs', branch = 'master', run = 'yarn install --frozen-lockfile' }
-    use { 'weirongxu/coc-explorer', branch = 'master', run = 'yarn install --frozen-lockfile'}
      --- end coc
+
+    -- use { 'weirongxu/coc-explorer', branch = 'master', run = 'yarn install --frozen-lockfile'}
+    use { 'kyazdani42/nvim-tree.lua', requires = 'kyazdani42/nvim-web-devicons', config = function() require'nvim-tree'.setup {} end }
 
      -- will be repaced by telescope
     use {'junegunn/fzf', run = function() vim.fn['fzf#install']() end }
@@ -84,9 +86,6 @@ function Packer.install(use)
     use {'neoclide/coc-snippets', run = 'yarn install --frozen-lockfile'}
     -- use 'L3MON4D3/LuaSnip' -- Snippets plugin
     -- use 'saadparwaiz1/cmp_luasnip'
-
-    use 'sebdah/vim-delve'
-    use 'shaunsingh/solarized.nvim'
   end)
 end
 
