@@ -1,4 +1,6 @@
-function setup()
+local Config = {}
+
+function Config.setup()
   local set = vim.opt
 
   set.autoindent = true
@@ -7,7 +9,7 @@ function setup()
   set.autowriteall = true
   set.expandtab = true -- Use soft tabs
   set.incsearch = true
-  set.nowrap = true -- No wrapping
+  -- set.nowrap = true -- No wrapping
   set.number = true -- Line numbers
   set.splitright = true
   set.undofile = true
@@ -15,14 +17,15 @@ function setup()
   set.smarttab = true -- Use shiftwidth to tab at line beginning
 
   set.backspace = {'indent', 'eol', 'start'}  -- Let backspace work over anything.
-  set.ignorecase = 'smartcase' -- ignore case only when search term is all lowercase
+  set.ignorecase = true -- ignore case only when search term is all lowercase
+  set.smartcase = true -- ignore case only when search term is all lowercase
   set.mouse = 'a' -- enable mouse in all modes
-  set.omnifunc = vim.fn['syntaxcomplete#Complete']
+  -- set.omnifunc = vim.fn['syntaxcomplete#Complete']
   set.scrolloff = 5
   set.shiftwidth = 2 -- Width of autoindent
   set.switchbuf = 'useopen'
   set.tabstop = 2 -- Tab settings
-  set.tags ^= './.git/tags'
+  set.tags:prepend('./.git/tags')
   set.undodir = vim.env.HOME .. '/.vim/undodir'
   set.encoding = 'utf-8'
 
@@ -30,25 +33,29 @@ function setup()
   set.hidden = true
 
   -- Some servers have issues with backup files, see #649.
-  set.nobackup = true
-  set.nowritebackup = true
+  -- set.nobackup = true
+  -- set.nowritebackup = true
 
   -- Give more space for displaying messages.
-  set cmdheight=2
+  set.cmdheight = 2
 
-  " Having longer updatetime (default is 4000 ms = 4 s) leads to noticeable
-  " delays and poor user experience.
-  set updatetime=300
+  -- Having longer updatetime (default is 4000 ms = 4 s) leads to noticeable
+  -- delays and poor user experience.
+  set.updatetime = 300
 
-  " Don't pass messages to |ins-completion-menu|.
-  set shortmess+=c
+  -- Don't pass messages to |ins-completion-menu|.
+  set.shortmess:append('c')
 
-  " Open diffs vertically
-  set diffopt=vertical
+  -- Open diffs vertically
+  set.diffopt = 'vertical'
+  set.clipboard:prepend('unnamed,unnamedplus')
 
-  " disable python2 provider
-  let g:loaded_python_provider = 0
-  let g:python3_host_prog = '/usr/bin/python3'
+  -- use terminal background (but could be lighter)
+  vim.g.solarized_disable_background = true
+
+  -- disable python2 provider
+  vim.g['loaded_python_provider'] = 0
+  vim.g['python3_host_prog'] = '/usr/bin/python3'
 
   require('nvim-treesitter.configs').setup {
     ensure_installed = {
@@ -88,3 +95,5 @@ function setup()
     }
   }
 end
+
+return Config
