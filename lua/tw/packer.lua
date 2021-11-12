@@ -39,18 +39,15 @@ function Packer.install(use)
     use 'tpope/vim-surround'
     use 'tpope/vim-unimpaired'
 
-    -- replace airline with lightline?
-    use 'vim-airline/vim-airline'
-    use 'vim-airline/vim-airline-themes'
-    -- use 'itchyny/lightline.vim' -- Fancier statusline
-
-    -- begin coc
-    use {'neoclide/coc-highlight', run = 'yarn install --frozen-lockfile'}
-    use {'neoclide/coc-pairs', branch = 'master', run = 'yarn install --frozen-lockfile' }
-     --- end coc
-
-    -- use { 'weirongxu/coc-explorer', branch = 'master', run = 'yarn install --frozen-lockfile'}
+    -- recently added
+    use 'andymass/vim-matchup' -- show matching pairs
+    use 'windwp/nvim-autopairs' -- automatically insert closing brackets
     use { 'kyazdani42/nvim-tree.lua', requires = 'kyazdani42/nvim-web-devicons', config = function() require'nvim-tree'.setup {} end }
+
+    -- replace airline with lightline?
+    -- use 'vim-airline/vim-airline'
+    -- use 'vim-airline/vim-airline-themes'
+    use 'itchyny/lightline.vim' -- Fancier statusline
 
      -- will be repaced by telescope
     use {'junegunn/fzf', run = function() vim.fn['fzf#install']() end }
