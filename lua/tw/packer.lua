@@ -22,13 +22,17 @@ local function installNativeLsp(use)
 	use("L3MON4D3/LuaSnip") -- Snippets plugin
 	use("hrsh7th/cmp-nvim-lsp")
 	use("hrsh7th/nvim-cmp") -- Autocompletion plugin
-	-- use 'kabouzeid/nvim-lspinstall'
-	use({ "lewis6991/gitsigns.nvim", requires = { "nvim-lua/plenary.nvim" } })
 	use("neovim/nvim-lspconfig") -- Collection of configurations for built-in LSP client
 	use("rafamadriz/friendly-snippets")
 	use("saadparwaiz1/cmp_luasnip")
-	-- use 'tamago324/nlsp-settings.nvim' -- coc-settings like json settings
 	use({ "jose-elias-alvarez/null-ls.nvim", requires = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" } })
+	use({
+		"lewis6991/gitsigns.nvim",
+		requires = { "nvim-lua/plenary.nvim" },
+		config = function()
+			require("gitsigns").setup()
+		end,
+	})
 end
 
 local function installFzf(use)
@@ -97,7 +101,12 @@ function Packer.install(use)
 
 		-- recently added
 		use("andymass/vim-matchup") -- show matching pairs
-		use("windwp/nvim-autopairs") -- automatically insert closing brackets
+		use({
+			"windwp/nvim-autopairs",
+			config = function()
+				require("nvim-autopairs").setup({})
+			end,
+		}) -- automatically insert closing brackets
 		use({
 			"kyazdani42/nvim-tree.lua",
 			requires = "kyazdani42/nvim-web-devicons",

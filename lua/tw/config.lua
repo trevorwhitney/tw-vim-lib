@@ -189,8 +189,6 @@ function Config.setup()
 	require("tw.config.which-key")
 	require("tw.config.nvim-tree")
 
-	require("nvim-autopairs").setup({})
-
 	if vim.g["use_native_lsp"] == 1 then
 		configureNativeLsp()
 	else

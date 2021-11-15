@@ -6,7 +6,7 @@ set.autowrite = true
 set.autowriteall = true
 set.expandtab = true -- Use soft tabs
 set.incsearch = true
--- set.nowrap = true -- No wrapping
+set.wrap = false -- No wrapping
 set.number = true -- Line numbers
 set.splitright = true
 set.undofile = true
@@ -17,7 +17,6 @@ set.backspace = {'indent', 'eol', 'start'}  -- Let backspace work over anything.
 set.ignorecase = true -- ignore case only when search term is all lowercase
 set.smartcase = true -- ignore case only when search term is all lowercase
 set.mouse = 'a' -- enable mouse in all modes
--- set.omnifunc = vim.fn['syntaxcomplete#Complete']
 set.scrolloff = 5
 set.shiftwidth = 2 -- Width of autoindent
 set.switchbuf = 'useopen'
@@ -30,8 +29,8 @@ set.encoding = 'utf-8'
 set.hidden = true
 
 -- Some servers have issues with backup files, see #649.
--- set.nobackup = true
--- set.nowritebackup = true
+set.backup = false
+set.writebackup = true
 
 -- Give more space for displaying messages.
 set.cmdheight = 2
@@ -46,13 +45,6 @@ set.shortmess:append('c')
 -- Open diffs vertically
 set.diffopt = 'vertical'
 set.clipboard:prepend('unnamed,unnamedplus')
-
--- disable python2 provider
-vim.g['loaded_python_provider'] = 0
-vim.g['python3_host_prog'] = '/usr/bin/python3'
-
--- disable default markdown textobj mappings
-vim.g['textobj_markdown_no_default_key_mappings'] = 1
 
 -- folding
 set.foldmethod = 'syntax'   -- fold based on indent
@@ -69,11 +61,9 @@ set.wildmode = {'longest','list','full'}
 set.wildmenu = true
 set.completeopt:append 'longest'
 
-
 -- Directories
 set.directory = {'~/.vim-tmp', '~/tmp', '/var/tmp', '/tmp'}
 set.backupdir = {'~/.vim-tmp', '~/tmp', '/var/tmp', '/tmp'}
-
 
 -- Always show the signcolumn, otherwise it would shift the text each time
 -- diagnostics appear/become resolved.
@@ -83,3 +73,10 @@ if vim.fn.has("patch-8.1.1564") then
 else
   set.signcolumn = 'auto:2'
 end
+
+-- disable python2 provider
+vim.g['loaded_python_provider'] = 0
+vim.g['python3_host_prog'] = '/usr/bin/python3'
+
+-- disable default markdown textobj mappings
+vim.g['textobj_markdown_no_default_key_mappings'] = 1
