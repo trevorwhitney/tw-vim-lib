@@ -51,6 +51,9 @@ set.clipboard:prepend('unnamed,unnamedplus')
 vim.g['loaded_python_provider'] = 0
 vim.g['python3_host_prog'] = '/usr/bin/python3'
 
+-- disable default markdown textobj mappings
+vim.g['textobj_markdown_no_default_key_mappings'] = 1
+
 -- folding
 set.foldmethod = 'syntax'   -- fold based on indent
 set.foldnestmax = 10      -- deepest fold is 10 levels
@@ -60,7 +63,7 @@ set.foldlevelstart = 99
 set.foldopen = 'insert'     -- open folds when inserted into
 
 -- Auto completion
-set.completeopt = {'menuone','menu','longest'}
+set.completeopt = {'menuone','noselect'}
 set.wildignore:append {'*\\tmp\\*','*.swp','*.swo','*.zip','.git','.cabal-sandbox'}
 set.wildmode = {'longest','list','full'}
 set.wildmenu = true
@@ -70,3 +73,13 @@ set.completeopt:append 'longest'
 -- Directories
 set.directory = {'~/.vim-tmp', '~/tmp', '/var/tmp', '/tmp'}
 set.backupdir = {'~/.vim-tmp', '~/tmp', '/var/tmp', '/tmp'}
+
+
+-- Always show the signcolumn, otherwise it would shift the text each time
+-- diagnostics appear/become resolved.
+if vim.fn.has("patch-8.1.1564") then
+  -- Recently vim can merge signcolumn and number column into one
+  set.signcolumn = 'number'
+else
+  set.signcolumn = 'auto:2'
+end

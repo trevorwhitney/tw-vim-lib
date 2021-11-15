@@ -1,13 +1,194 @@
 local Config = {}
 
-function Config.setup()
-  require('tw.config.vim-options')
-  require('tw.config.appearance')
-  require('tw.config.treesitter')
-  require('tw.config.which-key')
-  require('tw.config.nvim-tree')
+local function configureNullLs()
+	local null_ls = require("null-ls")
+	require("null-ls").config({
+		-- you must define at least one source for the plugin to work
+		sources = {
+			null_ls.builtins.code_actions.gitsigns,
+			null_ls.builtins.diagnostics.golangci_lint,
+			null_ls.builtins.diagnostics.shellcheck,
+			null_ls.builtins.diagnostics.vale,
+			-- null_ls.builtins.diagnostics.vint,
+			null_ls.builtins.diagnostics.write_good,
+			null_ls.builtins.diagnostics.yamllint,
+			null_ls.builtins.formatting.fixjson,
+			null_ls.builtins.formatting.nixfmt,
+			null_ls.builtins.formatting.prettier,
+			null_ls.builtins.formatting.shfmt,
+			null_ls.builtins.formatting.stylua,
+			null_ls.builtins.formatting.terraform_fmt,
+		},
+	})
+end
 
-  require('nvim-autopairs').setup {}
+local function configureNativeLsp()
+	configureNullLs()
+
+	local nvim_lsp = require("lspconfig")
+
+	-- Use an on_attach function to only map the following keys
+	-- after the language server attaches to the current buffer
+	local on_attach = function(client, bufnr)
+		local function buf_set_keymap(...)
+			vim.api.nvim_buf_set_keymap(bufnr, ...)
+		end
+		local function buf_set_option(...)
+			vim.api.nvim_buf_set_option(bufnr, ...)
+		end
+
+		-- Enable completion triggered by <c-x><c-o>
+		buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
+
+		-- Mappings.
+		local opts = { noremap = true, silent = true }
+
+		-- See `:help vim.lsp.*` for documentation on any of the below functions
+		-- often not implemented, would rather map to definition in split
+		-- buf_set_keymap('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
+		buf_set_keymap("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>", opts)
+		buf_set_keymap("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<CR>", opts)
+		buf_set_keymap("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>", opts)
+		buf_set_keymap("n", "gy", "<cmd>lua vim.lsp.buf.type_definition()<CR>", opts)
+
+		buf_set_keymap("n", "<leader>=", "<cmd>lua vim.lsp.buf.formatting()<CR>", opts)
+
+		buf_set_keymap("n", "<leader>h", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
+		buf_set_keymap("n", "<leader>H", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
+
+		buf_set_keymap("n", "<leader>re", "<cmd>lua vim.lsp.buf.rename()<CR>", opts)
+		buf_set_keymap("n", "<leader>a", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
+		buf_set_keymap("x", "<leader>a", "<cmd>lua vim.lsp.buf.range_code_action()<CR>", opts)
+
+		buf_set_keymap("n", "<leader>e", "<cmd>lua vim.lsp.diagnostic.show_line_diagnostics()<CR>", opts)
+		buf_set_keymap("n", "[d", "<cmd>lua vim.lsp.diagnostic.goto_prev()<CR>", opts)
+		buf_set_keymap("n", "]d", "<cmd>lua vim.lsp.diagnostic.goto_next()<CR>", opts)
+
+		buf_set_keymap("n", "<leader>q", "<cmd>lua vim.lsp.diagnostic.set_loclist()<CR>", opts)
+
+		buf_set_keymap("n", "<leader>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
+		buf_set_keymap("n", "<leader>wr", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", opts)
+		buf_set_keymap("n", "<leader>wl", "<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>", opts)
+	end
+
+	local capabilities = require("cmp_nvim_lsp").update_capabilities(vim.lsp.protocol.make_client_capabilities())
+
+	-- Use a loop to conveniently call 'setup' on multiple servers and
+	-- map buffer local keybindings when the language server attaches
+	local customLanguages = {
+		sumneko_lua = require("tw.languages.lua").configureLsp,
+		gopls = require("tw.languages.go").configureLsp,
+	}
+
+	local defaultLanguages = {
+		-- "bashls",
+		-- "dockerls",
+		"jdtls",
+		"jsonls",
+		"null-ls",
+		"terraformls",
+		-- "vimls",
+		-- "yamlls",
+	}
+
+	for _, lsp in ipairs(defaultLanguages) do
+		if nvim_lsp[lsp] then
+			nvim_lsp[lsp].setup({
+				on_attach = on_attach,
+				capabilities = capabilities,
+				flags = {
+					debounce_text_changes = 150,
+				},
+			})
+		else
+			print("Failed to find language config for " .. lsp)
+		end
+	end
+
+	for lsp, fn in pairs(customLanguages) do
+		nvim_lsp[lsp].setup(fn(on_attach, capabilities))
+	end
+end
+
+local function configureTelescope()
+	vim.fn["tw#telescope#MapKeys"]()
+	require("telescope").load_extension("fzf")
+end
+
+local function configureFzf()
+	vim.fn["tw#fzf#Configure"]()
+	vim.fn["tw#fzf#MapKeys"]()
+end
+
+local function configureCmp()
+	local luasnip = require("luasnip")
+	local cmp = require("cmp")
+	cmp.setup({
+		snippet = {
+			expand = function(args)
+				luasnip.lsp_expand(args.body)
+			end,
+		},
+		mapping = {
+			["<C-p>"] = cmp.mapping.select_prev_item(),
+			["<C-n>"] = cmp.mapping.select_next_item(),
+			["<C-d>"] = cmp.mapping.scroll_docs(-4),
+			["<C-f>"] = cmp.mapping.scroll_docs(4),
+			["<C-Space>"] = cmp.mapping.complete(),
+			["<C-e>"] = cmp.mapping.close(),
+			["<CR>"] = cmp.mapping.confirm({
+				behavior = cmp.ConfirmBehavior.Replace,
+				select = true,
+			}),
+			["<Tab>"] = function(fallback)
+				if cmp.visible() then
+					cmp.select_next_item()
+				elseif luasnip.expand_or_jumpable() then
+					luasnip.expand_or_jump()
+				else
+					fallback()
+				end
+			end,
+			["<S-Tab>"] = function(fallback)
+				if cmp.visible() then
+					cmp.select_prev_item()
+				elseif luasnip.jumpable(-1) then
+					luasnip.jump(-1)
+				else
+					fallback()
+				end
+			end,
+		},
+		sources = cmp.config.sources({
+			{ name = "nvim_lsp" },
+			{ name = "luasnip" },
+		}),
+	})
+end
+
+function Config.setup()
+	require("tw.config.vim-options")
+	require("tw.config.appearance")
+	require("tw.config.treesitter")
+	require("tw.config.which-key")
+	require("tw.config.nvim-tree")
+
+	require("nvim-autopairs").setup({})
+
+	if vim.g["use_native_lsp"] == 1 then
+		configureNativeLsp()
+	else
+		vim.fn["tw#coc#Configure"]()
+		vim.fn["tw#coc#MapKeys"]()
+	end
+
+	if vim.g["use_telescope"] == 1 then
+		configureTelescope()
+	else
+		configureFzf()
+	end
+
+	configureCmp()
 end
 
 return Config

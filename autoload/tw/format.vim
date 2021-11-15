@@ -7,13 +7,10 @@ function! tw#format#vim(buffer) abort
 endfunction
 
 function! tw#format#Format() abort
-  if has('nvim') && CocHasProvider('format')
-    call CocAction('runCommand', 'editor.action.format')
-    " refresh lint warnings after reformat
-    execute 'ALELint'
-    return
+  let s:useNativeLsp = get(g:, 'use_native_lsp', 0)
+  if s:useNativeLsp == 1
+    " TODO: what's the LSP format?
+  else
+    call tw#coc#Format()
   endif
-
-  " default to ALEFix
-  execute 'ALEFix'
 endfunction

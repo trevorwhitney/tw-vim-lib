@@ -61,3 +61,32 @@ function! tw#fzf#ripgrep(query, fullscreen)
   call fzf#vim#grep(initial_command, 1, fzf#vim#with_preview(spec), a:fullscreen)
 endfunction
 
+function! tw#fzf#Configure() abort
+  " ==== Fzf and fzf preview ====
+  let g:fzf_preview_command = 'bat --color=always --plain --number {-1}'
+  let g:fzf_preview_lines_command = 'bat --color=always --plain --number'
+  let g:fzf_preview_preview_key_bindings = 'ctrl-a:select-all'
+  let g:fzf_preview_grep_cmd = 'rg --line-number --no-heading --color=always'
+  let g:fzf_preview_window = ['']
+endfunction
+
+function! tw#fzf#MapKeys() abort
+  " ==== Fzf and fzf preview ====
+  " find file (in git files if in git repo)
+  nnoremap <leader>ff :GFiles<cr>
+  " find file (in all files)
+  nnoremap <leader>fa :Files<cr>
+
+  " ========= grep ==============
+  " use ripgrep for grep command
+  if executable("rg")
+    set grepprg=rg\ --vimgrep
+  endif
+
+  " Ripgrep for the word under cursor
+  nnoremap <leader>rg :<C-u>Rg<Space><C-R>=expand('<cword>')<CR><CR>
+  nnoremap <leader>* :<C-u>Rg<Space><C-R>=expand('<cword>')<CR><CR>
+  " Ripgrep for the visually selected text
+  xnoremap <leader>rg "sy:Rg -- <C-R>=substitute(substitute(@s, '\n', '', 'g'), '/', '\\/', 'g')<CR><CR>
+  xnoremap <leader>* "sy:Rg -- <C-R>=substitute(substitute(@s, '\n', '', 'g'), '/', '\\/', 'g')<CR><CR>
+endfunction
