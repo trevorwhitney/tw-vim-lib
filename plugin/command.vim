@@ -10,6 +10,9 @@ if has('nvim')
         \ call tw#fzf#selectSplit(<f-args>)
 endif
 
+" need for fugitive since nvim-tree.lua messes with netrw
+command -nargs=1 Browse silent exe '!xdg-open "' . tw#util#UrlEscape(<q-args>) . '"'
+
 command! -nargs=0 GitBrowseCurrentLine
       \ call tw#git#browseCurrentLine()
 

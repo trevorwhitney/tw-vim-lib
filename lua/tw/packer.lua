@@ -30,7 +30,9 @@ local function installNativeLsp(use)
 		"lewis6991/gitsigns.nvim",
 		requires = { "nvim-lua/plenary.nvim" },
 		config = function()
-			require("gitsigns").setup()
+			require("gitsigns").setup({
+				current_line_blame = true,
+			})
 		end,
 	})
 end
@@ -91,10 +93,9 @@ function Packer.install(use)
 		use("tpope/vim-commentary")
 		use("tpope/vim-dispatch")
 		use("tpope/vim-eunuch")
-		use("tpope/vim-fugitive")
+		use({ "tpope/vim-fugitive", requires = "tpope/vim-rhubarb" })
 		use("tpope/vim-projectionist")
 		use("tpope/vim-repeat")
-		use("tpope/vim-rhubarb")
 		use("tpope/vim-rsi")
 		use("tpope/vim-surround")
 		use("tpope/vim-unimpaired")

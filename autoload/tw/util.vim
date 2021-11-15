@@ -5,3 +5,8 @@ function! tw#util#shellCommandSeperator()
     return '; and'
   endif
 endfunction
+
+" Escape special characters in url
+function! tw#util#UrlEscape(string)
+  return substitute(a:string, '#', '\\#', 'g')
+endfunction
