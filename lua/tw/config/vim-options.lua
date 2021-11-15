@@ -76,7 +76,10 @@ end
 
 -- disable python2 provider
 vim.g['loaded_python_provider'] = 0
-vim.g['python3_host_prog'] = '/usr/bin/python3'
+vim.g['python3_host_prog'] = '/usr/local/bin/python'
+
+-- diable perl provider
+vim.g['loaded_perl_provider'] = 0
 
 -- disable default markdown textobj mappings
 vim.g['textobj_markdown_no_default_key_mappings'] = 1

@@ -114,7 +114,45 @@ function Packer.install(use)
 				require("nvim-tree").setup({})
 			end,
 		})
-		use("itchyny/lightline.vim") -- Fancier statusline
+		-- use("itchyny/lightline.vim") -- Fancier statusline
+		use({
+			"nvim-lualine/lualine.nvim",
+			config = function()
+				require("lualine").setup({ options = { theme = "solarized" } })
+			end,
+			requires = { "kyazdani42/nvim-web-devicons", opt = true },
+		})
+
+		-- TODO: key mappings on dashboard are not all correct
+		use({
+			"glepnir/dashboard-nvim",
+			config = function()
+				vim.g["dashboard_default_executive"] = "telescope"
+				vim.g["dashboard_custom_header"] = {
+					" ███╗   ██╗ ███████╗ ██████╗  ██╗   ██╗ ██╗ ███╗   ███╗",
+					" ████╗  ██║ ██╔════╝██╔═══██╗ ██║   ██║ ██║ ████╗ ████║",
+					" ██╔██╗ ██║ █████╗  ██║   ██║ ██║   ██║ ██║ ██╔████╔██║",
+					" ██║╚██╗██║ ██╔══╝  ██║   ██║ ╚██╗ ██╔╝ ██║ ██║╚██╔╝██║",
+					" ██║ ╚████║ ███████╗╚██████╔╝  ╚████╔╝  ██║ ██║ ╚═╝ ██║",
+					" ╚═╝  ╚═══╝ ╚══════╝ ╚═════╝    ╚═══╝   ╚═╝ ╚═╝     ╚═╝",
+				}
+			end,
+		})
+
+		use({
+			"ahmedkhalf/project.nvim",
+			config = function()
+				require("project_nvim").setup({})
+			end,
+		})
+
+		use({
+			"folke/trouble.nvim",
+			requires = "kyazdani42/nvim-web-devicons",
+			config = function()
+				require("trouble").setup({})
+			end,
+		})
 
 		if vim.g["use_native_lsp"] == 1 then
 			installNativeLsp(use)

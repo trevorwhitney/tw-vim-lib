@@ -9,7 +9,7 @@ local function configureNullLs()
 			null_ls.builtins.diagnostics.golangci_lint,
 			null_ls.builtins.diagnostics.shellcheck,
 			null_ls.builtins.diagnostics.vale,
-			-- null_ls.builtins.diagnostics.vint,
+			null_ls.builtins.diagnostics.vint,
 			null_ls.builtins.diagnostics.write_good,
 			null_ls.builtins.diagnostics.yamllint,
 			null_ls.builtins.formatting.fixjson,
@@ -29,7 +29,7 @@ local function configureNativeLsp()
 
 	-- Use an on_attach function to only map the following keys
 	-- after the language server attaches to the current buffer
-	local on_attach = function(client, bufnr)
+	local on_attach = function(_, bufnr)
 		local function buf_set_keymap(...)
 			vim.api.nvim_buf_set_keymap(bufnr, ...)
 		end
@@ -46,15 +46,15 @@ local function configureNativeLsp()
 		-- See `:help vim.lsp.*` for documentation on any of the below functions
 		-- often not implemented, would rather map to definition in split
 		-- buf_set_keymap('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
-		buf_set_keymap("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>", opts)
-		buf_set_keymap("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<CR>", opts)
-		buf_set_keymap("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>", opts)
-		buf_set_keymap("n", "gy", "<cmd>lua vim.lsp.buf.type_definition()<CR>", opts)
+		buf_set_keymap("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts)
+		buf_set_keymap("n", "gi", "<cmd>Telescope lsp_implementations<CR>", opts)
+		buf_set_keymap("n", "gr", "<cmd>Telescope lsp_references<CR>", opts)
+		buf_set_keymap("n", "gy", "<cmd>Telescope lsp_type_definitions<CR>", opts)
 
 		buf_set_keymap("n", "<leader>=", "<cmd>lua vim.lsp.buf.formatting()<CR>", opts)
 
-		buf_set_keymap("n", "<leader>h", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
-		buf_set_keymap("n", "<leader>H", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
+		buf_set_keymap("n", "<leader>k", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
+		buf_set_keymap("n", "<leader>K", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
 
 		buf_set_keymap("n", "<leader>re", "<cmd>lua vim.lsp.buf.rename()<CR>", opts)
 		buf_set_keymap("n", "<leader>a", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
@@ -85,6 +85,7 @@ local function configureNativeLsp()
 		-- "dockerls",
 		"jdtls",
 		"jsonls",
+		"jsonnet_ls",
 		"null-ls",
 		"terraformls",
 		-- "vimls",
@@ -112,7 +113,24 @@ end
 
 local function configureTelescope()
 	vim.fn["tw#telescope#MapKeys"]()
-	require("telescope").load_extension("fzf")
+
+	local trouble = require("trouble.providers.telescope")
+	local telescope = require("telescope")
+	telescope.load_extension("fzf")
+	telescope.load_extension("projects")
+
+	telescope.setup({
+		defaults = {
+			mappings = {
+				i = { ["<c-t>"] = trouble.open_with_trouble },
+				n = { ["<c-t>"] = trouble.open_with_trouble },
+			},
+		},
+	})
+end
+
+local function configureTrouble()
+  vim.fn["tw#trouble#MapKeys"]()
 end
 
 local function configureFzf()
@@ -155,7 +173,7 @@ local function configureCmp()
 				else
 					fallback()
 				end
-			end, {"i", "s"}),
+			end, { "i", "s" }),
 			["<S-Tab>"] = cmp.mapping(function(fallback)
 				if cmp.visible() then
 					cmp.select_prev_item()
@@ -164,7 +182,7 @@ local function configureCmp()
 				else
 					fallback()
 				end
-			end, {"i", "s"})
+			end, { "i", "s" }),
 		},
 		sources = cmp.config.sources({
 			{ name = "nvim_lsp" },
@@ -203,6 +221,7 @@ function Config.setup()
 	end
 
 	configureCmp()
+  configureTrouble()
 end
 
 return Config
