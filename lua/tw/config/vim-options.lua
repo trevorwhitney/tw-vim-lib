@@ -44,7 +44,7 @@ set.shortmess:append('c')
 
 -- Open diffs vertically
 set.diffopt = 'vertical'
-set.clipboard:prepend('unnamed,unnamedplus')
+set.clipboard = 'unnamedplus'
 
 -- folding
 set.foldmethod = 'syntax'   -- fold based on indent

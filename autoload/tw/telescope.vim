@@ -9,4 +9,7 @@ function! tw#telescope#MapKeys() abort
   nnoremap <nowait>\b <cmd>Telescope buffers<cr>
   nnoremap <nowait>\o <cmd>Telescope lsp_document_symbols<cr>
   nnoremap <nowait>\t <cmd>Telescope treesitter<cr>
+
+  " TODO: grep for selection with <leader>*
+  nnoremap <leader>* <cmd>lua require("telescope.builtin").live_grep({ default_text = vim.fn.expand("<cword>") })<cr>
 endfunction
