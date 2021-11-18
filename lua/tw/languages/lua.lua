@@ -2,9 +2,9 @@ local Lua = {}
 
 function Lua.configureLsp(on_attach, capabilities)
 	-- set the path to the sumneko installation; if you previously installed via the now deprecated :LspInstall, use
-	local sumneko_root_path = vim.env.HOME .. "/workspace/lua-language-server"
-	local sumneko_binary = sumneko_root_path .. "/bin/Linux/lua-language-server"
-	local sumneko_main = sumneko_root_path .. "/bin/Linux/main.lua"
+	local nix_profile = vim.env.HOME .. "/.nix-profile"
+	local sumneko_binary = nix_profile .. "/bin/lua-language-server"
+	local sumneko_main = nix_profile .. "/extras/main.lua"
 
 	local runtime_path = vim.split(package.path, ";")
 	table.insert(runtime_path, "lua/?.lua")
