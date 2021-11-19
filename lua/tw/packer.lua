@@ -66,9 +66,6 @@ end
 
 function Packer.install(use)
 	require("packer").startup(function()
-		use("wbthomason/packer.nvim") -- Package manager
-		use("trevorwhitney/tw-vim-lib") -- all my vim customizations
-
 		use("AndrewRadev/bufferize.vim") -- open the output of any command in a buffer
 		use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open commands in tmux split
 		use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
