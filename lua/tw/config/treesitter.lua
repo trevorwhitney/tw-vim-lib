@@ -2,6 +2,7 @@ require('nvim-treesitter.configs').setup {
   ensure_installed = {
     "bash",
     "c",
+    "css",
     "go",
     "gomod",
     "java",
@@ -11,12 +12,11 @@ require('nvim-treesitter.configs').setup {
     "lua",
     "nix",
     "python",
-    "typescript",
-    "css",
     "rust",
     "toml",
-    "yaml",
+    "typescript",
     "vim",
+    "yaml",
   }, -- one of "all", "maintained" (parsers with maintainers), or a list of languages
   sync_install = false, -- install languages synchronously (only applied to `ensure_installed`)
   ignore_install = { "haskell" }, -- List of parsers to ignore installing
