@@ -13,6 +13,7 @@ function Go.configureLsp(on_attach, capabilities)
 				analyses = {
 					unusedparams = true,
 				},
+				buildFlags = { "-tags=e2e_gme,requires_docker" },
 				staticcheck = true,
 			},
 		},
