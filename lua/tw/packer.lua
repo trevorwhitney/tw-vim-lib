@@ -112,7 +112,6 @@ function Packer.install(use)
 				require("nvim-tree").setup({})
 			end,
 		})
-		-- use("itchyny/lightline.vim") -- Fancier statusline
 		use({
 			"nvim-lualine/lualine.nvim",
 			config = function()
