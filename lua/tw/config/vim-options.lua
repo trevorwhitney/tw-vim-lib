@@ -85,8 +85,8 @@ vim.g["loaded_perl_provider"] = 0
 vim.g["textobj_markdown_no_default_key_mappings"] = 1
 
 -- don't use vim-go for any gopls or completion functionality
-vim.g["go_code_completion_enabled"] = 0
-vim.g["go_def_mapping_enabled"] = 0
-vim.g["go_build_tags"] = "e2e_gem,requires_docker"
-vim.g["go_textobj_enabled"] = 0
-vim.g["go_gopls_enabled"] = 0
+-- vim.g["go_code_completion_enabled"] = 0
+-- vim.g["go_def_mapping_enabled"] = 0
+-- vim.g["go_build_tags"] = "e2e_gem,requires_docker"
+-- vim.g["go_textobj_enabled"] = 0
+-- vim.g["go_gopls_enabled"] = 0
