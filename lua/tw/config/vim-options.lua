@@ -47,12 +47,16 @@ set.diffopt = "vertical"
 set.clipboard = "unnamedplus"
 
 -- folding
-set.foldmethod = "syntax" -- fold based on indent
-set.foldnestmax = 10 -- deepest fold is 10 levels
-set.foldenable = false -- dont fold by default
-set.foldlevel = 1 -- this is just what i use
-set.foldlevelstart = 99
-set.foldopen = "insert" -- open folds when inserted into
+vim.cmd([[
+set foldmethod=expr
+set foldexpr=nvim_treesitter#foldexpr()
+]])
+-- set.foldmethod = "syntax" -- fold based on indent
+-- set.foldnestmax = 10 -- deepest fold is 10 levels
+-- set.foldenable = false -- dont fold by default
+-- set.foldlevel = 1 -- this is just what i use
+-- set.foldlevelstart = 99
+-- set.foldopen = "insert" -- open folds when inserted into
 
 -- Auto completion
 set.completeopt = { "menuone", "noselect" }
