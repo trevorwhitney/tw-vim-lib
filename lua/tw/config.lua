@@ -12,6 +12,8 @@ local function configureNullLs()
 			null_ls.builtins.diagnostics.vint,
 			null_ls.builtins.diagnostics.write_good,
 			null_ls.builtins.diagnostics.yamllint,
+			null_ls.builtins.formatting.gofmt,
+			null_ls.builtins.formatting.goimports,
 			null_ls.builtins.formatting.fixjson,
 			null_ls.builtins.formatting.nixfmt,
 			null_ls.builtins.formatting.prettier,
