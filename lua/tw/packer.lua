@@ -71,7 +71,7 @@ function Packer.install(use)
 		use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
 		use("coachshea/vim-textobj-markdown")
 		use("easymotion/vim-easymotion")
-		use("fatih/vim-go")
+		-- use("fatih/vim-go")
 		use("folke/which-key.nvim")
 		use("google/vim-jsonnet")
 		use("junegunn/vader.vim")

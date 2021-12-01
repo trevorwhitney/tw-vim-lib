@@ -1,3 +1,6 @@
+" setlocal foldmethod=expr
+" setlocal foldexpr=nvim_treesitter#foldexpr()
+
 " open test in a vertical split
 nmap <leader>gt  :<C-u>GoAlternate<cr>
 nmap <silent>gT  :<C-u>wincmd o<cr> :vsplit<cr> :<C-u>GoAlternate<cr>
