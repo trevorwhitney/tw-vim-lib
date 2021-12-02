@@ -32,28 +32,33 @@ end
 
 function Packer.install(use)
 	require("packer").startup(function()
-    -- fix
-    use("trevorwhitney/tw-vim-lib")
+		-- fix
+		use("trevorwhitney/tw-vim-lib")
 		use("wbthomason/packer.nvim")
-		use({"nvim-treesitter/nvim-treesitter", config = function()
-			require('nvim-treesitter.configs').setup {
-				ensure_installed = { 
-					"lua",
-					"go"
-				}, -- one of "all", "maintained" (parsers with maintainers), or a list of languages
-				sync_install = false, -- install languages synchronously (only applied to `ensure_installed`)
-				ignore_install = { "haskell" }, -- List of parsers to ignore installing
-				highlight = {
-					enable = true,              -- false will disable the whole extension
-					-- Setting this to true will run `:h syntax` and tree-sitter at the same time.
-					-- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
-					-- Using this option may slow down your editor, and you may see some duplicate highlights.
-					-- Instead of true it can also be a list of languages
-					additional_vim_regex_highlighting = false,
-				},
-			}
-    end})
-    -- end fix 
+		use({
+			"nvim-treesitter/nvim-treesitter",
+			config = function()
+				require("nvim-treesitter.configs").setup({
+					ensure_installed = {
+						"bash",
+						"go",
+						"lua",
+						"nix",
+					}, -- one of "all", "maintained" (parsers with maintainers), or a list of languages
+					sync_install = false, -- install languages synchronously (only applied to `ensure_installed`)
+					ignore_install = { "haskell" }, -- List of parsers to ignore installing
+					highlight = {
+						enable = true, -- false will disable the whole extension
+						-- Setting this to true will run `:h syntax` and tree-sitter at the same time.
+						-- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
+						-- Using this option may slow down your editor, and you may see some duplicate highlights.
+						-- Instead of true it can also be a list of languages
+						additional_vim_regex_highlighting = false,
+					},
+				})
+			end,
+		})
+		-- end fix
 		use("AndrewRadev/bufferize.vim") -- open the output of any command in a buffer
 		use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open commands in tmux split
 		use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
