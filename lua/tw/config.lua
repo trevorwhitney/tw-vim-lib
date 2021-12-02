@@ -135,11 +135,6 @@ local function configureTrouble()
 	vim.fn["tw#trouble#MapKeys"]()
 end
 
-local function configureFzf()
-	vim.fn["tw#fzf#Configure"]()
-	vim.fn["tw#fzf#MapKeys"]()
-end
-
 local function configureCmp()
 	local has_words_before = function()
 		local line, col = unpack(vim.api.nvim_win_get_cursor(0))
@@ -205,7 +200,6 @@ end
 function Config.setup()
 	require("tw.config.vim-options")
 	require("tw.config.appearance")
-	-- require("tw.config.treesitter")
 	require("tw.config.which-key")
 	require("tw.config.nvim-tree")
 
