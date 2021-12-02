@@ -38,6 +38,7 @@ function Packer.install(use)
 		use({
 			"nvim-treesitter/nvim-treesitter",
 			config = function()
+				local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
 				require("nvim-treesitter.configs").setup({
 					ensure_installed = {
 						"bash",
@@ -56,6 +57,8 @@ function Packer.install(use)
 						additional_vim_regex_highlighting = false,
 					},
 				})
+
+				parser_config.bash.used_by = { "zsh" }
 			end,
 		})
 		-- end fix
