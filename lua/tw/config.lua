@@ -132,7 +132,7 @@ local function configureTelescope()
 end
 
 local function configureTrouble()
-  vim.fn["tw#trouble#MapKeys"]()
+	vim.fn["tw#trouble#MapKeys"]()
 end
 
 local function configureFzf()
@@ -205,25 +205,15 @@ end
 function Config.setup()
 	require("tw.config.vim-options")
 	require("tw.config.appearance")
-	require("tw.config.treesitter")
+	-- require("tw.config.treesitter")
 	require("tw.config.which-key")
 	require("tw.config.nvim-tree")
 
-	if vim.g["use_native_lsp"] == 1 then
-		configureNativeLsp()
-	else
-		vim.fn["tw#coc#Configure"]()
-		vim.fn["tw#coc#MapKeys"]()
-	end
-
-	if vim.g["use_telescope"] == 1 then
-		configureTelescope()
-	else
-		configureFzf()
-	end
+	configureNativeLsp()
+	configureTelescope()
 
 	configureCmp()
-  configureTrouble()
+	configureTrouble()
 end
 
 return Config

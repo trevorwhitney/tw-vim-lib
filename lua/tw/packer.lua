@@ -1,23 +1,5 @@
 local Packer = {}
 
-local function installCoc(use)
-	use("dense-analysis/ale") -- linter
-	use({ "neoclide/coc.nvim", branch = "master", run = "yarn install --frozen-lockfile" })
-	use({ "neoclide/coc-yaml", run = "yarn install --frozen-lockfile" })
-	use({ "neoclide/coc-json", run = "yarn install --frozen-lockfile" })
-	use({ "neoclide/coc-tsserver", run = "yarn install --frozen-lockfile" })
-	use({ "iamcco/coc-spell-checker", run = "yarn install --frozen-lockfile" })
-	use({ "iamcco/coc-vimlsp", run = "yarn install --frozen-lockfile" })
-	use({ "josa42/coc-lua", run = "yarn install --frozen-lockfile" })
-	use({ "josa42/coc-go", run = "yarn install --frozen-lockfile" })
-	use({ "josa42/coc-sh", run = "yarn install --frozen-lockfile" })
-	use({ "fannheyward/coc-markdownlint", run = "yarn install --frozen-lockfile" })
-	use({ "fannheyward/coc-sql", run = "yarn install --frozen-lockfile" })
-	use("antoinemadec/coc-fzf")
-	use({ "neoclide/coc-git", run = "yarn install --frozen-lockfile" })
-	use({ "neoclide/coc-snippets", run = "yarn install --frozen-lockfile" })
-end
-
 local function installNativeLsp(use)
 	use("L3MON4D3/LuaSnip") -- Snippets plugin
 	use("hrsh7th/cmp-nvim-lsp")
@@ -37,22 +19,6 @@ local function installNativeLsp(use)
 	})
 end
 
-local function installFzf(use)
-	use({
-		"junegunn/fzf",
-		run = function()
-			vim.fn["fzf#install"]()
-		end,
-	})
-	use({
-		"junegunn/fzf.vim",
-		run = function()
-			vim.fn["fzf#install"]()
-		end,
-	})
-	use({ "yuki-yano/fzf-preview.vim", branch = "release/rpc" })
-end
-
 local function installTelescope(use)
 	use({
 		"nvim-telescope/telescope.nvim",
@@ -66,6 +32,28 @@ end
 
 function Packer.install(use)
 	require("packer").startup(function()
+    -- fix
+    use("trevorwhitney/tw-vim-lib")
+		use("wbthomason/packer.nvim")
+		use({"nvim-treesitter/nvim-treesitter", config = function()
+			require('nvim-treesitter.configs').setup {
+				ensure_installed = { 
+					"lua",
+					"go"
+				}, -- one of "all", "maintained" (parsers with maintainers), or a list of languages
+				sync_install = false, -- install languages synchronously (only applied to `ensure_installed`)
+				ignore_install = { "haskell" }, -- List of parsers to ignore installing
+				highlight = {
+					enable = true,              -- false will disable the whole extension
+					-- Setting this to true will run `:h syntax` and tree-sitter at the same time.
+					-- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
+					-- Using this option may slow down your editor, and you may see some duplicate highlights.
+					-- Instead of true it can also be a list of languages
+					additional_vim_regex_highlighting = false,
+				},
+			}
+    end})
+    -- end fix 
 		use("AndrewRadev/bufferize.vim") -- open the output of any command in a buffer
 		use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open commands in tmux split
 		use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
@@ -80,7 +68,7 @@ function Packer.install(use)
 		use("kana/vim-textobj-user")
 		use("machakann/vim-highlightedyank")
 		use({ "mg979/vim-visual-multi", branch = "master" }) -- multi-cursor
-		use("nvim-treesitter/nvim-treesitter") -- Highlight, edit, and navigate code using a fast incremental parsing library
+		-- use("nvim-treesitter/nvim-treesitter") -- Highlight, edit, and navigate code using a fast incremental parsing library
 		use("nvim-treesitter/nvim-treesitter-textobjects") -- Additional textobjects for treesitter
 		use("pedrohdz/vim-yaml-folds")
 		use("roxma/vim-tmux-clipboard")
@@ -152,17 +140,9 @@ function Packer.install(use)
 			end,
 		})
 
-		if vim.g["use_native_lsp"] == 1 then
-			installNativeLsp(use)
-		else
-			installCoc(use)
-		end
+		installNativeLsp(use)
 
-		if vim.g["use_telescope"] == 1 then
-			installTelescope(use)
-		else
-			installFzf(use)
-		end
+		installTelescope(use)
 	end)
 end
 

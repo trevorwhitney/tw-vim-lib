@@ -47,7 +47,8 @@ set.diffopt = 'vertical'
 set.clipboard = 'unnamedplus'
 
 -- folding
-set.foldmethod = 'syntax'   -- fold based on indent
+set.foldmethod = 'expr'   -- fold based on treesitter
+set.foldexpr = 'nvim_treesitter#foldexpr()'
 set.foldnestmax = 10      -- deepest fold is 10 levels
 set.foldenable = false       -- dont fold by default
 set.foldlevel = 1         -- this is just what i use
