@@ -84,4 +84,3 @@ vim.g['loaded_perl_provider'] = 0
 
 -- disable default markdown textobj mappings
 vim.g['textobj_markdown_no_default_key_mappings'] = 1
-
