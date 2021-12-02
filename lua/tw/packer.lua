@@ -38,9 +38,6 @@ function Packer.install(use)
 		use({
 			"nvim-treesitter/nvim-treesitter",
 			config = function()
-				local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
-				parser_config.bash.used_by = { "zsh" }
-
 				require("nvim-treesitter.configs").setup({
 					ensure_installed = {
 						"bash",
@@ -57,9 +54,9 @@ function Packer.install(use)
 						-- Using this option may slow down your editor, and you may see some duplicate highlights.
 						-- Instead of true it can also be a list of languages
 						additional_vim_regex_highlighting = false,
+						disable = { "zsh" },
 					},
 				})
-
 			end,
 		})
 		-- end fix
