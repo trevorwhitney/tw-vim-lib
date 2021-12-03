@@ -32,9 +32,9 @@ end
 
 function Packer.install(use)
 	require("packer").startup(function()
-		-- fix
 		use("trevorwhitney/tw-vim-lib")
 		use("wbthomason/packer.nvim")
+
 		use({
 			"nvim-treesitter/nvim-treesitter",
 			config = function()
@@ -63,7 +63,7 @@ function Packer.install(use)
 				})
 			end,
 		})
-		-- end fix
+
 		use("AndrewRadev/bufferize.vim") -- open the output of any command in a buffer
 		use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open commands in tmux split
 		use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
