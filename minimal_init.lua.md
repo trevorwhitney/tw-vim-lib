@@ -1,3 +1,4 @@
+```lua
 local on_windows = vim.loop.os_uname().version:match("Windows")
 
 local function join_paths(...)
@@ -100,3 +101,4 @@ else
 	require("packer").sync()
 	_G.load_config()
 end
+```
