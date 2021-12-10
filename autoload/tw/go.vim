@@ -3,7 +3,7 @@
 " closest nested test to the cursor
 function tw#go#testName() abort
   " finding the test name relies on the code being correctly formatted
-  lua vim.lsp.buf.formatting()
+  lua vim.lsp.buf.formatting_seq_sync()
 
   " search flags legend (used only)
   " 'b' search backward instead of forward

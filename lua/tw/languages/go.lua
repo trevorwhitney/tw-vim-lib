@@ -2,13 +2,7 @@ local Go = {}
 
 function Go.configureLsp(on_attach, capabilities)
 	return {
-		on_attach = function(client, bufnr)
-			on_attach(client, bufnr)
-
-			-- using null_ls for formatting
-			client.resolved_capabilities.document_formatting = false
-			client.resolved_capabilities.document_range_formatting = false
-		end,
+		on_attach = on_attach,
 		capabilities = capabilities,
 		cmd = { "gopls", "serve" },
 		flags = {
