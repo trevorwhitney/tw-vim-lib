@@ -3,6 +3,9 @@ augroup HiddenFugitive
   autocmd!
   autocmd BufReadPost fugitive://* set bufhidden=delete
   autocmd BufReadPost .git/index set nolist
+
+  " disable completion engine for fugitive buffers
+  autocmd BufReadPost fugitive://* lua require('cmp').setup.buffer { enabled = false }
 augroup end
 
 augroup Autosave
