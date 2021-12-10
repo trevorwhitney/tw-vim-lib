@@ -85,3 +85,8 @@ cnoremap <c-k> <c-\>e getcmdpos() == 1 ? '' : getcmdline()[:getcmdpos()-2]<CR>
 "=== NvimTree
 nnoremap <silent><nowait> <leader>\ :<c-u>NvimTreeToggle<cr>
 nnoremap <silent><nowait> \| :<c-u>NvimTreeFindFile<cr>
+
+"=== Dashboard
+nnoremap <leader>sl :SessionLoad<cr>
+nnoremap <leader>ss :SessionSave<cr>
+nnoremap <leader>cn :DashboardNewFile<cr>

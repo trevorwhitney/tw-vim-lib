@@ -85,6 +85,7 @@ function Packer.install(use)
 		use("tpope/vim-rsi")
 		use("tpope/vim-surround")
 		use("tpope/vim-unimpaired")
+		use("glepnir/dashboard-nvim")
 
 		-- recently added
 		use("andymass/vim-matchup") -- show matching pairs
@@ -107,22 +108,6 @@ function Packer.install(use)
 				require("lualine").setup({ options = { theme = "solarized" } })
 			end,
 			requires = { "kyazdani42/nvim-web-devicons", opt = true },
-		})
-
-		-- TODO: key mappings on dashboard are not all correct
-		use({
-			"glepnir/dashboard-nvim",
-			config = function()
-				vim.g["dashboard_default_executive"] = "telescope"
-				vim.g["dashboard_custom_header"] = {
-					" ███╗   ██╗ ███████╗ ██████╗  ██╗   ██╗ ██╗ ███╗   ███╗",
-					" ████╗  ██║ ██╔════╝██╔═══██╗ ██║   ██║ ██║ ████╗ ████║",
-					" ██╔██╗ ██║ █████╗  ██║   ██║ ██║   ██║ ██║ ██╔████╔██║",
-					" ██║╚██╗██║ ██╔══╝  ██║   ██║ ╚██╗ ██╔╝ ██║ ██║╚██╔╝██║",
-					" ██║ ╚████║ ███████╗╚██████╔╝  ╚████╔╝  ██║ ██║ ╚═╝ ██║",
-					" ╚═╝  ╚═══╝ ╚══════╝ ╚═════╝    ╚═══╝   ╚═╝ ╚═╝     ╚═╝",
-				}
-			end,
 		})
 
 		use({
