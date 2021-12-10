@@ -2,6 +2,29 @@
 
 A vim plugin to hold my custom functions, commands, etc. that I use in my vim configuration
 
+# Calling Lua Functions From Vim
+
+```lua
+local M = {}
+
+function M.test(text)
+  print("Text " .. text)
+end
+
+
+function M.testTwo(first, second)
+  print("first: " .. first)
+  print("second: " .. second)
+end
+
+return M
+```
+
+```vim
+command! -nargs=* Test call v:lua.require("example").test(<q-args>)
+command! -nargs=* TestTwo call v:lua.require("example").testTwo(<f-args>)
+```
+
 # Troubleshooting
 
 ## tree-sitter
