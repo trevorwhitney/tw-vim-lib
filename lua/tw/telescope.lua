@@ -17,4 +17,12 @@ function M.currentSelectionForLiveGrepRaw(text)
 	return escapeNewlinesAndForwardSlashes(escape_slashes)
 end
 
+function M.liveGrepRaw(text)
+	require("telescope").extensions.live_grep_raw.live_grep_raw({ default_text = '"' .. text .. '"' })
+end
+
+function M.liveGrep(text)
+	require("telescope.builtin").live_grep({ default_text = text })
+end
+
 return M
