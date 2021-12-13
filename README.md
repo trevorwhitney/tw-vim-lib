@@ -25,6 +25,16 @@ command! -nargs=* Test call v:lua.require("example").test(<q-args>)
 command! -nargs=* TestTwo call v:lua.require("example").testTwo(<f-args>)
 ```
 
+#TODO
+
+* nvim dap with gui
+  * https://github.com/rcarriga/nvim-dap-ui
+  * https://github.com/mfussenegger/nvim-dap
+  * https://github.com/nvim-telescope/telescope-dap.nvim
+  * https://github.com/theHamsta/nvim-dap-virtual-text
+  * https://github.com/leoluz/nvim-dap-go
+  
+
 # Troubleshooting
 
 ## tree-sitter
