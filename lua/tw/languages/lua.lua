@@ -16,6 +16,8 @@ function Lua.configureLsp(sumneko_root, nix_rocks_tree)
 		-- add lua std library and lua rocks locations
 		table.insert(runtime_path, vim.fn.expand("~/.nix-profile/share/lua/5.1/?.lua"))
 		table.insert(runtime_path, vim.fn.expand("~/.nix-profile/share/lua/5.1/?/init.lua"))
+		table.insert(runtime_path, vim.fn.expand("~/.luarocks/share/lua/5.1/?.lua"))
+		table.insert(runtime_path, vim.fn.expand("~/.luarocks/share/lua/5.1/?/init.lua"))
 		table.insert(runtime_path, vim.fn.expand(nix_rocks_tree .. "/share/lua/5.1/?.lua"))
 		table.insert(runtime_path, vim.fn.expand(nix_rocks_tree .. "/share/lua/5.1/?/init.lua"))
 
@@ -33,6 +35,7 @@ function Lua.configureLsp(sumneko_root, nix_rocks_tree)
 
     -- add lua stdlib and luarocks
 		addLibrary("~/.nix-profile/share/lua/5.1")
+		addLibrary("~/.luarocks/share/lua/5.1")
 		addLibrary(nix_rocks_tree .. "/share/lua/5.1")
 
     -- add runtime files (plugins, init.vim, etc.)
