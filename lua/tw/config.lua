@@ -24,7 +24,7 @@ local function configureNullLs()
 	})
 end
 
-local function configureNativeLsp()
+local function configureNativeLsp(sumneko_root, nix_rocks_tree)
 	configureNullLs()
 
 	local nvim_lsp = require("lspconfig")
@@ -62,7 +62,7 @@ local function configureNativeLsp()
 		buf_set_keymap("n", "<leader>a", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
 		buf_set_keymap("x", "<leader>a", "<cmd>lua vim.lsp.buf.range_code_action()<CR>", opts)
 
-		buf_set_keymap("n", "<leader>e", "<cmd>lua vim.lsp.diagnostic.show_line_diagnostics()<CR>", opts)
+		buf_set_keymap("n", "<leader>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
 		buf_set_keymap("n", "[d", "<cmd>lua vim.lsp.diagnostic.goto_prev()<CR>", opts)
 		buf_set_keymap("n", "]d", "<cmd>lua vim.lsp.diagnostic.goto_next()<CR>", opts)
 
@@ -78,7 +78,7 @@ local function configureNativeLsp()
 	-- Use a loop to conveniently call 'setup' on multiple servers and
 	-- map buffer local keybindings when the language server attaches
 	local customLanguages = {
-		sumneko_lua = require("tw.languages.lua").configureLsp,
+		sumneko_lua = require("tw.languages.lua").configureLsp(sumneko_root, nix_rocks_tree),
 		gopls = require("tw.languages.go").configureLsp,
 	}
 
@@ -196,13 +196,13 @@ local function configureCmp()
 	require("luasnip/loaders/from_vscode").lazy_load()
 end
 
-function Config.setup()
+function Config.setup(sumneko_root, nix_rocks_tree)
 	require("tw.config.vim-options")
 	require("tw.config.appearance")
 	require("tw.config.which-key")
 	require("tw.config.nvim-tree")
 
-	configureNativeLsp()
+	configureNativeLsp(sumneko_root, nix_rocks_tree)
 	configureTelescope()
 
 	configureCmp()
