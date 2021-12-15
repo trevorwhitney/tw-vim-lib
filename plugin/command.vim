@@ -10,3 +10,5 @@ command! -nargs=0 ToggleGitStatus
 
 command! -nargs=* GolangTestFocusedWithTags call tw#go#golangTestFocusedWithTags(<f-args>)
 command! -nargs=* DlvTestFocused call tw#go#dlvTestFocused(<f-args>)
+
+command! WipeReg for i in range(34,122) | silent! call setreg(nr2char(i), []) | endfor
