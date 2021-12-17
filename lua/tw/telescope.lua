@@ -7,13 +7,17 @@ local function escapeNewlinesAndForwardSlashes(text)
 	return fn.substitute(escape_newlines, "/", "\\/", "g")
 end
 
-function M.currentSelection(text)
+function M.current_selection(text)
 	local escape_slashes = fn.substitute(text, "\\", "\\\\\\", "g")
 	return escapeNewlinesAndForwardSlashes(escape_slashes)
 end
 
-function M.liveGrepRaw(text)
+function M.live_grep_raw(text)
 	require("telescope").extensions.live_grep_raw.live_grep_raw({ default_text = '"' .. text .. '"' })
+end
+
+function M.dynamic_workspace_symbols(text)
+	require("telescope.builtin").lsp_dynamic_workspace_symbols({ default_text = text })
 end
 
 return M
