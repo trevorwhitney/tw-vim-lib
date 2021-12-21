@@ -125,6 +125,12 @@ function Packer.install(use)
 			end,
 		})
 
+		use({
+			"pwntester/octo.nvim",
+			config = function()
+				require("octo").setup()
+			end,
+		})
 		installNativeLsp(use)
 
 		installTelescope(use)

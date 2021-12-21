@@ -25,6 +25,7 @@ set.tags:prepend("./.git/tags")
 set.undodir = vim.env.HOME .. "/.vim/undodir"
 set.encoding = "utf-8"
 set.spelllang = "en_us"
+set.guifont = "JetBrainsMono Nerd Font"
 
 -- TextEdit might fail if hidden is not set.
 set.hidden = true
