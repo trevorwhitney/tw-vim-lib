@@ -57,15 +57,14 @@ function M.setup(sumneko_root, nix_rocks_tree)
 	}
 
 	local defaultLanguages = {
-		-- "bashls",
-		-- "dockerls",
+		"bashls",
+		"dockerls",
 		"jdtls",
 		"jsonls",
 		"jsonnet_ls",
-		"null-ls",
 		"terraformls",
-		-- "vimls",
-		-- "yamlls",
+		"vimls",
+		"yamlls",
 	}
 
 	for _, lsp in ipairs(defaultLanguages) do
