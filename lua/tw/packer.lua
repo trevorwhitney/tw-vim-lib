@@ -1,8 +1,9 @@
-local Packer = {}
+Packer = {}
 
 local function installNativeLsp(use)
 	use("L3MON4D3/LuaSnip") -- Snippets plugin
 	use("hrsh7th/cmp-nvim-lsp")
+	use("hrsh7th/cmp-omni")
 	use("hrsh7th/nvim-cmp") -- Autocompletion plugin
 	use("neovim/nvim-lspconfig") -- Collection of configurations for built-in LSP client
 	use("rafamadriz/friendly-snippets")
@@ -28,6 +29,28 @@ local function installTelescope(use)
 		},
 	})
 	use({ "nvim-telescope/telescope-fzf-native.nvim", run = "make" })
+end
+
+local function installDap(use)
+	use("mfussenegger/nvim-dap")
+	use({
+		"leoluz/nvim-dap-go",
+		requires = { "mfussenegger/nvim-dap" },
+		config = function()
+			require("dap-go").setup()
+		end,
+	})
+	use({
+		"theHamsta/nvim-dap-virtual-text",
+		requires = { "mfussenegger/nvim-dap" },
+		config = function()
+			require("nvim-dap-virtual-text").setup()
+		end,
+	})
+	use({
+		"rcarriga/nvim-dap-ui",
+		requires = { "mfussenegger/nvim-dap" },
+	})
 end
 
 function Packer.install(use)
@@ -68,11 +91,9 @@ function Packer.install(use)
 		use("kana/vim-textobj-user")
 		use("machakann/vim-highlightedyank")
 		use({ "mg979/vim-visual-multi", branch = "master" }) -- multi-cursor
-		-- use("nvim-treesitter/nvim-treesitter") -- Highlight, edit, and navigate code using a fast incremental parsing library
 		use("nvim-treesitter/nvim-treesitter-textobjects") -- Additional textobjects for treesitter
 		use("pedrohdz/vim-yaml-folds")
 		use("roxma/vim-tmux-clipboard")
-		use("sebdah/vim-delve")
 		use("shaunsingh/solarized.nvim")
 		use("tommcdo/vim-exchange")
 		use("tpope/vim-abolish")
@@ -134,6 +155,8 @@ function Packer.install(use)
 		installNativeLsp(use)
 
 		installTelescope(use)
+
+		installDap(use)
 	end)
 end
 

@@ -1,6 +1,6 @@
 local Go = {}
 
-function Go.configureLsp(on_attach, capabilities)
+function Go.configure_lsp(on_attach, capabilities)
 	return {
 		on_attach = on_attach,
 		capabilities = capabilities,
@@ -18,6 +18,28 @@ function Go.configureLsp(on_attach, capabilities)
 			},
 		},
 	}
+end
+
+function Go.debug_go_test(...)
+	local dap = require("dap")
+	local test_name = vim.fn["tw#go#testName"]()
+	local tags = { ... }
+
+	local args
+	if tags[0] then
+		args = { "--build-flags=tags", table.concat({ ... }, ","), "--", "-test.run", test_name }
+	else
+		args = { "-test.run", test_name }
+	end
+
+	dap.run({
+		type = "go",
+		name = test_name,
+		request = "launch",
+		mode = "test",
+		program = "./${relativeFileDirname}",
+		args = args,
+	})
 end
 
 return Go

@@ -9,6 +9,7 @@ function Config.setup(sumneko_root, nix_rocks_tree)
 	require("tw.config.telescope")
 	require("tw.config.completion")
 	require("tw.config.trouble")
+	require("tw.config.dap")
 
 	require("tw.config.lsp").setup(sumneko_root, nix_rocks_tree)
 end

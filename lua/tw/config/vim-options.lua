@@ -101,9 +101,6 @@ vim.g["VM_maps"] = {
 	["Find Subword Under"] = "<C-d>", -- replace visual C-n
 }
 
--- delve
-vim.g["delve_use_vimux"] = 1
-
 -- dashboard
 vim.g["dashboard_custom_header"] = {
 	" ███╗   ██╗ ███████╗ ██████╗  ██╗   ██╗ ██╗ ███╗   ███╗",

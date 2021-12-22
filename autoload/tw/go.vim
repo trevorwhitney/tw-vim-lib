@@ -83,25 +83,6 @@ function tw#go#findNextInnerTest(line, column, outer) abort
   return l:innerTestPos
 endfunction
 
-"TODO: these functions could be smarter and could parse the current file to
-"look for relevant build tags at the top of the file
-function! tw#go#dlvTestFocused(...)
-  let l:buildFlags = (a:0 > 0) ? join(a:000, ',') : ""
-
-  let l:testName = tw#go#testName()
-  let l:separator = tw#util#shellCommandSeperator()
-
-  if l:testName !=? ''
-    if len(l:buildFlags) > 0
-      call delve#dlvTest(expand('%:p:h'), '--build-flags="-tags=' . l:buildFlags . '"', '--', '-test.run', l:testName)
-    else
-      call delve#dlvTest(expand('%:p:h'), '--', '-test.run', l:testName)
-    endif
-  else
-    echo 'No test found'
-  endif
-endfunction
-
 function! tw#go#golangTestFocusedWithTags(...)
   let l:buildFlags = (a:0 > 0) ? join(a:000, ',') : ''
 

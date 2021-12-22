@@ -53,7 +53,7 @@ function M.setup(sumneko_root, nix_rocks_tree)
 	-- map buffer local keybindings when the language server attaches
 	local customLanguages = {
 		sumneko_lua = require("tw.languages.lua").configureLsp(sumneko_root, nix_rocks_tree),
-		gopls = require("tw.languages.go").configureLsp,
+		gopls = require("tw.languages.go").configure_lsp,
 	}
 
 	local defaultLanguages = {

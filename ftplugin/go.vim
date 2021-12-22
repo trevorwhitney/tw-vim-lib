@@ -24,8 +24,5 @@ nmap <Leader>rt  :wa<CR> :GolangTestFocusedWithTags<CR>
 nmap <leader>ri  :wa<cr> :GolangTestFocusedWithTags e2e_gme requires_docker<cr>
 
 " delve
-nmap <leader>bp  :DlvToggleBreakpoint<cr>
-nmap <leader>dt  :wa<cr> :DlvTestFocused<cr>
-
-" delve integration test
-nmap <leader>di  :wa<cr> :DlvTestFocused e2e_gme requires_docker<cr>
+nmap <leader>dt <cmd>lua require('tw.languages.go').debug_go_test()<cr>
+map <leader>di <cmd>lua require('tw.languages.go').debug_go_test("e2e_gme", "requires_docker")<cr>
