@@ -15,10 +15,11 @@ function! tw#telescope#MapKeys() abort
   nnoremap <leader>fr <cmd>Telescope resume<cr>
   " find bookmark
   nnoremap <leader>fb <cmd>Telescope marks<cr>
+
   " find workspace symbol
   nnoremap <leader>fs <cmd>Telescope lsp_dynamic_workspace_symbols<cr>
-  nnoremap <leader>* <cmd>lua require("telescope.builtin").lsp_dynamic_workspace_symbols({ default_text = vim.fn.expand("<cword>") })<cr>
-  xnoremap <leader>* "sy:TelescopeDynamicSymbols <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>
+  nnoremap <leader>sf <cmd>lua require("telescope.builtin").lsp_dynamic_workspace_symbols({ default_text = vim.fn.expand("<cword>") })<cr>
+  xnoremap <leader>sf "sy:TelescopeDynamicSymbols <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>
 
   " find treesitter symbol
   nnoremap <leader>ft <cmd>Telescope treesitter<cr>
@@ -29,9 +30,9 @@ function! tw#telescope#MapKeys() abort
   " Grep using live grep raw, which passes additional options to rg
   nnoremap <leader>fg <cmd>lua require("telescope").extensions.live_grep_raw.live_grep_raw()<cr>
   " find word
-  nnoremap <leader>f* <cmd>lua require("telescope").extensions.live_grep_raw.live_grep_raw({ default_text = vim.fn.expand("<cword>") })<cr>
+  nnoremap <leader>* <cmd>lua require("telescope").extensions.live_grep_raw.live_grep_raw({ default_text = vim.fn.expand("<cword>") })<cr>
   " find selection
-  xnoremap <leader>f* "sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>
+  xnoremap <leader>* "sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>
 
   nnoremap <nowait>\b <cmd>Telescope buffers<cr>
   nnoremap <nowait>\o <cmd>Telescope lsp_document_symbols<cr>
