@@ -1,10 +1,11 @@
+set tabstop=2
+set shiftwidth=2
+
 let g:go_code_completion_enabled = 0
 let g:go_def_mapping_enabled = 0
 let g:go_build_tags = 'e2e_gem,requires_docker'
 let g:go_textobj_enabled = 0
 let g:go_gopls_enabled = 0
-
-let g:delve_use_vimux = 1
 
 " open test in a vertical split
 nmap <leader>gt  :<C-u>GoAlternate<cr>

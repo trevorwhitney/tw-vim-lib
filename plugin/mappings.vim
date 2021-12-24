@@ -90,3 +90,6 @@ nnoremap <silent><nowait> \| :<c-u>NvimTreeFindFile<cr>
 nnoremap <leader>sl :SessionLoad<cr>
 nnoremap <leader>ss :SessionSave<cr>
 nnoremap <leader>cn :DashboardNewFile<cr>
+
+"=== Neoterm
+nnoremap <nowait>\t <cmd>0Ttoggle<cr>

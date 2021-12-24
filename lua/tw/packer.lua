@@ -152,6 +152,9 @@ function Packer.install(use)
 				require("octo").setup()
 			end,
 		})
+
+		use("kassio/neoterm")
+
 		installNativeLsp(use)
 
 		installTelescope(use)

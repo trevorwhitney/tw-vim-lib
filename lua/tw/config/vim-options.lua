@@ -9,6 +9,7 @@ set.incsearch = true
 set.wrap = false -- No wrapping
 set.number = true -- Line numbers
 set.splitright = true
+set.splitbelow = true
 set.undofile = true
 set.showmatch = true -- Show matching brackets/braces
 set.smarttab = true -- Use shiftwidth to tab at line beginning
@@ -120,3 +121,6 @@ vim.g["dashboard_custom_shortcut"] = {
 	find_word = "SPC f g",
 	book_marks = "SPC f b",
 }
+
+vim.g["neoterm_default_mod"] = "botright"
+vim.g["neoterm_size"] = 15
