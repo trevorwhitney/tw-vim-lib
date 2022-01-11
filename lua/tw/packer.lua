@@ -108,7 +108,6 @@ function Packer.install(use)
 		use("tpope/vim-unimpaired")
 		use("glepnir/dashboard-nvim")
 
-		-- recently added
 		use("andymass/vim-matchup") -- show matching pairs
 		use({
 			"windwp/nvim-autopairs",
@@ -154,6 +153,7 @@ function Packer.install(use)
 		})
 
 		use("kassio/neoterm")
+		use("towolf/vim-helm")
 
 		installNativeLsp(use)
 

@@ -36,6 +36,9 @@ function M.setup(sumneko_root, nix_rocks_tree)
 		buf_set_keymap("n", "<leader>a", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
 		buf_set_keymap("x", "<leader>a", "<cmd>lua vim.lsp.buf.range_code_action()<CR>", opts)
 
+		buf_set_keymap("n", "<leader>ds", "<cmd>lua vim.diagnostic.show()<CR>", opts)
+		buf_set_keymap("n", "<leader>dh", "<cmd>lua vim.diagnostic.hide()<CR>", opts)
+
 		buf_set_keymap("n", "<leader>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
 		buf_set_keymap("n", "[d", "<cmd>lua vim.lsp.diagnostic.goto_prev()<CR>", opts)
 		buf_set_keymap("n", "]d", "<cmd>lua vim.lsp.diagnostic.goto_next()<CR>", opts)

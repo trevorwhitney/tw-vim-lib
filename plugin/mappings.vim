@@ -91,5 +91,12 @@ nnoremap <leader>sl :SessionLoad<cr>
 nnoremap <leader>ss :SessionSave<cr>
 nnoremap <leader>cn :DashboardNewFile<cr>
 
-"=== Neoterm
+"=== Neoterm/Neovim built in terminal mappings
 nnoremap <nowait>\t <cmd>0Ttoggle<cr>
+tnoremap <Esc> <C-\><C-n>
+tnoremap jj <C-\><C-n>
+
+tnoremap <C-J> <C-\><C-N><C-W><C-J>
+tnoremap <C-K> <C-\><C-N><C-W><C-K>
+tnoremap <C-L> <C-\><C-N><C-W><C-L>
+tnoremap <C-H> <C-\><C-N><C-W><C-H>

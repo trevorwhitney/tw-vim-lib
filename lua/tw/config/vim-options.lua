@@ -124,3 +124,4 @@ vim.g["dashboard_custom_shortcut"] = {
 
 vim.g["neoterm_default_mod"] = "botright"
 vim.g["neoterm_size"] = 15
+vim.g["neoterm_shell"] = "/bin/bash"

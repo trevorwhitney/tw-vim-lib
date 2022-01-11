@@ -11,6 +11,6 @@ function! tw#trouble#MapKeys() abort
   nnoremap gI <cmd>TroubleToggle lsp_implementations<cr>
   nnoremap gY <cmd>TroubleToggle lsp_type_definitions<cr>
 
-  nnoremap <nowait>\d <cmd>TroubleToggle lsp_document_diagnostics>cr>
-  nnoremap <nowait>\w <cmd>TroubleToggle lsp_workspace_diagnostics>cr>
+  nnoremap <nowait>\d <cmd>TroubleToggle lsp_document_diagnostics<cr>
+  nnoremap <nowait>\w <cmd>TroubleToggle lsp_workspace_diagnostics<cr>
 endfunction
