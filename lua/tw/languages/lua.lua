@@ -61,7 +61,7 @@ function Lua.configureLsp(sumneko_root, nix_rocks_tree)
 					},
 					diagnostics = {
 						-- Get the language server to recognize the `vim` global
-						globals = { "vim" },
+						globals = { "vim", "run_sync" },
 					},
 					workspace = {
 						library = library,

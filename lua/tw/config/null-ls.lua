@@ -8,7 +8,7 @@ require("null-ls").setup({
 		null_ls.builtins.code_actions.statix,
 		null_ls.builtins.diagnostics.golangci_lint,
 		null_ls.builtins.diagnostics.luacheck.with({
-			extra_args = { "--globals", "vim" },
+			extra_args = { "--globals", "vim", "run_sync" },
 		}),
 		null_ls.builtins.diagnostics.markdownlint,
 		null_ls.builtins.diagnostics.shellcheck,

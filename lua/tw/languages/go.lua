@@ -17,6 +17,17 @@ function Go.configure_lsp(on_attach, capabilities)
 				staticcheck = true,
 			},
 		},
+		on_new_config = function(new_config, new_root_dir)
+			local res = run_sync({ "go", "list", "-m" }, {
+				cwd = new_root_dir,
+			})
+			if res.status_code ~= 0 then
+				print("go list failed")
+				return
+			end
+
+			new_config.settings.gopls["local"] = res.stdout
+		end,
 	}
 end
 
