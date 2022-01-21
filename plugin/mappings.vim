@@ -54,8 +54,8 @@ nmap <leader>gk       :Git commit<CR>
 nnoremap <nowait> \k  :Git commit<CR>
 
 " Git status
-nnoremap <nowait> \s  :Telescope git_status<cr>
-nnoremap <nowait> \S  :ToggleGitStatus<cr>
+nnoremap <nowait> \s  :ToggleGitStatus<cr>
+nnoremap <nowait> \S  :Telescope git_status<cr>
 " Git logs
 nnoremap <nowait> \l  :<C-u>Git log -n 50 --graph --decorate --oneline<cr>
 " pneumonic git history
