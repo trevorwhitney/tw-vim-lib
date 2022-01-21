@@ -8,8 +8,8 @@ telescope.load_extension("projects")
 telescope.setup({
 	defaults = {
 		mappings = {
-			i = { ["<c-t>"] = trouble.open_with_trouble },
-			n = { ["<c-t>"] = trouble.open_with_trouble },
+			i = { ["<c-b>"] = trouble.open_with_trouble },
+			n = { ["<c-b>"] = trouble.open_with_trouble },
 		},
 	},
 })

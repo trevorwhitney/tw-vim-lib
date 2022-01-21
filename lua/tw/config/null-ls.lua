@@ -1,4 +1,5 @@
 local null_ls = require("null-ls")
+local home = vim.loop.os_getenv("HOME")
 
 require("null-ls").setup({
 	-- you must define at least one source for the plugin to work
@@ -10,7 +11,9 @@ require("null-ls").setup({
 		null_ls.builtins.diagnostics.luacheck.with({
 			extra_args = { "--globals", "vim", "run_sync" },
 		}),
-		null_ls.builtins.diagnostics.markdownlint,
+		null_ls.builtins.diagnostics.markdownlint.with({
+			extra_args = { "--config", home .. "/.markdownlint.json" },
+		}),
 		null_ls.builtins.diagnostics.shellcheck,
 		null_ls.builtins.diagnostics.statix,
 		null_ls.builtins.diagnostics.vale,
