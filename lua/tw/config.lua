@@ -1,6 +1,6 @@
 local Config = {}
 
-function Config.setup(sumneko_root, nix_rocks_tree, jdtls_home)
+function Config.setup(sumneko_root, nix_rocks_tree)
 	require("tw.config.vim-options")
 	require("tw.config.appearance")
 	require("tw.config.which-key")
@@ -10,7 +10,7 @@ function Config.setup(sumneko_root, nix_rocks_tree, jdtls_home)
 	require("tw.config.completion")
 	require("tw.config.dap")
 
-	require("tw.config.lsp").setup(sumneko_root, nix_rocks_tree, jdtls_home)
+	require("tw.config.lsp").setup(sumneko_root, nix_rocks_tree)
 end
 
 return Config
