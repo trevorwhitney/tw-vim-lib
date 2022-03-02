@@ -2,7 +2,8 @@ local lsp = require("tw.config.lsp")
 
 local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")
 local home = vim.loop.os_getenv("HOME")
-local jdtls_home = vim.fn.expand(home .. "/.local/share/jdtls")
+local jdtls_home = vim.api.nvim_eval("g:jdtls_home")
+local jdtls_data = vim.fn.expand(home .. "/.local/share/jdtls")
 
 local capabilities = require("cmp_nvim_lsp").update_capabilities(vim.lsp.protocol.make_client_capabilities())
 
@@ -21,6 +22,10 @@ local config = {
 
 		"-Declipse.application=org.eclipse.jdt.ls.core.id1",
 		"-Dosgi.bundles.defaultStartLevel=4",
+		"-Dosgi.checkConfiguration=true",
+		"-Dosgi.sharedConfiguration.area=" .. vim.fn.expand(jdtls_home .. "/config_linux"),
+		"-Dosgi.sharedConfiguration.area.readOnly=true",
+		"-Dosgi.configuration.cascaded=true",
 		"-Declipse.product=org.eclipse.jdt.ls.core.product",
 		"-Dlog.protocol=true",
 		"-Dlog.level=ALL",
@@ -37,12 +42,12 @@ local config = {
 
 		-- 💀
 		"-configuration",
-		jdtls_home .. "/config_linux",
+		jdtls_data .. "/config_linux",
 
 		-- 💀
 		-- See `data directory configuration` section in the README
 		"-data",
-		jdtls_home .. "/workspace/" .. project_name,
+		jdtls_data .. "/workspace/" .. project_name,
 	},
 
 	-- 💀
