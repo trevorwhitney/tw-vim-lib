@@ -90,11 +90,10 @@ function! tw#go#golangTestFocusedWithTags(...)
   let l:separator = tw#util#shellCommandSeperator()
 
   if len(l:testName) > 0
-    exec '0Topen'
     if len(l:buildFlags) > 0
-      exec '0T cd ' . GolangCwd() . ' ' . l:separator . ' clear ' . l:separator . ' go test ' . '-tags="' . l:buildFlags . '" ' . GolangFocusedCommand(l:testName) . ' -v ' . GolangCurrentPackage()
+      call VimuxRunCommand('cd ' . GolangCwd() . ' ' . l:separator . ' clear ' . l:separator . ' go test ' . '-tags="' . l:buildFlags . '" ' . GolangFocusedCommand(l:testName) . ' -v ' . GolangCurrentPackage())
     else
-      exec '0T cd ' . GolangCwd() . ' ' . l:separator . ' clear ' . l:separator . ' go test ' . GolangFocusedCommand(l:testName) . ' -v ' . GolangCurrentPackage()
+      call VimuxRunCommand('cd ' . GolangCwd() . ' ' . l:separator . ' clear ' . l:separator . ' go test ' . GolangFocusedCommand(l:testName) . ' -v ' . GolangCurrentPackage())
     endif
   else
     echo 'No test found'

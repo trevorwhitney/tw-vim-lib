@@ -2,7 +2,7 @@ local M = {}
 
 local nvim_lsp = require("lspconfig")
 
-function M.setup(sumneko_root, nix_rocks_tree)
+function M.setup(sumneko_root, nix_rocks_tree, jdtls_home)
 	-- Use an on_attach function to only map the following keys
 	-- after the language server attaches to the current buffer
 	local on_attach = function(_, bufnr)
@@ -29,8 +29,8 @@ function M.setup(sumneko_root, nix_rocks_tree)
 
 		buf_set_keymap("n", "<leader>=", "<cmd>lua vim.lsp.buf.formatting_seq_sync()<CR>", opts)
 
-		buf_set_keymap("n", "<leader>k", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
-		buf_set_keymap("n", "<leader>K", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
+		buf_set_keymap("n", "<leader>k", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
+		buf_set_keymap("n", "<leader>K", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
 
 		buf_set_keymap("n", "<leader>re", "<cmd>lua vim.lsp.buf.rename()<CR>", opts)
 		buf_set_keymap("n", "<leader>a", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
@@ -40,10 +40,11 @@ function M.setup(sumneko_root, nix_rocks_tree)
 		buf_set_keymap("n", "<leader>dh", "<cmd>lua vim.diagnostic.hide()<CR>", opts)
 
 		buf_set_keymap("n", "<leader>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
-		buf_set_keymap("n", "[d", "<cmd>lua vim.lsp.diagnostic.goto_prev()<CR>", opts)
-		buf_set_keymap("n", "]d", "<cmd>lua vim.lsp.diagnostic.goto_next()<CR>", opts)
+		buf_set_keymap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>", opts)
+		buf_set_keymap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>", opts)
 
-		buf_set_keymap("n", "<leader>q", "<cmd>lua vim.lsp.diagnostic.set_loclist()<CR>", opts)
+		-- buf_set_keymap("n", "<leader>q", "<cmd>lua vim.diagnostic.set_loclist()<CR>", opts)
+		buf_set_keymap("n", "\\d", "<cmd>lua vim.diagnostic.setloclist()<CR>", opts)
 
 		buf_set_keymap("n", "<leader>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
 		buf_set_keymap("n", "<leader>wr", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", opts)
@@ -57,6 +58,7 @@ function M.setup(sumneko_root, nix_rocks_tree)
 	local customLanguages = {
 		sumneko_lua = require("tw.languages.lua").configureLsp(sumneko_root, nix_rocks_tree),
 		gopls = require("tw.languages.go").configure_lsp,
+    ccls = require("tw.languages.c").configure_lsp
 	}
 
 	local defaultLanguages = {
@@ -65,6 +67,7 @@ function M.setup(sumneko_root, nix_rocks_tree)
 		"jdtls",
 		"jsonls",
 		"jsonnet_ls",
+    "rnix",
 		"terraformls",
 		"vimls",
 		"yamlls",
@@ -87,6 +90,9 @@ function M.setup(sumneko_root, nix_rocks_tree)
 	for lsp, fn in pairs(customLanguages) do
 		nvim_lsp[lsp].setup(fn(on_attach, capabilities))
 	end
+
+  -- Java is special
+  require("tw.languages.java").configure_lsp(jdtls_home, on_attach, capabilities)
 end
 
 return M

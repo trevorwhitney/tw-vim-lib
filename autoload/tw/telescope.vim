@@ -15,6 +15,8 @@ function! tw#telescope#MapKeys() abort
   nnoremap <leader>fr <cmd>Telescope resume<cr>
   " find bookmark
   nnoremap <leader>fb <cmd>Telescope marks<cr>
+  " find projects
+  nnoremap <leader>fp <cmd>Telescope projects<cr>
 
   " find workspace symbol
   nnoremap <leader>fs <cmd>Telescope lsp_dynamic_workspace_symbols<cr>

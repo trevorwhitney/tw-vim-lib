@@ -4,7 +4,9 @@ local home = vim.loop.os_getenv("HOME")
 require("null-ls").setup({
 	-- you must define at least one source for the plugin to work
 	sources = {
-		null_ls.builtins.code_actions.shellcheck,
+		null_ls.builtins.code_actions.shellcheck.with({
+      extra_args = { "-x", "-o", "all"}
+    }),
 		null_ls.builtins.code_actions.statix,
 		null_ls.builtins.diagnostics.golangci_lint,
 		null_ls.builtins.diagnostics.luacheck.with({
@@ -13,7 +15,9 @@ require("null-ls").setup({
 		null_ls.builtins.diagnostics.markdownlint.with({
 			extra_args = { "--config", home .. "/.markdownlint.json" },
 		}),
-		null_ls.builtins.diagnostics.shellcheck,
+		null_ls.builtins.diagnostics.shellcheck.with({
+      extra_args = { "-x", "-o", "all"}
+    }),
 		null_ls.builtins.diagnostics.statix,
 		null_ls.builtins.diagnostics.vale,
 		null_ls.builtins.diagnostics.vint,

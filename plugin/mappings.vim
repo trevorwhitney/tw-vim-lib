@@ -31,9 +31,6 @@ nnoremap <C-w>q :windo close<cr>
 nnoremap <silent><nowait> \p "0p
 nnoremap <silent><nowait> \P "0P
 
-nnoremap <silent> \q ZZ
-nnoremap <silent> \Q :xa<cr>
-
 " search and replace
 nnoremap <Leader>sr :%s/\<<C-r><C-w>\>/
 
@@ -45,35 +42,26 @@ nmap <leader>gB   :Git blame<CR>
 
 " pneumonic git diff
 nmap <leader>gd   :Gdiffsplit<CR>
+nmap <leader>gD   :Gdiffsplit @~1<CR>
 
 nnoremap <leader>go   :GitBrowseCurrentLine<cr>
 xnoremap <leader>go   :'<,'>GBrowse<CR>
 
 " pneumonic git commit
 nmap <leader>gk       :Git commit<CR>
-nnoremap <nowait> \k  :Git commit<CR>
 
 " Git status
 nnoremap <nowait> \s  :ToggleGitStatus<cr>
 nnoremap <nowait> \S  :Telescope git_status<cr>
-" Git logs
-nnoremap <nowait> \l  :<C-u>Git log -n 50 --graph --decorate --oneline<cr>
+
 " pneumonic git history
 nmap <leader>gh   :0Gclog!<CR>
 " pneumonic git log
-nmap <leader>gl   :0Gclog!<CR>
-
-" turn spell check on
-nmap <silent> <leader>sp :set spell!<CR>
-
-" search and replace in file
-nnoremap <Leader>sr :%s/\<<C-r><C-w>\>/
+nmap <leader>gl   :<C-u>Git log -n 50 --graph --decorate --oneline<cr>
 
 "======== Helpful Shortcuts =========
-nmap <Leader>lo :lopen<Cr>
-nmap <Leader>lc :lclose<Cr>
-nmap <Leader>co :copen<Cr>
-nmap <Leader>cc :cclose<Cr>
+nnoremap <nowait> \l  :<C-u>call ToggleLocationList()<CR>
+nnoremap <nowait> \c  :<C-u>call ToggleQuickfixList()<CR>
 
 " ====== easy-motion ======
 map <leader>w <Plug>(easymotion-bd-w)
