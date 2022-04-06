@@ -19,9 +19,9 @@ require("null-ls").setup({
       extra_args = { "-x", "-o", "all"}
     }),
 		null_ls.builtins.diagnostics.statix,
-		null_ls.builtins.diagnostics.vale,
+		-- null_ls.builtins.diagnostics.vale,
 		null_ls.builtins.diagnostics.vint,
-		null_ls.builtins.diagnostics.write_good,
+		-- null_ls.builtins.diagnostics.write_good,
 		null_ls.builtins.diagnostics.yamllint,
 		null_ls.builtins.formatting.fixjson,
 		null_ls.builtins.formatting.gofmt,

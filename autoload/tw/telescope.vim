@@ -9,12 +9,14 @@ function! tw#telescope#MapKeys() abort
   nnoremap <leader>ff <cmd>Telescope git_files<cr>
   " find file (in all files)
   nnoremap <leader>fa <cmd>Telescope find_files<cr>
+  " find buffer
+  nnoremap <leader>fb <cmd>Telescope buffers<cr>
   " find help
   nnoremap <leader>fh <cmd>Telescope help_tags<cr>
   " find resume, resume last find oepration
   nnoremap <leader>fr <cmd>Telescope resume<cr>
-  " find bookmark
-  nnoremap <leader>fb <cmd>Telescope marks<cr>
+  " find bookMark
+  nnoremap <leader>fm <cmd>Telescope marks<cr>
   " find projects
   nnoremap <leader>fp <cmd>Telescope projects<cr>
 
@@ -36,6 +38,5 @@ function! tw#telescope#MapKeys() abort
   " find selection
   xnoremap <leader>* "sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>
 
-  nnoremap <nowait>\b <cmd>Telescope buffers<cr>
   nnoremap <nowait>\o <cmd>Telescope lsp_document_symbols<cr>
 endfunction
