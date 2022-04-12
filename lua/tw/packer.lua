@@ -95,7 +95,67 @@ function Packer.install(use)
 			"nvim-treesitter/nvim-treesitter",
 			config = function()
 				require("nvim-treesitter.configs").setup({
-					ensure_installed = "maintained", -- one of "all", "maintained" (parsers with maintainers), or a list of languages
+					ensure_installed = {
+						"bash",
+						"bibtex",
+						"c",
+						"c_sharp",
+						"clojure",
+						"cmake",
+						"comment",
+						"commonlisp",
+						"cpp",
+						"css",
+						"dockerfile",
+						"dot",
+						"elixir",
+						"erlang",
+						"fish",
+						"go",
+						"godot_resource",
+						"gomod",
+						"gowork",
+						"graphql",
+						"hcl",
+						"hjson",
+						"hocon",
+						"html",
+						"http",
+						"java",
+						"javascript",
+						"jsdoc",
+						"json",
+						"json5",
+						"jsonc",
+						"julia",
+						"kotlin",
+						"latex",
+						"llvm",
+						"lua",
+						"make",
+						"markdown",
+						"nix",
+						"perl",
+						"php",
+						"phpdoc",
+						"python",
+						"ql",
+						"query",
+						"r",
+						"regex",
+						"ruby",
+						"rust",
+						"scala",
+						"scheme",
+						"scss",
+						"todotxt",
+						"toml",
+						"tsx",
+						"typescript",
+						"vim",
+						"wgsl",
+						"yaml",
+					},
 					sync_install = false, -- install languages synchronously (only applied to `ensure_installed`)
 					ignore_install = { "haskell" }, -- List of parsers to ignore installing
 					highlight = {
@@ -119,7 +179,7 @@ function Packer.install(use)
 		use("folke/which-key.nvim")
 		use("google/vim-jsonnet")
 		use("junegunn/vader.vim")
-		use("jvirtanen/vim-hcl")
+		-- use("jvirtanen/vim-hcl")
 		use("kana/vim-textobj-entire")
 		use("kana/vim-textobj-user")
 		use("machakann/vim-highlightedyank")
