@@ -177,7 +177,6 @@ function Packer.install(use)
 			end,
 		})
 
-		use("kassio/neoterm")
 		use("towolf/vim-helm")
 		use("milkypostman/vim-togglelist")
 

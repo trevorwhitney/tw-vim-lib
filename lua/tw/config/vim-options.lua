@@ -121,7 +121,3 @@ vim.g["dashboard_custom_shortcut"] = {
 	find_word = "SPC f g",
 	book_marks = "SPC f b",
 }
-
-vim.g["neoterm_default_mod"] = "botright"
-vim.g["neoterm_size"] = 15
-vim.g["neoterm_shell"] = "/bin/bash"

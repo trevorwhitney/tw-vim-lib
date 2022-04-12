@@ -54,6 +54,12 @@ nmap <leader>gk       :Git commit<CR>
 nnoremap <nowait> \s  :ToggleGitStatus<cr>
 nnoremap <nowait> \S  :Telescope git_status<cr>
 
+" Git branches
+nnoremap <nowait> \b :Branches<cr>
+
+" Tagstack to see where you've been
+nnoremap <nowait>\t :Telescope tagstack<cr>
+
 " pneumonic git history
 nmap <leader>gh   :0Gclog!<CR>
 " pneumonic git log
@@ -79,13 +85,3 @@ nnoremap <silent><nowait> \| :<c-u>NvimTreeFindFile<cr>
 nnoremap <leader>sl :SessionLoad<cr>
 nnoremap <leader>ss :SessionSave<cr>
 nnoremap <leader>cn :DashboardNewFile<cr>
-
-"=== Neoterm/Neovim built in terminal mappings
-nnoremap <nowait>\t <cmd>0Ttoggle<cr>
-tnoremap <Esc> <C-\><C-n>
-tnoremap jj <C-\><C-n>
-
-tnoremap <C-J> <C-\><C-N><C-W><C-J>
-tnoremap <C-K> <C-\><C-N><C-W><C-K>
-tnoremap <C-L> <C-\><C-N><C-W><C-L>
-tnoremap <C-H> <C-\><C-N><C-W><C-H>
