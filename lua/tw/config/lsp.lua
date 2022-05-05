@@ -13,7 +13,7 @@ function M.on_attach(_, bufnr)
 	end
 
 	-- Enable completion triggered by <c-x><c-o>
-	buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
+	-- buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
 
 	-- Mappings.
 	local opts = { noremap = true, silent = true }
@@ -48,6 +48,14 @@ function M.on_attach(_, bufnr)
 	buf_set_keymap("n", "<leader>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
 	buf_set_keymap("n", "<leader>wr", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", opts)
 	buf_set_keymap("n", "<leader>wl", "<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>", opts)
+
+  -- Override diagnostic settings for helm templates
+	if vim.bo[bufnr].buftype ~= "" or vim.bo[bufnr].filetype == "helm" then
+		vim.diagnostic.disable(bufnr)
+		vim.defer_fn(function()
+			vim.diagnostic.reset(nil, bufnr)
+		end, 1000)
+	end
 end
 
 function M.setup(sumneko_root, nix_rocks_tree)

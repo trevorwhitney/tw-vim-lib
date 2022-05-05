@@ -1,8 +1,14 @@
 cabb W w
 cabb Wq wq
+cabb Wq! wq!
 cabb WQ wq
+cabb WQ! wq!
 cabb Q q
 cabb Qa qa
+cabb Qa! qa!
+cabb QA qa
+cabb QA! qa!
+cabb Q! q!
 
 " <C-q> is for tmux
 noremap <C-q> <Nop>

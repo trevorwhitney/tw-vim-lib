@@ -59,7 +59,8 @@ set.foldlevelstart = 99
 set.foldopen = "insert" -- open folds when inserted into
 
 -- Auto completion
-set.completeopt = { "menuone", "noselect" }
+-- set.completeopt = { "menuone", "noselect" }
+set.completeopt = { "menu", "menuone", "noselect", "preview" }
 set.wildignore:append({ "*\\tmp\\*", "*.swp", "*.swo", "*.zip", ".git", ".cabal-sandbox" })
 set.wildmode = { "longest", "list", "full" }
 set.wildmenu = true

@@ -3,7 +3,7 @@ Packer = {}
 local function installNativeLsp(use)
 	use("L3MON4D3/LuaSnip") -- Snippets plugin
 	use("hrsh7th/cmp-nvim-lsp")
-	use("hrsh7th/cmp-omni")
+	-- use("hrsh7th/cmp-omni")
 	use("hrsh7th/nvim-cmp") -- Autocompletion plugin
 	use("neovim/nvim-lspconfig") -- Collection of configurations for built-in LSP client
 	use("rafamadriz/friendly-snippets")
