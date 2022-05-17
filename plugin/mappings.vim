@@ -73,7 +73,7 @@ nmap <leader>gl   :<C-u>Git log -n 50 --graph --decorate --oneline<cr>
 
 "======== Helpful Shortcuts =========
 nnoremap <nowait> \l  :<C-u>call ToggleLocationList()<CR>
-nnoremap <nowait> \c  :<C-u>call ToggleQuickfixList()<CR>
+nnoremap <nowait> \q  :<C-u>call ToggleQuickfixList()<CR>
 
 " ====== easy-motion ======
 map <leader>w <Plug>(easymotion-bd-w)
