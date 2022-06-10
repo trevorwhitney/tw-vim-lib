@@ -12,8 +12,8 @@ function M.current_selection(text)
 	return escapeNewlinesAndForwardSlashes(escape_slashes)
 end
 
-function M.live_grep_raw(text)
-	require("telescope").extensions.live_grep_raw.live_grep_raw({ default_text = '"' .. text .. '"' })
+function M.live_grep_args(text)
+	require("telescope").extensions.live_grep_args.live_grep_args({ default_text = '"' .. text .. '"' })
 end
 
 function M.dynamic_workspace_symbols(text)

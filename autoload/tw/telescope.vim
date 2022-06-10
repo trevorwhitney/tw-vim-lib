@@ -1,6 +1,6 @@
 
 function! tw#telescope#MapKeys() abort
-  command! -nargs=* TelescopeLiveGrepRaw call v:lua.require('tw.telescope').live_grep_raw(<q-args>)
+  command! -nargs=* TelescopeLiveGrepRaw call v:lua.require('tw.telescope').live_grep_args(<q-args>)
   command! -nargs=* TelescopeDynamicSymbols call v:lua.require('tw.telescope').dynamic_workspace_symbols(<q-args>)
 
   nnoremap <leader>tc <cmd>Telescope colorscheme<cr>
@@ -32,9 +32,9 @@ function! tw#telescope#MapKeys() abort
   nnoremap <leader>fo <cmd>Telescope oldfiles<cr>
 
   " Grep using live grep raw, which passes additional options to rg
-  nnoremap <leader>fg <cmd>lua require("telescope").extensions.live_grep_raw.live_grep_raw()<cr>
+  nnoremap <leader>fg <cmd>lua require("telescope").extensions.live_grep_args.live_grep_args()<cr>
   " find word
-  nnoremap <leader>* <cmd>lua require("telescope").extensions.live_grep_raw.live_grep_raw({ default_text = vim.fn.expand("<cword>") })<cr>
+  nnoremap <leader>* <cmd>lua require("telescope").extensions.live_grep_args.live_grep_args({ default_text = vim.fn.expand("<cword>") })<cr>
   " find selection
   xnoremap <leader>* "sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>
 
