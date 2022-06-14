@@ -21,7 +21,7 @@ function! tw#jsonnet#eval()
     let output = system("tk eval " . shellescape(expand('%')))
   endif
   vnew
-  setlocal nobuflisted buftype=nofile bufhidden=wipe noswapfile ft=json
+  setlocal nobuflisted buftype=nofile bufhidden=wipe noswapfile ft=json wrap
   put! = output
 endfunction
 
