@@ -137,7 +137,6 @@ function Packer.install(use)
             "nix",
             "perl",
             "php",
-            "phpdoc",
             "python",
             "ql",
             "query",
@@ -157,7 +156,7 @@ function Packer.install(use)
             "yaml",
           },
           sync_install = false, -- install languages synchronously (only applied to `ensure_installed`)
-          ignore_install = { "haskell" }, -- List of parsers to ignore installing
+          ignore_install = { "haskell", "phpdoc" }, -- List of parsers to ignore installing
           highlight = {
             enable = true, -- false will disable the whole extension
             -- Setting this to true will run `:h syntax` and tree-sitter at the same time.
