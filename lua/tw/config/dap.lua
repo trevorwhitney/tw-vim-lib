@@ -1,7 +1,5 @@
 vim.fn["tw#dap#MapKeys"]()
 
-
-
 local breakpoint = {
 	text = "",
 	texthl = "LspDiagnosticsSignError",
@@ -32,18 +30,26 @@ vim.fn.sign_define("DapBreakpointRejected", breakpoint_rejected)
 vim.fn.sign_define("DapStopped", dap_stopped)
 
 require("dapui").setup({
-	sidebar = {
-		-- You can change the order of elements in the sidebar
-		elements = {
-			-- Provide as ID strings or tables with "id" and "size" keys
-			{
-				id = "scopes",
-				size = 0.75, -- Can be float or integer > 1
+	layouts = {
+		{
+			elements = {
+				-- Provide as ID strings or tables with "id" and "size" keys
+				{
+					id = "scopes",
+					size = 0.75, -- Can be float or integer > 1
+				},
+				{ id = "breakpoints", size = 0.25 },
 			},
-			{ id = "breakpoints", size = 0.25 },
+			size = 40,
+			position = "left",
 		},
-	},
-	tray = {
-		size = 15,
+		{
+			elements = {
+				"repl",
+				"console",
+			},
+			size = 15,
+			position = "bottom",
+		},
 	},
 })

@@ -185,7 +185,8 @@ function Packer.install(use)
     use({ "mg979/vim-visual-multi", branch = "master" }) -- multi-cursor
     use("nvim-treesitter/nvim-treesitter-textobjects") -- Additional textobjects for treesitter
     use("pedrohdz/vim-yaml-folds")
-    use("roxma/vim-tmux-clipboard")
+    -- this broke on stem
+    -- use("roxma/vim-tmux-clipboard")
     use("shaunsingh/solarized.nvim")
     use("tommcdo/vim-exchange")
     use("tpope/vim-abolish")
