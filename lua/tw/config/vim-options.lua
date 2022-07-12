@@ -102,23 +102,3 @@ vim.g["VM_maps"] = {
 	["Find Under"] = "<C-d>", -- replace C-n
 	["Find Subword Under"] = "<C-d>", -- replace visual C-n
 }
-
--- dashboard
-vim.g["dashboard_custom_header"] = {
-	" ███╗   ██╗ ███████╗ ██████╗  ██╗   ██╗ ██╗ ███╗   ███╗",
-	" ████╗  ██║ ██╔════╝██╔═══██╗ ██║   ██║ ██║ ████╗ ████║",
-	" ██╔██╗ ██║ █████╗  ██║   ██║ ██║   ██║ ██║ ██╔████╔██║",
-	" ██║╚██╗██║ ██╔══╝  ██║   ██║ ╚██╗ ██╔╝ ██║ ██║╚██╔╝██║",
-	" ██║ ╚████║ ███████╗╚██████╔╝  ╚████╔╝  ██║ ██║ ╚═╝ ██║",
-	" ╚═╝  ╚═══╝ ╚══════╝ ╚═════╝    ╚═══╝   ╚═╝ ╚═╝     ╚═╝",
-}
-vim.g["dashboard_default_executive"] = "telescope"
-vim.g["dashboard_custom_shortcut"] = {
-	last_session = "SPC s l",
-	find_history = "SPC f o",
-	find_file = "SPC f f",
-	new_file = "SPC c n",
-	change_colorscheme = "SPC t c",
-	find_word = "SPC f g",
-	book_marks = "SPC f b",
-}
