@@ -12,6 +12,7 @@ require("nvim-tree").setup({
     update_cwd = true,
   },
   view = {
+    adaptive_size = true,
     mappings = {
       list = custom_mappings,
     },
