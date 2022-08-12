@@ -217,6 +217,7 @@ function Packer.install(use)
     use("tpope/vim-surround")
     use("tpope/vim-unimpaired")
     use("glepnir/dashboard-nvim")
+    use("fladson/vim-kitty")
 
     use("andymass/vim-matchup") -- show matching pairs
     use({
