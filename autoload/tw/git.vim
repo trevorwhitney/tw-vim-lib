@@ -4,14 +4,14 @@ function! tw#git#browseCurrentLine()
 endfunction
 
 function! tw#git#toggleGitStatus()
-  let gitIndexExpr = '.git/index'
-  let bufNum = bufnr(gitIndexExpr)
-  let bufVisible = bufwinnr(gitIndexExpr)
+  let bufName = bufname('fugitive:///*/.git')
+  let bufNum = bufnr(bufName)
+  let bufVisible = bufwinnr(bufNum)
 
   if bufNum == -1
     execute 'Git'
   else
-    if bufVisible == -1
+    if bufVisible == -1 || bufVisible == 1
       execute 'Git'
     else
       execute 'bdelete ' . bufNum
