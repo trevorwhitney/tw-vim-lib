@@ -10,6 +10,7 @@ function Config.setup(sumneko_root, nix_rocks_tree)
 	require("tw.config.completion")
 	require("tw.config.dap")
 	require("tw.config.dashboard")
+	require("tw.config.treesitter")
 
 
   local lsp_support = vim.api.nvim_eval('get(s:, "lsp_support", 0)')

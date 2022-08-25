@@ -51,7 +51,7 @@ function M.on_attach(_, bufnr)
   buf_set_keymap("n", "<leader>wl", "<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>", opts)
 
   -- Override diagnostic settings for helm templates
-  if vim.bo[bufnr].buftype ~= "" or vim.bo[bufnr].filetype == "helm" then
+  if vim.bo[bufnr].buftype ~= "" or vim.bo[bufnr].filetype == "helm" or vim.bo[bufnr].filetype == "gotmpl" then
     vim.diagnostic.disable(bufnr)
     vim.defer_fn(function()
       vim.diagnostic.reset(nil, bufnr)
@@ -80,6 +80,7 @@ function M.setup(sumneko_root, nix_rocks_tree)
     "tsserver",
     "vimls",
     "yamlls",
+    "pyright",
   }
 
   for _, lsp in ipairs(defaultLanguages) do

@@ -30,7 +30,7 @@ local function installNativeLsp(use)
               return "]c"
             end
             vim.schedule(function()
-              gs.next_hunk({preview = true})
+              gs.next_hunk({ preview = true })
             end)
             return "<Ignore>"
           end, { expr = true })
@@ -40,7 +40,7 @@ local function installNativeLsp(use)
               return "[c"
             end
             vim.schedule(function()
-              gs.prev_hunk({preview = true})
+              gs.prev_hunk({ preview = true })
             end)
             return "<Ignore>"
           end, { expr = true })
@@ -107,85 +107,7 @@ function Packer.install(use)
   require("packer").startup(function()
     use("trevorwhitney/tw-vim-lib")
     use("wbthomason/packer.nvim")
-
-    use({
-      "nvim-treesitter/nvim-treesitter",
-      config = function()
-        require("nvim-treesitter.configs").setup({
-          ensure_installed = {
-            "bash",
-            "bibtex",
-            "c",
-            "c_sharp",
-            "clojure",
-            "cmake",
-            "comment",
-            "commonlisp",
-            "cpp",
-            "css",
-            "dockerfile",
-            "dot",
-            "elixir",
-            "erlang",
-            "fish",
-            "go",
-            "godot_resource",
-            "gomod",
-            "gowork",
-            "graphql",
-            "hcl",
-            "hjson",
-            "hocon",
-            "html",
-            "http",
-            "java",
-            "javascript",
-            "jsdoc",
-            "json",
-            "json5",
-            "jsonc",
-            "julia",
-            "kotlin",
-            "latex",
-            "llvm",
-            "lua",
-            "make",
-            "markdown",
-            "nix",
-            "perl",
-            "php",
-            "python",
-            "ql",
-            "query",
-            "r",
-            "regex",
-            "ruby",
-            "rust",
-            "scala",
-            "scheme",
-            "scss",
-            "todotxt",
-            "toml",
-            "tsx",
-            "typescript",
-            "vim",
-            "wgsl",
-            "yaml",
-          },
-          sync_install = false, -- install languages synchronously (only applied to `ensure_installed`)
-          ignore_install = { "haskell", "phpdoc" }, -- List of parsers to ignore installing
-          highlight = {
-            enable = true, -- false will disable the whole extension
-            -- Setting this to true will run `:h syntax` and tree-sitter at the same time.
-            -- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
-            -- Using this option may slow down your editor, and you may see some duplicate highlights.
-            -- Instead of true it can also be a list of languages
-            additional_vim_regex_highlighting = false,
-          },
-        })
-      end,
-    })
-
+    use("nvim-treesitter/nvim-treesitter")
     use("AndrewRadev/bufferize.vim") -- open the output of any command in a buffer
     use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open commands in tmux split
     use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
@@ -252,7 +174,7 @@ function Packer.install(use)
       end,
     })
 
-    use("towolf/vim-helm")
+    -- use("towolf/vim-helm")
     use("milkypostman/vim-togglelist")
 
     use("mfussenegger/nvim-jdtls")
