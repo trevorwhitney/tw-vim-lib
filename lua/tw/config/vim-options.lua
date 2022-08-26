@@ -13,6 +13,7 @@ set.splitbelow = true
 set.undofile = true
 set.showmatch = true -- Show matching brackets/braces
 set.smarttab = true -- Use shiftwidth to tab at line beginning
+set.showmode = false -- mode shown through pretty bottom bar instead
 
 set.backspace = { "indent", "eol", "start" } -- Let backspace work over anything.
 set.ignorecase = true -- ignore case only when search term is all lowercase
