@@ -57,7 +57,7 @@ xnoremap <leader>go   :'<,'>GBrowse<CR>
 nmap <leader>gk       :Git commit<CR>
 
 " Git status
-nnoremap <nowait> \s  :ToggleGitStatus<cr>
+nnoremap <nowait> \s  :Git<cr>
 nnoremap <nowait> \S  :Telescope git_status<cr>
 
 " Git branches
