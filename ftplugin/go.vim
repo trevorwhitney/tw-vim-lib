@@ -21,11 +21,11 @@ nmap <leader>ty :GoAddTags yaml<cr>
 nmap <leader>tx :GoRemoveTags<cr>
 
 " run tests
-nmap <Leader>rp  :wa<CR> :GolangTestCurrentPackage<CR>
-nmap <Leader>rt  :wa<CR> :GolangTestFocusedWithTags<CR>
+nmap <Leader>rp  :w<CR> :GolangTestCurrentPackage<CR>
+nmap <Leader>rt  :w<CR> :GolangTestFocusedWithTags<CR>
 
 " run integration tests
-nmap <leader>ri  :wa<cr> :GolangTestFocusedWithTags e2e_gme requires_docker<cr>
+nmap <leader>ri  :w<cr> :GolangTestFocusedWithTags e2e_gme requires_docker<cr>
 
 " delve
 nmap <leader>dt <cmd>lua require('tw.languages.go').debug_go_test()<cr>
