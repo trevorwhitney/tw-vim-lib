@@ -28,7 +28,7 @@ require("null-ls").setup({
     null_ls.builtins.formatting.fixjson,
     null_ls.builtins.formatting.gofmt,
     null_ls.builtins.formatting.goimports,
-    null_ls.builtins.formatting.nixpgks_fmt,
+    null_ls.builtins.formatting.nixpkgs_fmt,
     null_ls.builtins.formatting.prettier,
     null_ls.builtins.formatting.shfmt,
     null_ls.builtins.formatting.stylua,

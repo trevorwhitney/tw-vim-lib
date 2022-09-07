@@ -174,7 +174,7 @@ function Packer.install(use)
       end,
     })
 
-    -- use("towolf/vim-helm")
+    use("towolf/vim-helm")
     use("milkypostman/vim-togglelist")
 
     use("mfussenegger/nvim-jdtls")
