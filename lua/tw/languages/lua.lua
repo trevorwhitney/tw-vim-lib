@@ -1,7 +1,7 @@
 local Lua = {}
 
 function Lua.configureLsp(sumneko_root, nix_rocks_tree)
-	return function(on_attach, capabilities)
+	return function(on_attach)
 		-- set the path to the sumneko installation; if you previously installed via the now deprecated :LspInstall, use
 		local sumneko_binary = sumneko_root .. "/bin/lua-language-server"
 		local sumneko_main = sumneko_root .. "/extras/main.lua"
@@ -48,7 +48,6 @@ function Lua.configureLsp(sumneko_root, nix_rocks_tree)
 
 		return {
 			on_attach = on_attach,
-			capabilities = capabilities,
 			cmd = { sumneko_binary, "-E", sumneko_main },
 			flags = {
 				debounce_text_changes = 150,

@@ -1,13 +1,7 @@
 Packer = {}
 
 local function installNativeLsp(use)
-  use("L3MON4D3/LuaSnip") -- Snippets plugin
-  use("hrsh7th/cmp-nvim-lsp")
-  -- use("hrsh7th/cmp-omni")
-  use("hrsh7th/nvim-cmp") -- Autocompletion plugin
   use("neovim/nvim-lspconfig") -- Collection of configurations for built-in LSP client
-  use("rafamadriz/friendly-snippets")
-  use("saadparwaiz1/cmp_luasnip")
   use({ "jose-elias-alvarez/null-ls.nvim", requires = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" } })
   use({
     "lewis6991/gitsigns.nvim",
@@ -178,6 +172,8 @@ function Packer.install(use)
     use("milkypostman/vim-togglelist")
 
     use("mfussenegger/nvim-jdtls")
+
+    use("github/copilot.vim")
 
     installNativeLsp(use)
 

@@ -1,6 +1,6 @@
 local Java = {}
 
-function Java.configure_lsp(jdtls_home, on_attach, capabilities)
+function Java.configure_lsp(jdtls_home, on_attach)
 	local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")
 	local home = vim.loop.os_getenv("HOME")
 
@@ -79,8 +79,6 @@ function Java.configure_lsp(jdtls_home, on_attach, capabilities)
 			bundles = {},
 			extendedClientCapabilities = extendedClientCapabilities,
 		},
-
-		capabilities = capabilities,
 
 		on_attach = function(client, bufnr)
 			require("jdtls.setup").add_commands()

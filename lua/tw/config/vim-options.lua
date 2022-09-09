@@ -74,10 +74,10 @@ set.backupdir = { "~/.vim-tmp", "~/tmp", "/var/tmp", "/tmp" }
 -- Always show the signcolumn, otherwise it would shift the text each time
 -- diagnostics appear/become resolved.
 if vim.fn.has("patch-8.1.1564") then
-	-- Recently vim can merge signcolumn and number column into one
-	set.signcolumn = "number"
+  -- Recently vim can merge signcolumn and number column into one
+  set.signcolumn = "number"
 else
-	set.signcolumn = "auto:2"
+  set.signcolumn = "auto:2"
 end
 
 -- disable python2 provider
@@ -100,6 +100,6 @@ vim.g["jsonnet_fmt_on_save"] = 0
 -- press Q to remove current cursor/selection
 -- start insert mode with i,a,I,A
 vim.g["VM_maps"] = {
-	["Find Under"] = "<C-d>", -- replace C-n
-	["Find Subword Under"] = "<C-d>", -- replace visual C-n
+  ["Find Under"] = "<C-d>", -- replace C-n
+  ["Find Subword Under"] = "<C-d>", -- replace visual C-n
 }

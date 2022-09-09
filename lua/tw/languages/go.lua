@@ -1,9 +1,8 @@
 local Go = {}
 
-function Go.configure_lsp(on_attach, capabilities)
+function Go.configure_lsp(on_attach)
 	return {
 		on_attach = on_attach,
-		capabilities = capabilities,
 		cmd = { "gopls", "serve" },
 		flags = {
 			debounce_text_changes = 150,

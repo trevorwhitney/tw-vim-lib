@@ -14,7 +14,7 @@ function M.on_attach(_, bufnr)
   end
 
   -- Enable completion triggered by <c-x><c-o>
-  -- buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
+  buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
 
   -- Mappings.
   local opts = { noremap = true, silent = true }
@@ -43,7 +43,6 @@ function M.on_attach(_, bufnr)
   buf_set_keymap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>", opts)
   buf_set_keymap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>", opts)
 
-  -- buf_set_keymap("n", "<leader>q", "<cmd>lua vim.diagnostic.set_loclist()<CR>", opts)
   buf_set_keymap("n", "\\d", "<cmd>lua vim.diagnostic.setloclist()<CR>", opts)
 
   buf_set_keymap("n", "<leader>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
@@ -60,8 +59,6 @@ function M.on_attach(_, bufnr)
 end
 
 function M.setup(sumneko_root, nix_rocks_tree)
-  local capabilities = require("cmp_nvim_lsp").update_capabilities(vim.lsp.protocol.make_client_capabilities())
-
   -- Use a loop to conveniently call 'setup' on multiple servers and
   -- map buffer local keybindings when the language server attaches
   local customLanguages = {
@@ -87,7 +84,6 @@ function M.setup(sumneko_root, nix_rocks_tree)
     if nvim_lsp[lsp] then
       nvim_lsp[lsp].setup({
         on_attach = M.on_attach,
-        capabilities = capabilities,
         flags = {
           debounce_text_changes = 150,
         },
@@ -98,7 +94,7 @@ function M.setup(sumneko_root, nix_rocks_tree)
   end
 
   for lsp, fn in pairs(customLanguages) do
-    nvim_lsp[lsp].setup(fn(M.on_attach, capabilities))
+    nvim_lsp[lsp].setup(fn(M.on_attach))
   end
 end
 
