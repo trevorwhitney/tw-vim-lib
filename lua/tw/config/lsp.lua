@@ -27,7 +27,7 @@ function M.on_attach(_, bufnr)
   buf_set_keymap("n", "gr", "<cmd>Telescope lsp_references<CR>", opts)
   buf_set_keymap("n", "gy", "<cmd>Telescope lsp_type_definitions<CR>", opts)
 
-  buf_set_keymap("n", "<leader>=", "<cmd>lua vim.lsp.buf.formatting_seq_sync()<CR>", opts)
+  buf_set_keymap("n", "<leader>=", "<cmd>lua vim.lsp.buf.format()<CR>", opts)
 
   buf_set_keymap("n", "<leader>k", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
   buf_set_keymap("n", "<leader>K", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
