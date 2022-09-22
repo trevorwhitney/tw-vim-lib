@@ -5,8 +5,6 @@ local home = vim.loop.os_getenv("HOME")
 local jdtls_home = vim.api.nvim_eval("g:jdtls_home")
 local jdtls_data = vim.fn.expand(home .. "/.local/share/jdtls")
 
-local capabilities = require("cmp_nvim_lsp").update_capabilities(vim.lsp.protocol.make_client_capabilities())
-
 local extendedClientCapabilities = require("jdtls").extendedClientCapabilities
 extendedClientCapabilities.resolveAdditionalTextEditsSupport = true
 extendedClientCapabilities.classFileContentSupport = true
@@ -80,8 +78,6 @@ local config = {
 		bundles = {},
 		extendedClientCapabilities = extendedClientCapabilities,
 	},
-
-	capabilities = capabilities,
 
 	on_attach = function(client, bufnr)
 		require("jdtls.setup").add_commands()

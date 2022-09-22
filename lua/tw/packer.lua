@@ -175,6 +175,14 @@ function Packer.install(use)
 
     use("github/copilot.vim")
 
+    use({
+      "ThePrimeagen/refactoring.nvim",
+      requires = {
+        { "nvim-lua/plenary.nvim" },
+        { "nvim-treesitter/nvim-treesitter" },
+      },
+    })
+
     installNativeLsp(use)
 
     installTelescope(use)
