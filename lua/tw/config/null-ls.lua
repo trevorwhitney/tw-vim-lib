@@ -8,7 +8,7 @@ require("null-ls").setup({
     null_ls.builtins.code_actions.shellcheck.with({
       extra_args = { "-x", "-o", "all" },
     }),
-    null_ls.builtins.code_actions.refactoring,
+    -- null_ls.builtins.code_actions.refactoring,
     null_ls.builtins.code_actions.statix,
     null_ls.builtins.diagnostics.eslint_d,
     null_ls.builtins.diagnostics.golangci_lint,

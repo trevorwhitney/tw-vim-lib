@@ -34,7 +34,7 @@ function M.on_attach(_, bufnr)
 
   buf_set_keymap("n", "<leader>re", "<cmd>lua vim.lsp.buf.rename()<CR>", opts)
   buf_set_keymap("n", "<leader>a", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
-  buf_set_keymap("x", "<leader>a", "<cmd>lua vim.lsp.buf.range_code_action()<CR>", opts)
+  buf_set_keymap("x", "<leader>a", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
 
   buf_set_keymap("n", "<leader>ds", "<cmd>lua vim.diagnostic.show()<CR>", opts)
   buf_set_keymap("n", "<leader>dh", "<cmd>lua vim.diagnostic.hide()<CR>", opts)
