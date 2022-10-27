@@ -61,15 +61,15 @@ set.foldopen = "insert" -- open folds when inserted into
 
 -- Auto completion
 -- set.completeopt = { "menuone", "noselect" }
-set.completeopt = { "menu", "menuone", "noselect", "preview" }
+set.completeopt = { "menu", "menuone", "longest", "noselect" }
 set.wildignore:append({ "*\\tmp\\*", "*.swp", "*.swo", "*.zip", ".git", ".cabal-sandbox" })
 set.wildmode = { "longest", "list", "full" }
 set.wildmenu = true
 set.completeopt:append("longest")
 
 -- Directories
-set.directory = { "~/.vim-tmp", "~/tmp", "/var/tmp", "/tmp" }
-set.backupdir = { "~/.vim-tmp", "~/tmp", "/var/tmp", "/tmp" }
+set.directory = { "~/.vim-tmp" }
+set.backupdir = { "~/.vim-tmp" }
 
 -- Always show the signcolumn, otherwise it would shift the text each time
 -- diagnostics appear/become resolved.

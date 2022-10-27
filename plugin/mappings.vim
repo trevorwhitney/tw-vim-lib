@@ -26,6 +26,13 @@ onoremap al :normal val<CR>
 imap jj <Esc>
 cmap w!! w !sudo tee > /dev/null %
 
+" double k for Kompletions
+inoremap kk <C-x><C-o>
+inoremap <C-o> <C-x><C-o>
+
+" double k to save and quit
+nnoremap qq <Esc>:xa<CR>
+
 nnoremap <C-J> <C-W><C-J>
 nnoremap <C-K> <C-W><C-K>
 nnoremap <C-L> <C-W><C-L>
@@ -33,9 +40,9 @@ nnoremap <C-H> <C-W><C-H>
 
 nnoremap <C-w>q :windo close<cr>
 
-" paste the 0 register
-nnoremap <silent><nowait> \p "0p
-nnoremap <silent><nowait> \P "0P
+" close the help window that pops up when using
+" <C-x><C-o> autocomplete
+nnoremap <silent><nowait> \p :pclose:<CR>
 
 " search and replace
 nnoremap <Leader>sr :%s/\<<C-r><C-w>\>/
