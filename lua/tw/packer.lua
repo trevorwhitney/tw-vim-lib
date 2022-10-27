@@ -116,7 +116,33 @@ function Packer.install(use)
   require("packer").startup(function()
     use("trevorwhitney/tw-vim-lib")
     use("wbthomason/packer.nvim")
+
     use("nvim-treesitter/nvim-treesitter")
+    use("nvim-treesitter/nvim-treesitter-textobjects") -- Additional textobjects for treesitter
+
+    -- Show current function at the top of the screen when function does not fit in screen
+    use({
+      "romgrk/nvim-treesitter-context",
+      config = function()
+        require("treesitter-context").setup({
+          enable = true, -- Enable this plugin (Can be enabled/disabled later via commands)
+          throttle = true, -- Throttles plugin updates (may improve performance)
+          max_lines = 0, -- How many lines the window should span. Values <= 0 mean no limit.
+          patterns = { -- Match patterns for TS nodes. These get wrapped to match at word boundaries.
+            -- For all filetypes
+            -- Note that setting an entry here replaces all other patterns for this entry.
+            -- By setting the 'default' entry below, you can control which nodes you want to
+            -- appear in the context window.
+            default = {
+              "class",
+              "function",
+              "method",
+            },
+          },
+        })
+      end,
+    })
+
     use("AndrewRadev/bufferize.vim") -- open the output of any command in a buffer
     use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open commands in tmux split
     use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
@@ -131,7 +157,6 @@ function Packer.install(use)
     use("kana/vim-textobj-user")
     use("machakann/vim-highlightedyank")
     use({ "mg979/vim-visual-multi", branch = "master" }) -- multi-cursor
-    use("nvim-treesitter/nvim-treesitter-textobjects") -- Additional textobjects for treesitter
     use("pedrohdz/vim-yaml-folds")
     -- this broke on stem
     -- use("roxma/vim-tmux-clipboard")
