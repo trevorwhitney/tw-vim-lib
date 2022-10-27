@@ -1,4 +1,5 @@
 local lsp = require("tw.config.lsp")
+local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
 local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")
 local home = vim.loop.os_getenv("HOME")
@@ -97,6 +98,8 @@ local config = {
 		buf_set_keymap("v", "crc", "<esc><cmd>lua require('jdtls').extract_constant(true)<CR>", opts)
 		buf_set_keymap("v", "crm", "<esc><cmd>lua require('jdtls').extract_method(true)<CR>", opts)
 	end,
+
+  capabilities = capabilities,
 }
 -- This starts a new client & server,
 -- or attaches to an existing client & server depending on the `root_dir`.

@@ -27,7 +27,6 @@ imap jj <Esc>
 cmap w!! w !sudo tee > /dev/null %
 
 " double k for Kompletions
-inoremap kk <C-x><C-o>
 inoremap <C-o> <C-x><C-o>
 
 " double k to save and quit

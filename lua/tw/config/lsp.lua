@@ -80,9 +80,12 @@ function M.setup(sumneko_root, nix_rocks_tree)
     "pyright",
   }
 
+  local capabilities = require('cmp_nvim_lsp').default_capabilities()
+
   for _, lsp in ipairs(defaultLanguages) do
     if nvim_lsp[lsp] then
       nvim_lsp[lsp].setup({
+        capabilities = capabilities,
         on_attach = M.on_attach,
         flags = {
           debounce_text_changes = 150,
@@ -94,7 +97,7 @@ function M.setup(sumneko_root, nix_rocks_tree)
   end
 
   for lsp, fn in pairs(customLanguages) do
-    nvim_lsp[lsp].setup(fn(M.on_attach))
+    nvim_lsp[lsp].setup(fn(M.on_attach, capabilities))
   end
 end
 

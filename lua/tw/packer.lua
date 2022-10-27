@@ -97,6 +97,21 @@ local function installDap(use)
   })
 end
 
+local function installNvimCmp(use)
+  use({
+    "hrsh7th/nvim-cmp",
+    requires = {
+      "hrsh7th/cmp-nvim-lsp",
+      "hrsh7th/cmp-buffer",
+      "hrsh7th/cmp-path",
+      "hrsh7th/cmp-nvim-lua",
+      "hrsh7th/cmp-calc",
+      "hrsh7th/cmp-emoji",
+      "hrsh7th/cmp-omni",
+    },
+  })
+end
+
 function Packer.install(use)
   require("packer").startup(function()
     use("trevorwhitney/tw-vim-lib")
@@ -191,6 +206,8 @@ function Packer.install(use)
     installTelescope(use)
 
     installDap(use)
+
+    installNvimCmp(use)
   end)
 end
 

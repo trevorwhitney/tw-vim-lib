@@ -11,6 +11,7 @@ function Config.setup(sumneko_root, nix_rocks_tree)
   require("tw.config.dashboard")
   require("tw.config.treesitter")
   require("tw.config.copilot")
+  require("tw.config.nvim-cmp")
 
   vim.api.nvim_set_keymap(
     "v",
