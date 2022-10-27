@@ -68,8 +68,8 @@ set.wildmenu = true
 set.completeopt:append("longest")
 
 -- Directories
-set.directory = { "~/.vim-tmp" }
-set.backupdir = { "~/.vim-tmp" }
+set.directory = { ".vim/tmp" }
+set.backupdir = { ".vim/tmp" }
 
 -- Always show the signcolumn, otherwise it would shift the text each time
 -- diagnostics appear/become resolved.

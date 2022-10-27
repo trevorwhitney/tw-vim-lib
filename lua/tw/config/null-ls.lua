@@ -1,7 +1,10 @@
 local null_ls = require("null-ls")
+local lsp = require("tw.config.lsp")
 local home = vim.loop.os_getenv("HOME")
 
 require("null-ls").setup({
+  on_attach = lsp.on_attach,
+
   -- you must define at least one source for the plugin to work
   sources = {
     null_ls.builtins.code_actions.eslint_d,
@@ -23,7 +26,7 @@ require("null-ls").setup({
     }),
     null_ls.builtins.diagnostics.statix,
     null_ls.builtins.diagnostics.tsc,
-    null_ls.builtins.diagnostics.vint,
+    -- null_ls.builtins.diagnostics.vint,
     null_ls.builtins.diagnostics.yamllint,
     null_ls.builtins.formatting.fixjson,
     null_ls.builtins.formatting.gofmt,
