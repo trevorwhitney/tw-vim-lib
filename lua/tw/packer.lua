@@ -39,6 +39,7 @@ local function installNativeLsp(use)
             return "<Ignore>"
           end, { expr = true })
 
+          -- TODO: move to which key
           -- Actions
           map({ "n", "v" }, "<leader>hs", ":Gitsigns stage_hunk<CR>")
           map({ "n", "v" }, "<leader>hr", ":Gitsigns reset_hunk<CR>")
@@ -76,7 +77,14 @@ local function installTelescope(use)
 end
 
 local function installDap(use)
-  use("mfussenegger/nvim-dap")
+  use({
+    "mfussenegger/nvim-dap",
+    wants = { "nvim-dap-virtual-text", "nvim-dap-ui" },
+    requires = {
+      "nvim-telescope/telescope-dap.nvim",
+    },
+  })
+
   use({
     "leoluz/nvim-dap-go",
     requires = { "mfussenegger/nvim-dap" },
@@ -84,13 +92,17 @@ local function installDap(use)
       require("dap-go").setup()
     end,
   })
+
   use({
     "theHamsta/nvim-dap-virtual-text",
     requires = { "mfussenegger/nvim-dap" },
     config = function()
-      require("nvim-dap-virtual-text").setup()
+      require("nvim-dap-virtual-text").setup({
+        commented = true,
+      })
     end,
   })
+
   use({
     "rcarriga/nvim-dap-ui",
     requires = { "mfussenegger/nvim-dap" },
@@ -108,7 +120,17 @@ local function installNvimCmp(use)
       "hrsh7th/cmp-calc",
       "hrsh7th/cmp-emoji",
       "hrsh7th/cmp-omni",
+      "hrsh7th/cmp-cmdline",
+
+      "L3MON4D3/LuaSnip",
+      "saadparwaiz1/cmp_luasnip",
+
+      "rafamadriz/friendly-snippets",
     },
+    config = function()
+      require("luasnip.loaders.from_lua").lazy_load()
+      require("luasnip.loaders.from_vscode").lazy_load()
+    end,
   })
 end
 

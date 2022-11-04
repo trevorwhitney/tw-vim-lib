@@ -13,7 +13,7 @@ function Go.configure_lsp(on_attach, capabilities)
         analyses = {
           unusedparams = true,
         },
-        buildFlags = { "-tags=e2e_gme,requires_docker" },
+        buildFlags = { "-tags=requires_docker" },
         staticcheck = true,
       },
     },
@@ -36,21 +36,20 @@ function Go.debug_go_test(...)
   local test_name = vim.fn["tw#go#testName"]()
   local tags = { ... }
 
-  local args
-  if tags[0] then
-    args = { "--build-flags=tags", table.concat({ ... }, ","), "--", "-test.run", test_name }
-  else
-    args = { "-test.run", test_name }
-  end
-
-  dap.run({
+  local config = {
     type = "go",
     name = test_name,
     request = "launch",
     mode = "test",
     program = "./${relativeFileDirname}",
-    args = args,
-  })
+    args = { "-test.run", test_name },
+  }
+
+  if #tags > 0 then
+    config["buildFlags"] = "-tags=" .. table.concat(tags, ",")
+  end
+  dap.run(config)
+  require("dapui").open()
 end
 
 return Go

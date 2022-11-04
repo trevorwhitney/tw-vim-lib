@@ -7,10 +7,10 @@ function Config.setup(sumneko_root, nix_rocks_tree)
   require("tw.config.nvim-tree")
   require("tw.config.null-ls")
   require("tw.config.telescope")
-  require("tw.config.dap")
+  require("tw.config.dap").setup()
   require("tw.config.dashboard")
   require("tw.config.treesitter")
-  require("tw.config.copilot")
+  require("tw.config.copilot").setup()
   require("tw.config.nvim-cmp")
 
   vim.api.nvim_set_keymap(

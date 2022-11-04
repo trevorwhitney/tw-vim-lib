@@ -18,6 +18,7 @@ function M.on_attach(_, bufnr)
 
   -- Mappings.
   local opts = { noremap = true, silent = true }
+  --TODO: replace this whole thing with whichkey
 
   -- See `:help vim.lsp.*` for documentation on any of the below functions
   -- often not implemented, would rather map to definition in split

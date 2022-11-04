@@ -29,4 +29,4 @@ nmap <leader>ri  :w<cr> :GolangTestFocusedWithTags e2e_gme requires_docker<cr>
 
 " delve
 nmap <leader>dt <cmd>lua require('tw.languages.go').debug_go_test()<cr>
-map <leader>di <cmd>lua require('tw.languages.go').debug_go_test("e2e_gme", "requires_docker")<cr>
+map <leader>di <cmd>lua require('tw.languages.go').debug_go_test("requires_docker")<cr>
