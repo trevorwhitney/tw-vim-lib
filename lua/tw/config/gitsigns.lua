@@ -72,6 +72,7 @@ local function setup()
           U = { "<cmd>lua require('gitsigns').reset_buffer_index()<cr>", "Reset Buffer Index" },
 
           o = { ":GitBrowse<cr>", "Open in Browser" },
+          O = { "<cmd>lua require('tw.git').browseCurrentLine()<cr>", "Open Current Line in Browser" },
 
           k = { "Git commit<cr>", "Commit" },
 
