@@ -14,16 +14,9 @@ function M.setup()
   }
 
   db.custom_center = {
-    { icon = " ", desc = "Jump to bookmarks         ", shortcut = "SPC f b ", action = "Telescope buffers" },
+    { icon = " ", desc = "Find Buffer               ", shortcut = "SPC f b ", action = "Telescope buffers" },
     {
-      icon = " ",
-      desc = "Change colorscheme        ",
-      shortcut = "SPC t c ",
-      action = "Telescope colorscheme",
-    },
-    {
-      icon = " ",
-      desc = "Find file                 ",
+      icon = " ", desc = "Find file                 ",
       shortcut = "SPC f f ",
       action = "Telescope git_files",
     },

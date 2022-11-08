@@ -125,6 +125,9 @@ function M.setup()
   configureDapUI()
   configureKeyamp()
   configureAutoComplete()
+
+  -- Uncomment to change log level
+  -- require("dap").set_log_level("DEBUG")
 end
 
 return M
