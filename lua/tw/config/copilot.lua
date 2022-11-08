@@ -10,13 +10,13 @@ end
 local function configureKeymap()
   local keymap = {
     name = "Copilot",
-    ["<C-n>"] = { "<Plug>(copilot-next)", "Next" },
-    ["<C-p>"] = { "<Plug>(copilot-previous)", "Previous" },
+    ["<C-j>"] = { "<Plug>(copilot-next)", "Next" },
+    ["<C-k>"] = { "<Plug>(copilot-previous)", "Previous" },
   }
 
-  local whichkey = require("which-key")
+  local which_key = require("which-key")
 
-  whichkey.register(keymap, {
+  which_key.register(keymap, {
     mode = "i",
     prefix = nil,
     buffer = nil,

@@ -1,7 +1,4 @@
-local has_words_before = function()
-  local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-  return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
-end
+local M = {}
 
 ---when inside a snippet, seeks to the nearest luasnip field if possible, and checks if it is jumpable
 ---@param dir number 1 for forward, -1 for backward; defaults to 1
@@ -96,97 +93,105 @@ local function jumpable(dir)
   end
 end
 
-local cmp = require("cmp")
-local luasnip = require("luasnip")
+local function configure()
+  local cmp = require("cmp")
+  local luasnip = require("luasnip")
 
-cmp.setup({
-  confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false },
-  snippet = {
-    expand = function(args)
-      require("luasnip").lsp_expand(args.body)
-    end,
-  },
-
-  window = {
-    completion = cmp.config.window.bordered(),
-    documentation = cmp.config.window.bordered(),
-  },
-
-  mapping = cmp.mapping.preset.insert({
-    ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-    ["<C-f>"] = cmp.mapping.scroll_docs(4),
-    ["<C-e>"] = cmp.mapping.abort(),
-    ["<C-Space>"] = cmp.mapping.complete(),
-    ["<C-y>"] = cmp.mapping({
-      i = cmp.mapping.confirm({ select = false }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-      c = function(fallback)
-        if cmp.visible() then
-          cmp.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace })
-        else
-          fallback()
-        end
+  cmp.setup({
+    confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false },
+    snippet = {
+      expand = function(args)
+        require("luasnip").lsp_expand(args.body)
       end,
-    }),
+    },
 
-    ["<Tab>"] = cmp.mapping(function(fallback)
-      if cmp.visible() then
-        local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false }
-        local is_insert_mode = function()
-          return vim.api.nvim_get_mode().mode:sub(1, 1) == "i"
-        end
-        if is_insert_mode() then -- prevent overwriting brackets
-          confirm_opts.behavior = cmp.ConfirmBehavior.Insert
-        end
+    window = {
+      completion = cmp.config.window.bordered(),
+      documentation = cmp.config.window.bordered(),
+    },
 
-        local entry = cmp.get_selected_entry()
-        if not entry then
-          cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
-        else
-          if cmp.confirm(confirm_opts) then
-            return -- success, exit early
+    mapping = cmp.mapping.preset.insert({
+      ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+      ["<C-B>"] = cmp.mapping.scroll_docs(4),
+      ["<C-e>"] = cmp.mapping.abort(),
+      ["<C-Space>"] = cmp.mapping.complete(),
+      ["<C-y>"] = cmp.mapping({
+        i = cmp.mapping.confirm({ select = false }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+        c = function(fallback)
+          if cmp.visible() then
+            cmp.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace })
+          else
+            fallback()
+          end
+        end,
+      }),
+
+      ["<Tab>"] = cmp.mapping(function(fallback)
+        if cmp.visible() then
+          local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false }
+          local is_insert_mode = function()
+            return vim.api.nvim_get_mode().mode:sub(1, 1) == "i"
+          end
+          if is_insert_mode() then -- prevent overwriting brackets
+            confirm_opts.behavior = cmp.ConfirmBehavior.Insert
+          end
+
+          local entry = cmp.get_selected_entry()
+          if not entry then
+            cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+          else
+            if cmp.confirm(confirm_opts) then
+              return -- success, exit early
+            end
           end
         end
-      end
 
-      if jumpable(1) and luasnip.jump(1) then
-        return -- success, exit early
-      end
-      fallback() -- if not exited early, always fallback
-    end),
+        if jumpable(1) and luasnip.jump(1) then
+          return -- success, exit early
+        end
+        fallback() -- if not exited early, always fallback
+      end),
 
-    -- Copilot accept
-    ["<C-f>"] = cmp.mapping(function(_)
-      vim.api.nvim_feedkeys(
-        vim.fn["copilot#Accept"](vim.api.nvim_replace_termcodes("<Tab>", true, true, true)),
-        "n",
-        true
-      )
-    end),
-  }),
+      -- Copilot accept
+      ["<C-f>"] = cmp.mapping(function(_)
+        vim.api.nvim_feedkeys(
+          vim.fn["copilot#Accept"](vim.api.nvim_replace_termcodes("<Tab>", true, true, true)),
+          "n",
+          true
+        )
+      end),
+    }),
 
-  sources = cmp.config.sources({
-    { name = "nvim_lsp" },
-    { name = "nvim_lua" },
-    { name = "path" },
-    { name = "luasnip" },
-    { name = "treesitter" },
-  }, {
-    { name = "buffer" },
-  }),
-})
+    sources = cmp.config.sources({
+      { name = "nvim_lsp" },
+      { name = "nvim_lua" },
+      { name = "path" },
+      { name = "luasnip" },
+      { name = "treesitter" },
+    }, {
+      { name = "buffer" },
+    }),
+  })
 
-cmp.setup.cmdline({ "/", "?" }, {
-  mapping = cmp.mapping.preset.cmdline(),
-  sources = {
-    { name = "buffer" },
-  },
-})
+  cmp.setup.cmdline({ "/", "?" }, {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = {
+      { name = "buffer" },
+    },
+  })
 
-cmp.setup.cmdline(":", {
-  mapping = cmp.mapping.preset.cmdline(),
-  sources = cmp.config.sources({
-    { name = "path" },
-  }, {
-    { name = "cmdline" },
-  }),
-})
+  cmp.setup.cmdline(":", {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = cmp.config.sources({
+      { name = "path" },
+    }, {
+      { name = "cmdline" },
+    }),
+  })
+end
+
+function M.setup()
+  configure()
+end
+
+return M

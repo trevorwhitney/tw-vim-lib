@@ -2,13 +2,90 @@ local M = {}
 
 local nvim_lsp = require("lspconfig")
 
+local function mapKeys()
+  -- See `:help vim.lsp.*` for documentation on any of the below functions
+
+  local keymap = {
+    g = {
+      name = "Got To",
+      d = { "<cmd>Telescope lsp_definitions()<CR>", "Definition" },
+      -- often not implemented, would rather map to definition in split
+      -- D = { "<cmd>lua vim.lsp.buf.declaration()<CR>", "Declaration" },
+      i = { "<cmd>Telescope lsp_implementations()<CR>", "Implementation" },
+      r = { "<cmd>Telescope lsp_references()<CR>", "References" },
+      y = { "<cmd>Telescope lsp_type_definitions()<CR>", "Type Definition" },
+    },
+    ["]d"] = { "<cmd>lua vim.lsp.diagnostic.goto_next()<cr>", "Next Diagnostic" },
+    ["[d]"] = { "<cmd>lua vim.lsp.diagnostic.goto_prev()<cr>", "Previous Diagnostic" },
+    ["\\d"] = { "<cmd>lua vim.diagnostic.setloclist()<CR>", "Diagnostic List" },
+  }
+
+  local keymapWithLeader = {
+    ["="] = { "<cmd>lua vim.lsp.buf.format()<cr>", "Format" },
+    k = { "<cmd>lua vim.lsp.buf.hover()<cr>", "Hover" },
+    K = { "<cmd>lua vim.lsp.buf.signature_help()<cr>", "Signature" },
+
+    -- TODO: is rn more canonical?
+    ["rn"] = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
+    ["re"] = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
+
+    -- TODO: is ca more canonical?
+    a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
+
+    c = {
+      name = "Code Action",
+      a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
+      d = { "<cmd>lua vim.lsp.diagnostic.show()<cr>", "Show Diagnostics" },
+      D = { "<cmd>lua vim.lsp.diagnostic.hide()<cr>", "Show Diagnostics" },
+      f = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Open Float" },
+    },
+
+    -- TODO: is cf better?
+    e = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Open Float" },
+
+    -- TDOO: never used these, remove?
+    -- buf_set_keymap("n", "<leader>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
+    -- buf_set_keymap("n", "<leader>wr", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", opts)
+    -- buf_set_keymap("n", "<leader>wl", "<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>", opts)
+  }
+
+  local visualKeymap = {
+    a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Action" },
+  }
+
+  local which_key = require("which-key")
+
+  which_key.register(keymap, {
+    mode = "n",
+    prefix = nil,
+    buffer = nil,
+    silent = true,
+    noremap = true,
+    nowait = false,
+  })
+
+  which_key.register(keymapWithLeader, {
+    mode = "n",
+    prefix = "<leader>",
+    buffer = nil,
+    silent = true,
+    noremap = true,
+    nowait = false,
+  })
+
+  which_key.register(visualKeymap, {
+    mode = "x",
+    prefix = "<leader>",
+    buffer = nil,
+    silent = true,
+    noremap = true,
+    nowait = false,
+  })
+end
+
 -- Use an on_attach function to only map the following keys
 -- after the language server attaches to the current buffer
 function M.on_attach(_, bufnr)
-  local function buf_set_keymap(...)
-    vim.api.nvim_buf_set_keymap(bufnr, ...)
-  end
-
   local function buf_set_option(...)
     vim.api.nvim_buf_set_option(bufnr, ...)
   end
@@ -17,38 +94,7 @@ function M.on_attach(_, bufnr)
   buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
 
   -- Mappings.
-  local opts = { noremap = true, silent = true }
-  --TODO: replace this whole thing with whichkey
-
-  -- See `:help vim.lsp.*` for documentation on any of the below functions
-  -- often not implemented, would rather map to definition in split
-  -- buf_set_keymap('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
-  buf_set_keymap("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts)
-  buf_set_keymap("n", "gi", "<cmd>Telescope lsp_implementations<CR>", opts)
-  buf_set_keymap("n", "gr", "<cmd>Telescope lsp_references<CR>", opts)
-  buf_set_keymap("n", "gy", "<cmd>Telescope lsp_type_definitions<CR>", opts)
-
-  buf_set_keymap("n", "<leader>=", "<cmd>lua vim.lsp.buf.format()<CR>", opts)
-
-  buf_set_keymap("n", "<leader>k", "<cmd>lua vim.lsp.buf.hover()<CR>", opts)
-  buf_set_keymap("n", "<leader>K", "<cmd>lua vim.lsp.buf.signature_help()<CR>", opts)
-
-  buf_set_keymap("n", "<leader>re", "<cmd>lua vim.lsp.buf.rename()<CR>", opts)
-  buf_set_keymap("n", "<leader>a", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
-  buf_set_keymap("x", "<leader>a", "<cmd>lua vim.lsp.buf.code_action()<CR>", opts)
-
-  buf_set_keymap("n", "<leader>ds", "<cmd>lua vim.diagnostic.show()<CR>", opts)
-  buf_set_keymap("n", "<leader>dh", "<cmd>lua vim.diagnostic.hide()<CR>", opts)
-
-  buf_set_keymap("n", "<leader>e", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
-  buf_set_keymap("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>", opts)
-  buf_set_keymap("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>", opts)
-
-  buf_set_keymap("n", "\\d", "<cmd>lua vim.diagnostic.setloclist()<CR>", opts)
-
-  buf_set_keymap("n", "<leader>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
-  buf_set_keymap("n", "<leader>wr", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", opts)
-  buf_set_keymap("n", "<leader>wl", "<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>", opts)
+  mapKeys()
 
   -- Override diagnostic settings for helm templates
   if vim.bo[bufnr].buftype ~= "" or vim.bo[bufnr].filetype == "helm" or vim.bo[bufnr].filetype == "gotmpl" then
@@ -81,7 +127,7 @@ function M.setup(sumneko_root, nix_rocks_tree)
     "pyright",
   }
 
-  local capabilities = require('cmp_nvim_lsp').default_capabilities()
+  local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
   for _, lsp in ipairs(defaultLanguages) do
     if nvim_lsp[lsp] then

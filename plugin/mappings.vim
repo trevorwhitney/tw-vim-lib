@@ -26,11 +26,7 @@ onoremap al :normal val<CR>
 imap jj <Esc>
 cmap w!! w !sudo tee > /dev/null %
 
-" double k for Kompletions
 inoremap <C-o> <C-x><C-o>
-
-" double k to save and quit
-nnoremap qq <Esc>:xa<CR>
 
 nnoremap <C-J> <C-W><C-J>
 nnoremap <C-K> <C-W><C-K>
@@ -46,22 +42,6 @@ nnoremap <silent><nowait> \p :pclose:<CR>
 " search and replace
 nnoremap <Leader>sr :%s/\<<C-r><C-w>\>/
 
-" ====== Git (vim-fugitive) =====
-
-" Git status, show currently changed files
-nmap <leader>gb   :Gitsigns blame_line<CR>
-nmap <leader>gB   :Git blame<CR>
-
-" pneumonic git diff
-nmap <leader>gd   :Gdiffsplit<CR>
-nmap <leader>gD   :Gdiffsplit @~1<CR>
-
-nnoremap <leader>go   :GitBrowseCurrentLine<cr>
-xnoremap <leader>go   :'<,'>GBrowse<CR>
-
-" pneumonic git commit
-nmap <leader>gk       :Git commit<CR>
-
 " Git status
 nnoremap <nowait> \s  :Git<cr>
 nnoremap <nowait> \S  :Telescope git_status<cr>
@@ -71,11 +51,6 @@ nnoremap <nowait> \b :Branches<cr>
 
 " Tagstack to see where you've been
 nnoremap <nowait>\t :Telescope tagstack<cr>
-
-" pneumonic git history
-nmap <leader>gh   :0Gclog!<CR>
-" pneumonic git log
-nmap <leader>gl   :<C-u>Git log -n 50 --graph --decorate --oneline<cr>
 
 "======== Helpful Shortcuts =========
 nnoremap <nowait> \l  :<C-u>call ToggleLocationList()<CR>

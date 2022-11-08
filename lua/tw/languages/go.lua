@@ -48,8 +48,13 @@ function Go.debug_go_test(...)
   if #tags > 0 then
     config["buildFlags"] = "-tags=" .. table.concat(tags, ",")
   end
+
   dap.run(config)
-  require("dapui").open()
+end
+
+function Go.runTest(...)
+  local tags = { ... }
+  vim.fn["tw#go#golangTestFocusedWithTags"](table.concat(tags, ","))
 end
 
 return Go

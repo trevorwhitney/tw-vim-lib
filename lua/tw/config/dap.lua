@@ -49,6 +49,14 @@ local function configureDapUI()
         position = "bottom",
       },
     },
+    floating = {
+      max_height = 0.6, -- These can be integers or a float between 0 and 1.
+      max_width = 0.8, -- Floats will be treated as percentage of your screen.
+      border = "single", -- Border style. Can be "single", "double" or "rounded"
+      mappings = {
+        close = { "q", "<Esc>" },
+      },
+    },
   })
 end
 
@@ -57,7 +65,7 @@ local function configureKeyamp()
     d = {
       name = "Debug",
       R = { "<cmd>lua require'dap'.run_to_cursor()<cr>", "Run to Cursor" },
-      E = { "<cmd>lua require'dapui'.eval(vim.fn.input '[Expression] > ')<cr>", "Evaluate Input" },
+      E = { "<cmd>lua require'dapui'.eval(vim.fn.input '[Expression] > ', { enter = true})<cr>", "Evaluate Input" },
       C = {
         "<cmd>lua require'dap'.set_breakpoint(vim.fn.input '[Condition] > ')<cr>",
         "Conditional Breakpoint",
@@ -66,7 +74,7 @@ local function configureKeyamp()
       b = { "<cmd>lua require'dap'.step_back()<cr>", "Step Back" },
       c = { "<cmd>lua require'dap'.continue()<cr>", "Continue" },
       d = { "<cmd>lua require'dap'.disconnect()<cr>", "Disconnect" },
-      e = { "<cmd>lua require'dapui'.eval()<cr>", "Evaluate" },
+      e = { "<cmd>lua require'dapui'.eval(nil, {enter = true})<cr>", "Evaluate" },
       g = { "<cmd>lua require'dap'.session()<cr>", "Get Session" },
       h = { "<cmd>lua require'dap.ui.widgets'.hover()<cr>", "Hover Variables" },
       S = { "<cmd>lua require'dap.ui.widgets'.scopes()<cr>", "Scopes" },
@@ -82,9 +90,9 @@ local function configureKeyamp()
     },
   }
 
-  local whichkey = require("which-key")
+  local which_key = require("which-key")
 
-  whichkey.register(keymap, {
+  which_key.register(keymap, {
     mode = "n",
     prefix = "<leader>",
     buffer = nil,
@@ -97,7 +105,7 @@ local function configureKeyamp()
     name = "Debug",
     e = { "<cmd>lua require'dapui'.eval()<cr>", "Evaluate" },
   }
-  whichkey.register(keymap_v, {
+  which_key.register(keymap_v, {
     mode = "v",
     prefix = "<leader>",
     buffer = nil,
