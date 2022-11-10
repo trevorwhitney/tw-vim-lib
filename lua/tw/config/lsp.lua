@@ -3,6 +3,7 @@ local M = {}
 local nvim_lsp = require("lspconfig")
 
 local function mapKeys()
+  local which_key = require("which-key")
   -- See `:help vim.lsp.*` for documentation on any of the below functions
 
   local keymap = {
@@ -15,45 +16,10 @@ local function mapKeys()
       r = { "<cmd>Telescope lsp_references<cr>", "References" },
       y = { "<cmd>Telescope lsp_type_definitions<cr>", "Type Definition" },
     },
-    ["]d"] = { "<cmd>lua vim.lsp.diagnostic.goto_next()<cr>", "Next Diagnostic" },
-    ["[d]"] = { "<cmd>lua vim.lsp.diagnostic.goto_prev()<cr>", "Previous Diagnostic" },
+    ["]d"] = { "<cmd>lua vim.diagnostic.goto_next()<cr>", "Next Diagnostic" },
+    ["[d]"] = { "<cmd>lua vim.diagnostic.goto_prev()<cr>", "Previous Diagnostic" },
     ["\\d"] = { "<cmd>lua vim.diagnostic.setloclist()<CR>", "Diagnostic List" },
   }
-
-  local keymapWithLeader = {
-    ["="] = { "<cmd>lua vim.lsp.buf.format()<cr>", "Format" },
-    k = { "<cmd>lua vim.lsp.buf.hover()<cr>", "Hover" },
-    K = { "<cmd>lua vim.lsp.buf.signature_help()<cr>", "Signature" },
-
-    -- TODO: is rn more canonical?
-    ["rn"] = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
-    ["re"] = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
-
-    -- TODO: is ca more canonical?
-    a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
-
-    c = {
-      name = "Code Action",
-      a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
-      d = { "<cmd>lua vim.lsp.diagnostic.show()<cr>", "Show Diagnostics" },
-      D = { "<cmd>lua vim.lsp.diagnostic.hide()<cr>", "Show Diagnostics" },
-      f = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Open Float" },
-    },
-
-    -- TODO: is cf better?
-    e = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Open Float" },
-
-    -- TDOO: never used these, remove?
-    -- buf_set_keymap("n", "<leader>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
-    -- buf_set_keymap("n", "<leader>wr", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", opts)
-    -- buf_set_keymap("n", "<leader>wl", "<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>", opts)
-  }
-
-  local visualKeymap = {
-    a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Action" },
-  }
-
-  local which_key = require("which-key")
 
   which_key.register(keymap, {
     mode = "n",
@@ -64,6 +30,31 @@ local function mapKeys()
     nowait = false,
   })
 
+  local keymapWithLeader = {
+    ["="] = { "<cmd>lua vim.lsp.buf.format()<cr>", "Format" },
+    c = {
+      name = "Code",
+      h = { "<cmd>lua vim.lsp.buf.hover()<cr>", "Hover" },
+      s = { "<cmd>lua vim.lsp.buf.signature_help()<cr>", "Signature" },
+      a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Action" },
+      d = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Diagnostic" },
+    },
+    -- quicker alternative for code action
+    a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
+
+    -- TODO: is rn more canonical?
+    r = {
+      name = "Refactor",
+      n = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
+      -- ["re"] = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
+    },
+
+    -- TDOO: never used these, remove?
+    -- buf_set_keymap("n", "<leader>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
+    -- buf_set_keymap("n", "<leader>wr", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", opts)
+    -- buf_set_keymap("n", "<leader>wl", "<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>", opts)
+  }
+
   which_key.register(keymapWithLeader, {
     mode = "n",
     prefix = "<leader>",
@@ -72,6 +63,14 @@ local function mapKeys()
     noremap = true,
     nowait = false,
   })
+
+  local visualKeymap = {
+    a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Action" },
+    c = {
+      name = "Code",
+      a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Action" },
+    }
+  }
 
   which_key.register(visualKeymap, {
     mode = "x",
@@ -95,6 +94,9 @@ function M.on_attach(_, bufnr)
 
   -- Mappings.
   mapKeys()
+
+  vim.cmd("command! -nargs=0 DiagnosticShow call v:lua.vim.diagnostic.show()")
+  vim.cmd("command! -nargs=0 DiagnosticHide call v:lua.vim.diagnostic.hide()")
 
   -- Override diagnostic settings for helm templates
   if vim.bo[bufnr].buftype ~= "" or vim.bo[bufnr].filetype == "helm" or vim.bo[bufnr].filetype == "gotmpl" then

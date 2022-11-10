@@ -184,7 +184,12 @@ function Packer.install(use)
     })
 
     use("towolf/vim-helm")
-    use("milkypostman/vim-togglelist")
+    use({
+      "milkypostman/vim-togglelist",
+      config = function()
+        vim.g["toggle_list_no_mappings"] = 1
+      end,
+    })
 
     use("mfussenegger/nvim-jdtls")
 

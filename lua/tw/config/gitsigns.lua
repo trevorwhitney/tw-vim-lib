@@ -71,7 +71,7 @@ local function setup()
           u = { "<cmd>lua require('gitsigns').undo_stage_hunk()<cr>", "Undo Stage Hunk" },
           U = { "<cmd>lua require('gitsigns').reset_buffer_index()<cr>", "Reset Buffer Index" },
 
-          o = { ":GitBrowse<cr>", "Open in Browser" },
+          o = { ":GBrowse<cr>", "Open in Browser" },
           O = { "<cmd>lua require('tw.git').browseCurrentLine()<cr>", "Open Current Line in Browser" },
 
           k = { "Git commit<cr>", "Commit" },

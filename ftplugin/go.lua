@@ -8,9 +8,9 @@ end
 
 local function keybindings()
   local runKeymap = {
-    r = {
-      name = "Run",
-      p = { ":w<cr> :GolangTestCurrentPackage<cr>", "Current Package Tests" },
+    e = {
+      name = "Execute",
+      p = { ":w<cr> :GolangTestCurrentPackage<cr>", "Package Tests" },
 
       t = { ":w<cr> <cmd>lua require('tw.languages.go').runTest()<cr>", "Focused Test" },
       T = {
@@ -21,7 +21,7 @@ local function keybindings()
       d = { ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test()<cr>", "Debug Focused Test" },
       D = {
         ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test(vim.fn.input('[Tags] > '))<cr>",
-        "Debug Focused Test",
+        "Debug Focused Test (With Tags)",
       },
     },
   }

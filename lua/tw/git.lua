@@ -5,8 +5,8 @@ function M.diffSplit(commit)
 end
 
 function M.browseCurrentLine()
-  local line = vim.fn.getline(".")
-  vim.cmd(line .. "GBrowse")
+  local linenum = vim.api.nvim_win_get_cursor(0)
+  vim.cmd(unpack(linenum) .. "GBrowse")
 end
 
 return M
