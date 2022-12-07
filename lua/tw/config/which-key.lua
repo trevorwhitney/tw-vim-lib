@@ -8,11 +8,20 @@ local function mapKeys(which_key)
       n = { "<cmd>bnext<cr>", "Next" },
       p = { "<cmd>bprevious<cr>", "Next" },
     },
+
+    -- Find
     f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
+    F = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Find Grep" },
+    R = { "<cmd>Telescope resume<cr>", "Resume Find" },
+    ["*"] = {
+      "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args({ default_text = vim.fn.expand('<cword>') })<cr>",
+      "Find Grep (Current Word)",
+    },
+
+    -- Search: a lot of duplicates for find, may need to refactor?
     s = {
       name = "Search",
       f = { "<cmd>Telescope find_files<cr>", "File (All)" },
-      w = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Word (Grep)" },
       h = { "<cmd>Telescope help_tags<cr>", "Help Tags" },
       k = { "<cmd>Telescope keymaps<cr>", "Keymaps" },
       o = { "<cmd>Telescope oldfiles<cr>", "Recent (Old) Files" },
@@ -27,11 +36,11 @@ local function mapKeys(which_key)
     },
     ["\\"] = { "<cmd>NvimTreeToggle<cr>", "NvimTree" },
     ["|"] = { "<cmd>NvimTreeFindFile<cr>", "NvimTree (Current File)" },
-    z = { "<cmd>'<,'>sort<cr>", "Sort" },
     m = {
       name = "Easy Motion",
       w = { "<Plug>(easymotion-overwin-w)", "Word" },
     },
+    z = { "<cmd>'<,'>sort<cr>", "sort" },
   }
 
   which_key.register(leaderKeymap, {
@@ -70,10 +79,11 @@ local function mapKeys(which_key)
       name = "Refactor",
       r = { "<Esc><cmd>lua require('telescope').extensions.refactoring.refactors()<CR>", "Refactor Selection" },
     },
+    z = { "<cmd>'<,'>sort<cr>", "sort" },
   }
 
   which_key.register(leaderVisualKeymap, {
-    mode = "x",
+    mode = "v",
     prefix = "<leader>",
     buffer = nil,
     silent = true,
