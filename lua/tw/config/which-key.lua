@@ -2,12 +2,14 @@ local M = {}
 
 local function mapKeys(which_key)
   local leaderKeymap = {
+    -- Buffers
     b = {
       name = "Buffers",
       f = { "<cmd>Telescope buffers<cr>", "Find" },
       n = { "<cmd>bnext<cr>", "Next" },
       p = { "<cmd>bprevious<cr>", "Next" },
     },
+    B = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
 
     -- Find
     f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
@@ -18,7 +20,6 @@ local function mapKeys(which_key)
       "Find Grep (Current Word)",
     },
 
-    -- Search: a lot of duplicates for find, may need to refactor?
     s = {
       name = "Search",
       f = { "<cmd>Telescope find_files<cr>", "File (All)" },
@@ -29,10 +30,6 @@ local function mapKeys(which_key)
       r = { "<cmd>Telescope resume<cr>", "Resume" },
       s = { "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", "LSP Symbols" },
       t = { "<cmd>Telescope treesitter<cr>", "Treesitter Symbol" },
-      ["*"] = {
-        "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args({ default_text = vim.fn.expand('<cword>') })<cr>",
-        "Word (Current)",
-      },
     },
     ["\\"] = { "<cmd>NvimTreeToggle<cr>", "NvimTree" },
     ["|"] = { "<cmd>NvimTreeFindFile<cr>", "NvimTree (Current File)" },
@@ -68,12 +65,9 @@ local function mapKeys(which_key)
 
   vim.cmd("command! -nargs=* TelescopeLiveGrepRaw call v:lua.require('tw.telescope').live_grep_args(<q-args>)")
   local leaderVisualKeymap = {
-    s = {
-      name = "Search",
-      ["*"] = {
-        "\"sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
-        "Current Selection",
-      },
+    ["*"] = {
+      "\"sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
+      "Search Current Selection",
     },
     r = {
       name = "Refactor",

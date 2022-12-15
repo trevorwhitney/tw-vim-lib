@@ -57,27 +57,27 @@ local function setup()
             "Toggle Current Line Blame",
           },
 
-          d = { ":Gdiffsplit<cr>", "Diff Split" },
-          D = { "<cmd>lua require('tw.git').diffSplit(vim.fn.input('[Commit] > '))<cr>", "Diff Split (Against Commit)" },
+          d = { "<cmd>lua require('tw.git').diffSplit(vim.fn.input('[Commit] > '))<cr>", "Diff Split (Against Commit)" },
 
+          h = { ":0Gclog!<cr>", "History" },
+          k = { "Git commit<cr>", "Commit" },
+
+          l = { ":<C-u>Git log -n 50 --graph --decorate --oneline<cr>", "Log" },
+
+          o = { "<cmd>lua require('tw.git').browseCurrentLine()<cr>", "Open Current Line in Browser" },
           p = { "<cmd>lua require('gitsigns').preview_hunk()<cr>", "Preview Hunk" },
 
           r = { "<cmd>lua require('gitsigns').reset_hunk()<cr>", "Reset Hunk" },
           R = { "<cmd>lua require('gitsigns').reset_buffer()<cr>", "Reset Buffer" },
+          -- also use x to match fugitive
+          x = { "<cmd>lua require('gitsigns').reset_hunk()<cr>", "Reset Hunk" },
+          X = { "<cmd>lua require('gitsigns').reset_buffer()<cr>", "Reset Buffer" },
 
           s = { "<cmd>lua require('gitsigns').stage_hunk()<cr>", "Stage Hunk" },
           S = { "<cmd>lua require('gitsigns').stage_buffer()<cr>", "Stage Buffer" },
 
           u = { "<cmd>lua require('gitsigns').undo_stage_hunk()<cr>", "Undo Stage Hunk" },
           U = { "<cmd>lua require('gitsigns').reset_buffer_index()<cr>", "Reset Buffer Index" },
-
-          o = { ":GBrowse<cr>", "Open in Browser" },
-          O = { "<cmd>lua require('tw.git').browseCurrentLine()<cr>", "Open Current Line in Browser" },
-
-          k = { "Git commit<cr>", "Commit" },
-
-          h = { ":0Gclog!<cr>", "History" },
-          l = { ":<C-u>Git log -n 50 --graph --decorate --oneline<cr>", "Log" },
         },
       }
 
