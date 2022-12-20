@@ -32,6 +32,7 @@ local ensure_installed = {
   "json",
   "json5",
   "jsonc",
+  "jsonnet",
   "julia",
   "kotlin",
   "latex",
