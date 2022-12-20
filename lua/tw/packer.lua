@@ -135,7 +135,6 @@ function Packer.install(use)
     use("pedrohdz/vim-yaml-folds")
     -- this broke on stem
     -- use("roxma/vim-tmux-clipboard")
-    use("shaunsingh/solarized.nvim")
     use("tommcdo/vim-exchange")
     use("tpope/vim-abolish")
     use("tpope/vim-commentary")
@@ -149,6 +148,11 @@ function Packer.install(use)
     use("tpope/vim-unimpaired")
     use("glepnir/dashboard-nvim")
     use("fladson/vim-kitty")
+
+    -- color schemes
+    use("shaunsingh/solarized.nvim")
+    use("EdenEast/nightfox.nvim")
+    use("bluz71/vim-moonfly-colors")
 
     use("andymass/vim-matchup") -- show matching pairs
     use({
