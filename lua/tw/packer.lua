@@ -150,7 +150,7 @@ function Packer.install(use)
     use("fladson/vim-kitty")
 
     -- color schemes
-    use("shaunsingh/solarized.nvim")
+    use({"trevorwhitney/solarized.nvim", branch = "less-red"})
     use("EdenEast/nightfox.nvim")
 
     use("andymass/vim-matchup") -- show matching pairs
