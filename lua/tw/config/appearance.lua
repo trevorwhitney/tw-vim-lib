@@ -14,11 +14,14 @@ function M.setup()
   vim.g.solarized_borders = true
   vim.g.solarized_disable_background = true
 
+  -- Load dawnfox colorscheme
+  vim.cmd("colorscheme dawnfox")
+
   -- Load solarized colorscheme
-  require("solarized").set()
+  -- require("solarized").set()
   -- solarized sets the background to dark
   -- so we need to set it to light again
-  vim.opt.background = "light"
+  -- vim.opt.background = "light"
 end
 
 return M

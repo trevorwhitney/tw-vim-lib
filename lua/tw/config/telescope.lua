@@ -7,7 +7,13 @@ local function configure()
   telescope.load_extension("refactoring")
   telescope.load_extension("dap")
 
-  telescope.setup({})
+  telescope.setup({
+    pickers = {
+      colorscheme = {
+        enable_preview = true,
+      },
+    },
+  })
 end
 
 function M.setup()

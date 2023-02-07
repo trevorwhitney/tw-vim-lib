@@ -152,7 +152,6 @@ function Packer.install(use)
     -- color schemes
     use("shaunsingh/solarized.nvim")
     use("EdenEast/nightfox.nvim")
-    use("bluz71/vim-moonfly-colors")
 
     use("andymass/vim-matchup") -- show matching pairs
     use({
