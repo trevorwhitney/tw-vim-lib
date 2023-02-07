@@ -39,6 +39,7 @@ local function mapKeys()
       a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Action" },
       d = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Diagnostic" },
     },
+    D = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Diagnostic" },
     -- quicker alternative for code action
     a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
 
@@ -69,7 +70,7 @@ local function mapKeys()
     c = {
       name = "Code",
       a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Action" },
-    }
+    },
   }
 
   which_key.register(visualKeymap, {

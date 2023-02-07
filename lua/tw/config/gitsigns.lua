@@ -73,6 +73,9 @@ local function setup()
           x = { "<cmd>lua require('gitsigns').reset_hunk()<cr>", "Reset Hunk" },
           X = { "<cmd>lua require('gitsigns').reset_buffer()<cr>", "Reset Buffer" },
 
+          w = { "<cmd>Gwrite<cr>", "Git write"},
+          W = { "<cmd>Gwrite!<cr>", "Git write"},
+
           s = { "<cmd>lua require('gitsigns').stage_hunk()<cr>", "Stage Hunk" },
           S = { "<cmd>lua require('gitsigns').stage_buffer()<cr>", "Stage Buffer" },
 
