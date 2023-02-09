@@ -148,10 +148,18 @@ function Packer.install(use)
     use("tpope/vim-unimpaired")
     use("glepnir/dashboard-nvim")
     use("fladson/vim-kitty")
+    use("chrisbra/colorizer")
 
     -- color schemes
-    use({"trevorwhitney/solarized.nvim", branch = "less-red"})
+    use({ "trevorwhitney/solarized.nvim", branch = "less-red" })
     use("EdenEast/nightfox.nvim")
+    use({
+      "mcchrish/zenbones.nvim",
+      -- Optionally install Lush. Allows for more configuration or extending the colorscheme
+      -- If you don't want to install lush, make sure to set g:zenbones_compat = 1
+      -- In Vim, compat mode is turned on as Lush only works in Neovim.
+      requires = "rktjmp/lush.nvim",
+    })
 
     use("andymass/vim-matchup") -- show matching pairs
     use({
