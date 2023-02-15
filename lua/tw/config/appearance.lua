@@ -22,10 +22,10 @@ function M.setup()
   -- vim.cmd("colorscheme dayfox")
 
   -- Load solarized colorscheme
-  -- require("solarized").set()
+  require("solarized").set()
   --
   -- Load dawnfox colorscheme
-  vim.cmd("colorscheme seoulbones")
+  -- vim.cmd("colorscheme seoulbones")
 end
 
 return M

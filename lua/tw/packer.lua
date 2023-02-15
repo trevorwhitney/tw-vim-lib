@@ -151,7 +151,7 @@ function Packer.install(use)
     use("chrisbra/colorizer")
 
     -- color schemes
-    use({ "trevorwhitney/solarized.nvim", branch = "less-red" })
+    use({ "trevorwhitney/solarized.nvim"})
     use("EdenEast/nightfox.nvim")
     use({
       "mcchrish/zenbones.nvim",
