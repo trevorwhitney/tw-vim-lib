@@ -11,7 +11,7 @@ function Config.setup(lua_ls_root, nix_rocks_tree)
   require("tw.config.treesitter").setup()
   require("tw.config.copilot").setup()
   require("tw.config.nvim-cmp").setup()
-  require("tw.config.gitsigns").setup()
+  require("tw.config.git").setup()
 
   local lsp_support = vim.api.nvim_eval('get(s:, "lsp_support", 0)')
   if lsp_support == 1 then

@@ -57,14 +57,17 @@ local function setup()
             "Toggle Current Line Blame",
           },
 
-          d = { "<cmd>lua require('tw.git').diffSplit(vim.fn.input('[Commit] > '))<cr>", "Diff Split (Against Commit)" },
+          d = {
+            "<cmd>lua require('tw.config.git').diffSplit(vim.fn.input('[Commit] > '))<cr>",
+            "Diff Split (Against Commit)",
+          },
 
           h = { ":0Gclog!<cr>", "History" },
           k = { "Git commit<cr>", "Commit" },
 
           l = { ":<C-u>Git log -n 50 --graph --decorate --oneline<cr>", "Log" },
 
-          o = { "<cmd>lua require('tw.git').browseCurrentLine()<cr>", "Open Current Line in Browser" },
+          o = { "<cmd>lua require('tw.config.git').browseCurrentLine()<cr>", "Open Current Line in Browser" },
           p = { "<cmd>lua require('gitsigns').preview_hunk()<cr>", "Preview Hunk" },
 
           r = { "<cmd>lua require('gitsigns').reset_hunk()<cr>", "Reset Hunk" },
@@ -73,8 +76,8 @@ local function setup()
           x = { "<cmd>lua require('gitsigns').reset_hunk()<cr>", "Reset Hunk" },
           X = { "<cmd>lua require('gitsigns').reset_buffer()<cr>", "Reset Buffer" },
 
-          w = { "<cmd>Gwrite<cr>", "Git write"},
-          W = { "<cmd>Gwrite!<cr>", "Git write"},
+          w = { "<cmd>Gwrite<cr>", "Git write" },
+          W = { "<cmd>Gwrite!<cr>", "Git write" },
 
           s = { "<cmd>lua require('gitsigns').stage_hunk()<cr>", "Stage Hunk" },
           S = { "<cmd>lua require('gitsigns').stage_buffer()<cr>", "Stage Buffer" },
@@ -136,6 +139,15 @@ end
 function M.gpp()
   vim.cmd("Git pull --rebase")
   vim.cmd("Git push")
+end
+
+function M.diffSplit(commit)
+  vim.cmd("Gdiffsplit " .. commit)
+end
+
+function M.browseCurrentLine()
+  local linenum = vim.api.nvim_win_get_cursor(0)
+  vim.cmd(unpack(linenum) .. "GBrowse")
 end
 
 return M
