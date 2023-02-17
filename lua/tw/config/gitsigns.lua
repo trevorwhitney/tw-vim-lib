@@ -133,4 +133,9 @@ function M.setup()
   setup()
 end
 
+function M.gpp()
+  vim.cmd("Git pull --rebase")
+  vim.cmd("Git push")
+end
+
 return M

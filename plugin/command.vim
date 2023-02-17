@@ -3,6 +3,7 @@
 command! -nargs=1 Browse silent exe '!xdg-open "' . tw#util#UrlEscape(<q-args>) . '"'
 command! -nargs=0 Branches Telescope git_branches 
 command! -nargs=0 Gpr Git pull --rebase
+command! -nargs=0 Gpp lua require('tw.config.gitsigns').gpp()
 command! -nargs=0 Gci Git commit
 
 " ============== Misc ===========
