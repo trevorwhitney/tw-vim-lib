@@ -146,7 +146,7 @@ function Packer.install(use)
     use("tpope/vim-rsi")
     use("tpope/vim-surround")
     use("tpope/vim-unimpaired")
-    use("glepnir/dashboard-nvim")
+    -- use("glepnir/dashboard-nvim")
     use("fladson/vim-kitty")
     use("chrisbra/colorizer")
 

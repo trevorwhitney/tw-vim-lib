@@ -108,11 +108,11 @@ function M.on_attach(_, bufnr)
   end
 end
 
-function M.setup(sumneko_root, nix_rocks_tree)
+function M.setup(lua_ls_root, nix_rocks_tree)
   -- Use a loop to conveniently call 'setup' on multiple servers and
   -- map buffer local keybindings when the language server attaches
   local customLanguages = {
-    sumneko_lua = require("tw.languages.lua").configureLsp(sumneko_root, nix_rocks_tree),
+    lua_ls = require("tw.languages.lua").configureLsp(lua_ls_root, nix_rocks_tree),
     gopls = require("tw.languages.go").configure_lsp,
     ccls = require("tw.languages.c").configure_lsp,
   }
