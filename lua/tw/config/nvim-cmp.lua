@@ -87,7 +87,7 @@ local function jumpable(dir)
   end
 
   if dir == -1 then
-    return luasnip.in_snippet() and luasnip.jumpable(-1)
+    return luasnip.in_snippet() and luasnip.jumpable( -1)
   else
     return luasnip.in_snippet() and seek_luasnip_cursor_node() and luasnip.jumpable(1)
   end
@@ -104,14 +104,12 @@ local function configure()
         require("luasnip").lsp_expand(args.body)
       end,
     },
-
     window = {
       completion = cmp.config.window.bordered(),
       documentation = cmp.config.window.bordered(),
     },
-
     mapping = cmp.mapping.preset.insert({
-      ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+      ["<C-b>"] = cmp.mapping.scroll_docs( -4),
       ["<C-B>"] = cmp.mapping.scroll_docs(4),
       ["<C-e>"] = cmp.mapping.abort(),
       ["<C-Space>"] = cmp.mapping.complete(),
@@ -138,11 +136,34 @@ local function configure()
 
           local entry = cmp.get_selected_entry()
           if not entry then
-            cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+            cmp.select_next_item()
           else
             if cmp.confirm(confirm_opts) then
               return -- success, exit early
             end
+          end
+        end
+
+        if jumpable(1) and luasnip.jump(1) then
+          return -- success, exit early
+        end
+        fallback() -- if not exited early, always fallback
+      end),
+
+      -- enter accepts the current selection
+      ["<CR>"] = cmp.mapping(function(fallback)
+        if cmp.visible() then
+          local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false }
+          local is_insert_mode = function()
+            return vim.api.nvim_get_mode().mode:sub(1, 1) == "i"
+          end
+          if is_insert_mode() then -- prevent overwriting brackets
+            confirm_opts.behavior = cmp.ConfirmBehavior.Insert
+          end
+
+          local entry = cmp.get_selected_entry()
+          if entry and cmp.confirm(confirm_opts) then
+            return -- success, exit early
           end
         end
 
@@ -161,7 +182,6 @@ local function configure()
         )
       end),
     }),
-
     sources = cmp.config.sources({
       { name = "nvim_lsp" },
       { name = "nvim_lua" },

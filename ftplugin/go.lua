@@ -24,6 +24,14 @@ local function keybindings()
         "Debug Focused Test (With Tags)",
       },
     },
+    d = {
+      name = "Debug",
+      d = { ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test()<cr>", "Debug Focused Test" },
+      D = {
+        ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test(vim.fn.input('[Tags] > '))<cr>",
+        "Debug Focused Test (With Tags)",
+      },
+    },
   }
 
   local whichkey = require("which-key")

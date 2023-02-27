@@ -17,7 +17,7 @@ function M.setup()
       -- null_ls.builtins.code_actions.refactoring,
       null_ls.builtins.code_actions.statix,
       null_ls.builtins.diagnostics.eslint_d,
-      null_ls.builtins.diagnostics.golangci_lint,
+      -- null_ls.builtins.diagnostics.golangci_lint,
       null_ls.builtins.diagnostics.luacheck.with({
         extra_args = { "--globals", "vim", "run_sync" },
       }),

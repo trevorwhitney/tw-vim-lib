@@ -74,6 +74,9 @@ local function setOptions()
   set.directory = { ".vim/tmp" }
   set.backupdir = { ".vim/tmp" }
 
+  -- Switchbuf
+  set.switchbuf = { "uselast", "useopen", "usetab" }
+
   -- Always show the signcolumn, otherwise it would shift the text each time
   -- diagnostics appear/become resolved.
   if vim.fn.has("patch-8.1.1564") then

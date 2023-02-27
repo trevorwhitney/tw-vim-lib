@@ -37,7 +37,6 @@ local function mapKeys(which_key)
       name = "Easy Motion",
       w = { "<Plug>(easymotion-overwin-w)", "Word" },
     },
-    z = { "<cmd>'<,'>sort<cr>", "sort" },
   }
 
   which_key.register(leaderKeymap, {
@@ -73,7 +72,7 @@ local function mapKeys(which_key)
       name = "Refactor",
       r = { "<Esc><cmd>lua require('telescope').extensions.refactoring.refactors()<CR>", "Refactor Selection" },
     },
-    z = { "<cmd>'<,'>sort<cr>", "sort" },
+    z = { ":'<,'>sort<cr>", "sort" },
   }
 
   which_key.register(leaderVisualKeymap, {

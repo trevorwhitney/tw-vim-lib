@@ -73,7 +73,6 @@ local function configureKeyamp()
       U = { "<cmd>lua require'dapui'.toggle()<cr>", "Toggle UI" },
       b = { "<cmd>lua require'dap'.step_back()<cr>", "Step Back" },
       c = { "<cmd>lua require'dap'.continue()<cr>", "Continue" },
-      d = { "<cmd>lua require'dap'.disconnect()<cr>", "Disconnect" },
       e = { "<cmd>lua require'dapui'.eval(nil, {enter = true})<cr>", "Evaluate" },
       g = { "<cmd>lua require'dap'.session()<cr>", "Get Session" },
       h = { "<cmd>lua require'dap.ui.widgets'.hover()<cr>", "Hover Variables" },
@@ -85,7 +84,8 @@ local function configureKeyamp()
       r = { "<cmd>lua require'dap'.repl.toggle()<cr>", "Toggle Repl" },
       s = { "<cmd>lua require'dap'.continue()<cr>", "Start" },
       t = { "<cmd>lua require'dap'.toggle_breakpoint()<cr>", "Toggle Breakpoint" },
-      x = { "<cmd>lua require'dap'.terminate()<cr>", "Terminate" },
+      x = { "<cmd>lua require'dap'.disconnect()<cr>", "Disconnect" },
+      X = { "<cmd>lua require'dap'.terminate()<cr>", "Terminate" },
       u = { "<cmd>lua require'dap'.step_out()<cr>", "Step Out" },
     },
   }
