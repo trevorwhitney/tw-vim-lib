@@ -13,7 +13,9 @@ function Go.configure_lsp(on_attach, capabilities)
         analyses = {
           unusedparams = true,
         },
-        buildFlags = { "-tags=requires_docker" },
+        buildFlags = {
+          "-tags=requires_docker,linux,cgo,promtail_journal_enabled",
+        },
         staticcheck = true,
       },
     },

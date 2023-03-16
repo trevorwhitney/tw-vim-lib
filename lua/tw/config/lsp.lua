@@ -32,22 +32,17 @@ local function mapKeys()
 
   local keymapWithLeader = {
     ["="] = { "<cmd>lua vim.lsp.buf.format()<cr>", "Format" },
-    c = {
-      name = "Code",
-      h = { "<cmd>lua vim.lsp.buf.hover()<cr>", "Hover" },
-      s = { "<cmd>lua vim.lsp.buf.signature_help()<cr>", "Signature" },
-      a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Action" },
-      d = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Diagnostic" },
-    },
-    D = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Diagnostic" },
-    -- quicker alternative for code action
+
     a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
+
+    K = { "<cmd>lua vim.lsp.buf.hover()<cr>", "Show Hover" },
+    D = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Show Diagnostic" },
 
     -- TODO: is rn more canonical?
     r = {
       name = "Refactor",
       n = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
-      -- ["re"] = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
+      -- ["e"] = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
     },
 
     -- TDOO: never used these, remove?
