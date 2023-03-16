@@ -35,7 +35,10 @@ local function mapKeys()
 
     a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
 
-    K = { "<cmd>lua vim.lsp.buf.hover()<cr>", "Show Hover" },
+    -- TODO: can we have a function that show diagnostic if available, else show hover?
+    k = { "<cmd>lua vim.lsp.buf.hover()<cr>", "Show Hover" },
+
+    -- d is reserved for debug actions, so use uppercase D
     D = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Show Diagnostic" },
 
     -- TODO: is rn more canonical?
