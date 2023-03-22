@@ -9,23 +9,23 @@ local function setOptions()
   set.autowriteall = true
   set.expandtab = true -- Use soft tabs
   set.incsearch = true
-  set.wrap = false -- No wrapping
-  set.number = true -- Line numbers
+  set.wrap = false    -- No wrapping
+  set.number = true   -- Line numbers
   set.splitright = true
   set.splitbelow = true
   set.undofile = true
-  set.showmatch = true -- Show matching brackets/braces
-  set.smarttab = true -- Use shiftwidth to tab at line beginning
-  set.showmode = false -- mode shown through pretty bottom bar instead
+  set.showmatch = true                        -- Show matching brackets/braces
+  set.smarttab = true                         -- Use shiftwidth to tab at line beginning
+  set.showmode = false                        -- mode shown through pretty bottom bar instead
 
   set.backspace = { "indent", "eol", "start" } -- Let backspace work over anything.
-  set.ignorecase = true -- ignore case only when search term is all lowercase
-  set.smartcase = true -- ignore case only when search term is all lowercase
-  set.mouse = "a" -- enable mouse in all modes
+  set.ignorecase = true                       -- ignore case only when search term is all lowercase
+  set.smartcase = true                        -- ignore case only when search term is all lowercase
+  set.mouse = "a"                             -- enable mouse in all modes
   set.scrolloff = 5
-  set.shiftwidth = 2 -- Width of autoindent
+  set.shiftwidth = 2                          -- Width of autoindent
   set.switchbuf = "useopen"
-  set.tabstop = 2 -- Tab settings
+  set.tabstop = 2                             -- Tab settings
   set.tags:prepend("./.git/tags")
   set.undodir = vim.env.HOME .. "/.vim/undodir"
   set.encoding = "utf-8"
@@ -56,9 +56,9 @@ local function setOptions()
   -- folding
   set.foldmethod = "expr" -- fold based on treesitter
   set.foldexpr = "nvim_treesitter#foldexpr()"
-  set.foldnestmax = 10 -- deepest fold is 10 levels
+  set.foldnestmax = 10   -- deepest fold is 10 levels
   set.foldenable = false -- dont fold by default
-  set.foldlevel = 1 -- this is just what i use
+  set.foldlevel = 1      -- this is just what i use
   set.foldlevelstart = 99
   set.foldopen = "insert" -- open folds when inserted into
 
@@ -71,8 +71,8 @@ local function setOptions()
   set.completeopt:append("longest")
 
   -- Directories
-  set.directory = { ".vim/tmp" }
-  set.backupdir = { ".vim/tmp" }
+  set.directory = { vim.env.HOME .. ".vim/tmp" }
+  set.backupdir = { vim.env.HOME .. ".vim/tmp" }
 
   -- Switchbuf
   set.switchbuf = { "uselast", "useopen", "usetab" }
@@ -106,7 +106,7 @@ local function setOptions()
   -- press Q to remove current cursor/selection
   -- start insert mode with i,a,I,A
   vim.g["VM_maps"] = {
-    ["Find Under"] = "<C-d>", -- replace C-n
+    ["Find Under"] = "<C-d>",       -- replace C-n
     ["Find Subword Under"] = "<C-d>", -- replace visual C-n
   }
 end
