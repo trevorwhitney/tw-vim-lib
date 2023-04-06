@@ -7,6 +7,7 @@ local function setOptions()
   set.autoread = true
   set.autowrite = true
   set.autowriteall = true
+  set.breakindent = true
   set.expandtab = true -- Use soft tabs
   set.incsearch = true
   set.wrap = false    -- No wrapping
@@ -71,8 +72,8 @@ local function setOptions()
   set.completeopt:append("longest")
 
   -- Directories
-  set.directory = { vim.env.HOME .. ".vim/tmp" }
-  set.backupdir = { vim.env.HOME .. ".vim/tmp" }
+  set.directory = { vim.env.HOME .. "/.vim/tmp" }
+  set.backupdir = { vim.env.HOME .. "/.vim/tmp" }
 
   -- Switchbuf
   set.switchbuf = { "uselast", "useopen", "usetab" }
