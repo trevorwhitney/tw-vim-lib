@@ -33,9 +33,13 @@ local function configureDapUI()
           -- Provide as ID strings or tables with "id" and "size" keys
           {
             id = "scopes",
-            size = 0.75, -- Can be float or integer > 1
+            size = 0.40, -- Can be float or integer > 1
           },
-          { id = "breakpoints", size = 0.25 },
+          {
+            id = "stacks",
+            size = 0.40, -- Can be float or integer > 1
+          },
+          { id = "breakpoints", size = 0.20 },
         },
         size = 40,
         position = "left",
