@@ -6,22 +6,33 @@ local function setup()
     on_attach = function(bufnr)
       local gs = package.loaded.gitsigns
 
-      local navigationKeymap = {
-        name = "Gitsigns Navigation",
-        ["]c"] = { gs.next_hunk({ preview = true }), "Next Git Hunk" },
-        ["[c"] = { gs.prev_hunk({ preview = true }), "Previous Git Hunk" },
-      }
+      local function map(mode, l, r, opts)
+        opts = opts or {}
+        opts.buffer = bufnr
+        vim.keymap.set(mode, l, r, opts)
+      end
+
+      map("n", "]c", function()
+        if vim.wo.diff then
+          return "]c"
+        end
+        vim.schedule(function()
+          gs.next_hunk()
+        end)
+        return "<Ignore>"
+      end, { expr = true })
+
+      map("n", "[c", function()
+        if vim.wo.diff then
+          return "[c"
+        end
+        vim.schedule(function()
+          gs.prev_hunk()
+        end)
+        return "<Ignore>"
+      end, { expr = true })
 
       local whichkey = require("which-key")
-      whichkey.register(navigationKeymap, {
-        mode = "n",
-        prefix = nil,
-        buffer = bufnr,
-        silent = true,
-        noremap = true,
-        nowait = false,
-      })
-
       local gitKeymap = {
         g = {
           name = "Git",
