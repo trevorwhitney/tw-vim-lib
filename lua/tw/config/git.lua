@@ -8,34 +8,8 @@ local function setup()
 
       local navigationKeymap = {
         name = "Gitsigns Navigation",
-        ["]"] = {
-          c = {
-            function()
-              if vim.wo.diff then
-                return "]c"
-              end
-              vim.schedule(function()
-                gs.next_hunk({ preview = true })
-              end)
-              return "<Ignore>"
-            end,
-            "Next Git Hunk",
-          },
-        },
-        ["["] = {
-          c = {
-            function()
-              if vim.wo.diff then
-                return "[c"
-              end
-              vim.schedule(function()
-                gs.prev_hunk({ preview = true })
-              end)
-              return "<Ignore>"
-            end,
-            "Previous Git Hunk",
-          },
-        },
+        ["]c"] = { gs.next_hunk({ preview = true }), "Next Git Hunk" },
+        ["[c"] = { gs.prev_hunk({ preview = true }), "Previous Git Hunk" },
       }
 
       local whichkey = require("which-key")
@@ -67,7 +41,10 @@ local function setup()
 
           l = { ":<C-u>Git log -n 50 --graph --decorate --oneline<cr>", "Log" },
 
-          o = { "<cmd>lua require('tw.config.git').browseCurrentLine()<cr>", "Open Current Line in Browser" },
+          o = {
+            "<cmd>lua require('tw.config.git').browseCurrentLine()<cr>",
+            "Open Current Line in Browser",
+          },
           p = { "<cmd>lua require('gitsigns').preview_hunk()<cr>", "Preview Hunk" },
 
           r = { "<cmd>lua require('gitsigns').reset_hunk()<cr>", "Reset Hunk" },
