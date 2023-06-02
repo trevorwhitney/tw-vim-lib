@@ -95,6 +95,7 @@ local function mapKeys(which_key)
       t = { "<cmd>Telescope tagstack<cr>", "Tag Stack" },
       l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
       q = { "<cmd>call ToggleQuickfixList()<cr>", "Quickfix" },
+      d = { "<cmd>Telescope diagnostics<CR>", "Diagnostic List" },
     },
   }
 

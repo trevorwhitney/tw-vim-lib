@@ -17,8 +17,7 @@ local function mapKeys()
       y = { "<cmd>Telescope lsp_type_definitions<cr>", "Type Definition" },
     },
     ["]d"] = { "<cmd>lua vim.diagnostic.goto_next()<cr>", "Next Diagnostic" },
-    ["[d]"] = { "<cmd>lua vim.diagnostic.goto_prev()<cr>", "Previous Diagnostic" },
-    ["\\d"] = { "<cmd>lua vim.diagnostic.setloclist()<CR>", "Diagnostic List" },
+    ["[d"] = { "<cmd>lua vim.diagnostic.goto_prev()<cr>", "Previous Diagnostic" },
   }
 
   which_key.register(keymap, {
