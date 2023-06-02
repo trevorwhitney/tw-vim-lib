@@ -2,7 +2,7 @@ local M = {}
 
 function M.setup()
   local null_ls = require("null-ls")
-  local lsp = require("tw.config.lsp")
+  local lsp = require("tw.config.Lsp")
   local home = vim.loop.os_getenv("HOME")
 
   require("null-ls").setup({

@@ -9,12 +9,10 @@ local function mapKeys()
   local keymap = {
     g = {
       name = "Got To",
-      d = { "<cmd>Telescope lsp_definitions<cr>", "Definition" },
-      -- often not implemented, would rather map to definition in split
-      -- D = { "<cmd>lua vim.lsp.buf.declaration()<CR>", "Declaration" },
-      i = { "<cmd>Telescope lsp_implementations<cr>", "Implementation" },
-      r = { "<cmd>Telescope lsp_references<cr>", "References" },
-      y = { "<cmd>Telescope lsp_type_definitions<cr>", "Type Definition" },
+      d = { "<cmd>lua require('telescope.builtin').lsp_definitions({fname_width=0.6})<cr>", "Definition" },
+      i = { "<cmd>lua require('telescope.builtin').lsp_implementations({fname_width=0.6})<cr>", "Implementations" },
+      r = { "<cmd>lua require('telescope.builtin').lsp_references({fname_width=0.6})<cr>", "References" },
+      y = { "<cmd>lua require('telescope.builtin').lsp_type_definitions({fname_width=0.6})<cr>", "Type Definition" },
     },
     ["]d"] = { "<cmd>lua vim.diagnostic.goto_next()<cr>", "Next Diagnostic" },
     ["[d"] = { "<cmd>lua vim.diagnostic.goto_prev()<cr>", "Previous Diagnostic" },
