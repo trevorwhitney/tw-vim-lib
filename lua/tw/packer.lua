@@ -109,9 +109,9 @@ function Packer.install(use)
       end,
     })
 
-    use("AndrewRadev/bufferize.vim") -- open the output of any command in a buffer
+    use("AndrewRadev/bufferize.vim")                            -- open the output of any command in a buffer
     use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open commands in tmux split
-    use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
+    use("christoomey/vim-tmux-navigator")                       -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
     use("coachshea/vim-textobj-markdown")
     use("easymotion/vim-easymotion")
     use({
@@ -151,7 +151,7 @@ function Packer.install(use)
     use("chrisbra/colorizer")
 
     -- color schemes
-    use({ "trevorwhitney/solarized.nvim"})
+    use({ "trevorwhitney/solarized.nvim" })
     use("EdenEast/nightfox.nvim")
     use({
       "mcchrish/zenbones.nvim",

@@ -59,4 +59,23 @@ function Go.runTest(...)
   vim.fn["tw#go#golangTestFocusedWithTags"](table.concat(tags, ","))
 end
 
+function Go.debug_go_program(...)
+  local dap = require("dap")
+  local test_name = vim.fn["tw#go#testName"]()
+  local args = { ... }
+
+  local config = {
+    type = "go",
+    name = "debug go program",
+    request = "launch",
+    program = "${file}",
+  }
+
+  if #args > 0 then
+    config["args"] = args
+  end
+
+  dap.run(config)
+end
+
 return Go

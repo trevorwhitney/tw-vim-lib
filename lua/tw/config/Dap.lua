@@ -2,14 +2,14 @@ local M = {}
 
 local function configureDapUI()
   local breakpoint = {
-    text = "",
+    text = "",
     texthl = "LspDiagnosticsSignError",
     linehl = "",
     numhl = "",
   }
 
   local breakpoint_rejected = {
-    text = "",
+    text = "",
     texthl = "LspDiagnosticsSignHint",
     linehl = "",
     numhl = "",
@@ -68,29 +68,37 @@ local function configureKeyamp()
   local keymap = {
     d = {
       name = "Debug",
-      R = { "<cmd>lua require'dap'.run_to_cursor()<cr>", "Run to Cursor" },
-      E = { "<cmd>lua require'dapui'.eval(vim.fn.input '[Expression] > ', { enter = true})<cr>", "Evaluate Input" },
+      B = { "<cmd>Telescope dap list_breakpoints<cr>", "List Breakpoints" },
       C = {
         "<cmd>lua require'dap'.set_breakpoint(vim.fn.input '[Condition] > ')<cr>",
         "Conditional Breakpoint",
       },
+      E = {
+        "<cmd>lua require'dapui'.eval(vim.fn.input '[Expression] > ', { enter = true})<cr>",
+        "Evaluate Input",
+      },
+      F = { "<cmd>Telescope dap frames<cr>", "List Breakpoints" },
+      R = { "<cmd>lua require'dap'.run_to_cursor()<cr>", "Run to Cursor" },
+      S = { "<cmd>lua require'dap.ui.widgets'.scopes()<cr>", "Scopes" },
+      T = { "<cmd>lua require'dap'.clear_breakpoints()<cr>", "Clear Breakpoints" },
       U = { "<cmd>lua require'dapui'.toggle()<cr>", "Toggle UI" },
+      X = { "<cmd>lua require'dap'.terminate()<cr>", "Terminate" },
+
       b = { "<cmd>lua require'dap'.step_back()<cr>", "Step Back" },
       c = { "<cmd>lua require'dap'.continue()<cr>", "Continue" },
       e = { "<cmd>lua require'dapui'.eval(nil, {enter = true})<cr>", "Evaluate" },
       g = { "<cmd>lua require'dap'.session()<cr>", "Get Session" },
       h = { "<cmd>lua require'dap.ui.widgets'.hover()<cr>", "Hover Variables" },
-      S = { "<cmd>lua require'dap.ui.widgets'.scopes()<cr>", "Scopes" },
       i = { "<cmd>lua require'dap'.step_into()<cr>", "Step Into" },
+      l = { "<cmd>lua require'dap'.run_last()<cr>", "Run Last" },
       o = { "<cmd>lua require'dap'.step_over()<cr>", "Step Over" },
       p = { "<cmd>lua require'dap'.pause.toggle()<cr>", "Pause" },
       q = { "<cmd>lua require'dap'.close()<cr>", "Quit" },
       r = { "<cmd>lua require'dap'.repl.toggle()<cr>", "Toggle Repl" },
       s = { "<cmd>lua require'dap'.continue()<cr>", "Start" },
       t = { "<cmd>lua require'dap'.toggle_breakpoint()<cr>", "Toggle Breakpoint" },
-      x = { "<cmd>lua require'dap'.disconnect()<cr>", "Disconnect" },
-      X = { "<cmd>lua require'dap'.terminate()<cr>", "Terminate" },
       u = { "<cmd>lua require'dap'.step_out()<cr>", "Step Out" },
+      x = { "<cmd>lua require'dap'.disconnect()<cr>", "Disconnect" },
     },
   }
 

@@ -17,19 +17,18 @@ local function keybindings()
         ":w<cr> <cmd>lua require('tw.languages.go').runTest(vim.fn.input('[Tags] > '))<cr>",
         "Focused Test (With Tags)",
       },
-
-      d = { ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test()<cr>", "Debug Focused Test" },
-      D = {
-        ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test(vim.fn.input('[Tags] > '))<cr>",
-        "Debug Focused Test (With Tags)",
-      },
     },
+
     d = {
       name = "Debug",
       d = { ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test()<cr>", "Debug Focused Test" },
       D = {
         ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test(vim.fn.input('[Tags] > '))<cr>",
         "Debug Focused Test (With Tags)",
+      },
+      f = {
+        ":w<cr> <cmd>lua require('tw.languages.go').debug_go_program(vim.fn.input('[Args] > '))<cr>",
+        "Debug File (With Args)",
       },
     },
   }

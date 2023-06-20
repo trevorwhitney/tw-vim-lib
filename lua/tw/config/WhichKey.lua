@@ -87,15 +87,17 @@ local function mapKeys(which_key)
   local noLeaderKeymap = {
     ["\\"] = {
       name = "Windows",
-      o = { "<cmd>Telescope lsp_document_symbols<cr>", "Outline" },
-      s = { "<cmd>Git<cr>", "Git Status" },
       S = { "<cmd>Telescope git_status<cr>", "Git Status (Telescope)" },
-      p = { "<cmd>pclose<cr>", "Close Preview" },
+
       b = { "<cmd>Branches<cr>", "Branches" },
-      t = { "<cmd>Telescope tagstack<cr>", "Tag Stack" },
-      l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
-      q = { "<cmd>call ToggleQuickfixList()<cr>", "Quickfix" },
       d = { "<cmd>Telescope diagnostics<CR>", "Diagnostic List" },
+      l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
+      m = { "<cmd>Telescope marks<cr>", "Marks" },
+      o = { "<cmd>Telescope lsp_document_symbols<cr>", "Outline" },
+      p = { "<cmd>pclose<cr>", "Close Preview" },
+      q = { "<cmd>call ToggleQuickfixList()<cr>", "Quickfix" },
+      s = { "<cmd>Git<cr>", "Git Status" },
+      t = { "<cmd>Telescope tagstack<cr>", "Tag Stack" },
     },
   }
 

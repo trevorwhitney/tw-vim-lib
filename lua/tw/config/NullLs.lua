@@ -7,6 +7,7 @@ function M.setup()
 
   require("null-ls").setup({
     on_attach = lsp.on_attach,
+    debug = true,
 
     -- you must define at least one source for the plugin to work
     sources = {
@@ -17,7 +18,13 @@ function M.setup()
       -- null_ls.builtins.code_actions.refactoring,
       null_ls.builtins.code_actions.statix,
       null_ls.builtins.diagnostics.eslint_d,
-      null_ls.builtins.diagnostics.golangci_lint,
+      null_ls.builtins.diagnostics.golangci_lint.with({
+        timeout = 30000,
+      }),
+      -- included in golangci-lint, but sometimes nice to have
+      -- null_ls.builtins.diagnostics.revive.with({
+      --   timeout = 10000,
+      -- }),
       null_ls.builtins.diagnostics.luacheck.with({
         extra_args = { "--globals", "vim", "run_sync" },
       }),

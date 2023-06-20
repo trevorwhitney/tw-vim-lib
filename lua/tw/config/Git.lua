@@ -43,7 +43,7 @@ local function setup()
           },
 
           d = {
-            "<cmd>lua require('tw.config.git').diffSplit(vim.fn.input('[Commit] > '))<cr>",
+            "<cmd>lua require('tw.config.Git').diffSplit(vim.fn.input('[Commit] > '))<cr>",
             "Diff Split (Against Commit)",
           },
 
@@ -53,7 +53,7 @@ local function setup()
           l = { ":<C-u>Git log -n 50 --graph --decorate --oneline<cr>", "Log" },
 
           o = {
-            "<cmd>lua require('tw.config.git').browseCurrentLine()<cr>",
+            "<cmd>lua require('tw.config.Git').browseCurrentLine()<cr>",
             "Open Current Line in Browser",
           },
           p = { "<cmd>lua require('gitsigns').preview_hunk()<cr>", "Preview Hunk" },
