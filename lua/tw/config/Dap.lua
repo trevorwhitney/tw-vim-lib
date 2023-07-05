@@ -77,7 +77,7 @@ local function configureKeyamp()
         "<cmd>lua require'dapui'.eval(vim.fn.input '[Expression] > ', { enter = true})<cr>",
         "Evaluate Input",
       },
-      F = { "<cmd>Telescope dap frames<cr>", "List Breakpoints" },
+      F = { "<cmd>Telescope dap frames<cr>", "List Frames" },
       R = { "<cmd>lua require'dap'.run_to_cursor()<cr>", "Run to Cursor" },
       S = { "<cmd>lua require'dap.ui.widgets'.scopes()<cr>", "Scopes" },
       T = { "<cmd>lua require'dap'.clear_breakpoints()<cr>", "Clear Breakpoints" },
