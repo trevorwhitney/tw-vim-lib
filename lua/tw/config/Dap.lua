@@ -86,6 +86,7 @@ local function configureKeyamp()
 
       b = { "<cmd>lua require'dap'.step_back()<cr>", "Step Back" },
       c = { "<cmd>lua require'dap'.continue()<cr>", "Continue" },
+      d = { "<cmd>lua require'dap'.continue()<cr>", "Debug" },
       e = { "<cmd>lua require'dapui'.eval(nil, {enter = true})<cr>", "Evaluate" },
       g = { "<cmd>lua require'dap'.session()<cr>", "Get Session" },
       h = { "<cmd>lua require'dap.ui.widgets'.hover()<cr>", "Hover Variables" },
@@ -95,7 +96,6 @@ local function configureKeyamp()
       p = { "<cmd>lua require'dap'.pause.toggle()<cr>", "Pause" },
       q = { "<cmd>lua require'dap'.close()<cr>", "Quit" },
       r = { "<cmd>lua require'dap'.repl.toggle()<cr>", "Toggle Repl" },
-      s = { "<cmd>lua require'dap'.continue()<cr>", "Start" },
       t = { "<cmd>lua require'dap'.toggle_breakpoint()<cr>", "Toggle Breakpoint" },
       u = { "<cmd>lua require'dap'.step_out()<cr>", "Step Out" },
       x = { "<cmd>lua require'dap'.disconnect()<cr>", "Disconnect" },
@@ -133,10 +133,38 @@ local function configureAutoComplete()
   ]])
 end
 
+local function additionalAdapters()
+  local dap = {
+    adapters = {
+      go = {
+        type = "server",
+        port = 9004,
+      },
+    },
+    configurations = {
+      go = {
+        {
+          type = "go",
+          name = "delve container debug",
+          request = "attach",
+          mode = "remote",
+          substitutepath = {
+            {
+              from = "${workspaceFolder}",
+              to = "/opt/app",
+            },
+          },
+        },
+      },
+    },
+  }
+end
+
 function M.setup()
   configureDapUI()
   configureKeyamp()
   configureAutoComplete()
+  -- additionalAdapters()
 
   -- Uncomment to change log level
   -- require("dap").set_log_level("DEBUG")

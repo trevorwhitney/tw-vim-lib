@@ -21,14 +21,14 @@ local function keybindings()
 
     d = {
       name = "Debug",
-      d = { ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test()<cr>", "Debug Focused Test" },
+      d = { ":w<cr> <cmd>lua require('tw.languages.go').debug()<cr>", "Debug" },
       D = {
-        ":w<cr> <cmd>lua require('tw.languages.go').debug_go_test(vim.fn.input('[Tags] > '))<cr>",
-        "Debug Focused Test (With Tags)",
+        ":w<cr> <cmd>lua require('tw.languages.go').debug(vim.fn.input('[Tags] > '))<cr>",
+        "Debug (With Tags)",
       },
-      f = {
-        ":w<cr> <cmd>lua require('tw.languages.go').debug_go_program(vim.fn.input('[Args] > '))<cr>",
-        "Debug File (With Args)",
+      m = {
+        ":w<cr> <cmd>lua require('tw.languages.go').remote_debug(vim.fn.input('[Remote Path] > '), vim.fn.input('[Port] > '))<cr>",
+        "Remote Debug",
       },
     },
   }

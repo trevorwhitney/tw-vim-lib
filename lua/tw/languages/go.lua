@@ -33,6 +33,45 @@ function Go.configure_lsp(on_attach, capabilities)
   }
 end
 
+function Go.debug(...)
+  local dap = require("dap")
+  local filename = vim.fn.expand("%")
+  if string.find(filename, "_test.go") then
+    Go.debug_go_test(...)
+  else
+    dap.continue()
+  end
+end
+
+function Go.remote_debug(path, port)
+  local dap = require("dap")
+
+  -- Get root of plugin directory
+  local pluginRoot = debug.getinfo(1).source:sub(2):match("(.*tw[-]vim[-]lib).*")
+
+  local goLaunchAdapter = {
+    type = "executable",
+    command = "node",
+    args = { pluginRoot .. "/debug/go/debugAdapter.js" },
+  }
+
+  local goLaunchConfig = {
+    type = "go",
+    request = "attach",
+    mode = "remote",
+    name = "Remote Attached Debugger",
+    dlvToolPath = vim.fn.system("which dlv"),
+    remotePath = path,
+    port = port,
+    cwd = vim.fn.getcwd(),
+  }
+
+  local session = dap.launch(goLaunchAdapter, goLaunchConfig)
+  if session == nil then
+    io.write("Error launching adapter")
+  end
+end
+
 function Go.debug_go_test(...)
   local dap = require("dap")
   local test_name = vim.fn["tw#go#testName"]()
@@ -57,25 +96,6 @@ end
 function Go.runTest(...)
   local tags = { ... }
   vim.fn["tw#go#golangTestFocusedWithTags"](table.concat(tags, ","))
-end
-
-function Go.debug_go_program(...)
-  local dap = require("dap")
-  local test_name = vim.fn["tw#go#testName"]()
-  local args = { ... }
-
-  local config = {
-    type = "go",
-    name = "debug go program",
-    request = "launch",
-    program = "${file}",
-  }
-
-  if #args > 0 then
-    config["args"] = args
-  end
-
-  dap.run(config)
 end
 
 return Go
