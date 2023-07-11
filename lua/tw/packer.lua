@@ -217,6 +217,8 @@ function Packer.install(use)
       end,
     })
 
+    use("chrisbra/NrrwRgn")
+
     installNativeLsp(use)
 
     installTelescope(use)
