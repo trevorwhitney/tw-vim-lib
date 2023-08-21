@@ -72,9 +72,41 @@ function Go.remote_debug(path, port)
   end
 end
 
+-- adapt functions from vim-test to get the test name
+local function get_name(path)
+  local filename_modifier = vim.g["test#filename_modifier"] or ":."
+
+  local position = {}
+  position["file"] = vim.fn["fnamemodify"](path, filename_modifier)
+
+  if path == vim.fn["expand"]("%") then
+    position["line"] = vim.fn["line"](".")
+  else
+    position["line"] = 1
+  end
+
+  if path == vim.fn["expand"]("%") then
+    position["col"] = vim.fn["col"](".")
+  else
+    position["col"] = 1
+  end
+
+  local nearest = vim.fn["test#base#nearest_test"](position, vim.g["test#go#patterns"])
+
+  local namespace = table.concat(nearest["namespace"], "/")
+  local test = table.concat(nearest["test"], "/")
+  local name = namespace .. "/" .. test
+
+  local without_spaces = vim.fn["substitute"](name, "\\s", "_", "g")
+  local escaped_regex = vim.fn["substitute"](without_spaces, "\\([\\[\\].*+?|$^()]\\)", "\\\1", "g")
+
+  return escaped_regex
+end
+
 function Go.debug_go_test(...)
   local dap = require("dap")
-  local test_name = vim.fn["tw#go#testName"]()
+  local test_name = get_name(vim.fn["expand"]("%"))
+
   local tags = { ... }
 
   local config = {
@@ -91,11 +123,7 @@ function Go.debug_go_test(...)
   end
 
   dap.run(config)
-end
-
-function Go.runTest(...)
-  local tags = { ... }
-  vim.fn["tw#go#golangTestFocusedWithTags"](table.concat(tags, ","))
+  dap.repl.open()
 end
 
 return Go

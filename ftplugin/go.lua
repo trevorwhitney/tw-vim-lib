@@ -11,12 +11,6 @@ local function keybindings()
     e = {
       name = "Execute",
       p = { ":w<cr> :GolangTestCurrentPackage<cr>", "Package Tests" },
-
-      t = { ":w<cr> <cmd>lua require('tw.languages.go').runTest()<cr>", "Focused Test" },
-      T = {
-        ":w<cr> <cmd>lua require('tw.languages.go').runTest(vim.fn.input('[Tags] > '))<cr>",
-        "Focused Test (With Tags)",
-      },
     },
 
     d = {

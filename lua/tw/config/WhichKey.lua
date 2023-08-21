@@ -11,6 +11,14 @@ local function mapKeys(which_key)
     },
     B = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
 
+
+    e = {
+      name = "Execute",
+      t = { ":w<cr> :TestNearest<cr>", "Test Nearest" },
+      l = { ":w<cr> :TestLast<cr>", "Test Last" },
+      f = { ":w<cr> :TestFile<cr>", "Test File" },
+    },
+
     -- Find
     f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
     F = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Find Grep" },
