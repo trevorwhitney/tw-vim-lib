@@ -95,7 +95,7 @@ function Packer.install(use)
           throttle = true, -- Throttles plugin updates (may improve performance)
           max_lines = 0, -- How many lines the window should span. Values <= 0 mean no limit.
           patterns = {
-                      -- Match patterns for TS nodes. These get wrapped to match at word boundaries.
+            -- Match patterns for TS nodes. These get wrapped to match at word boundaries.
             -- For all filetypes
             -- Note that setting an entry here replaces all other patterns for this entry.
             -- By setting the 'default' entry below, you can control which nodes you want to
@@ -110,8 +110,14 @@ function Packer.install(use)
       end,
     })
 
-    use("AndrewRadev/bufferize.vim")                            -- open the output of any command in a buffer
-    use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open commands in tmux split
+    use("AndrewRadev/bufferize.vim") -- open the output of any command in a buffer
+    use({
+      "benmills/vimux",
+      config = function()
+        vim.g["VimuxUseNearest"] = 0
+      end,
+    })                                                          -- open commands in tmux split
+    use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open go commands in tmux split
     use("christoomey/vim-tmux-navigator")                       -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
     use("coachshea/vim-textobj-markdown")
     use("easymotion/vim-easymotion")

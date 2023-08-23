@@ -2,18 +2,13 @@ local M = {}
 
 local function mapKeys(which_key)
   local leaderKeymap = {
-    -- Buffers
-    b = {
-      name = "Buffers",
-      f = { "<cmd>Telescope buffers<cr>", "Find" },
-      n = { "<cmd>bnext<cr>", "Next" },
-      p = { "<cmd>bprevious<cr>", "Next" },
-    },
+    b = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
+    --TODO: remove when transitioned to lower case b
     B = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
 
-
-    e = {
-      name = "Execute",
+    -- Test
+    t = {
+      name = "Test",
       t = { ":w<cr> :TestNearest<cr>", "Test Nearest" },
       l = { ":w<cr> :TestLast<cr>", "Test Last" },
       f = { ":w<cr> :TestFile<cr>", "Test File" },
@@ -22,29 +17,38 @@ local function mapKeys(which_key)
     -- Find
     f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
     F = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Find Grep" },
+
+    m = {
+      name = "Easy Motion",
+      w = { "<Plug>(easymotion-overwin-w)", "Word" },
+    },
+
+    p = {
+      name = "Print",
+      d = { "<cmd>lua require('refactoring').debug.printf({below = false})<CR>", "Print Debug Line" },
+      v = { "<cmd>lua require('refactoring').debug.print_var()<CR>", "Print Var" },
+      c = { "<cmd>lua require('refactoring').debug.cleanup()<CR>", "Cleanup Print Statements" },
+    },
+
+    -- Refactor
+    r = {
+      name = "Refactor",
+      r = { "<cmd>lua require('telescope').extensions.refactoring.refactors()<CR>", "Refactor Menu" },
+      -- Inline variable works in both visual and normal mode
+      i = { "<cmd>lua require('refactoring').refactor('Inline Variable')<CR>", "Inline Variable" },
+      -- Extract block only works in normal mode
+      bl = { "<cmd>lua require('refactoring').refactor('Extract Block')<CR>", "Extract Block" },
+      bf = { "<cmd>lua require('refactoring').refactor('Extract Block To File')<CR>", "Extract Block to File" },
+    },
+
     R = { "<cmd>Telescope resume<cr>", "Resume Find" },
     ["*"] = {
       "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args({ default_text = vim.fn.expand('<cword>') })<cr>",
       "Find Grep (Current Word)",
     },
 
-    s = {
-      name = "Search",
-      f = { "<cmd>Telescope find_files<cr>", "File (All)" },
-      h = { "<cmd>Telescope help_tags<cr>", "Help Tags" },
-      k = { "<cmd>Telescope keymaps<cr>", "Keymaps" },
-      o = { "<cmd>Telescope oldfiles<cr>", "Recent (Old) Files" },
-      p = { "<cmd>Telescope projects<cr>", "Projects" },
-      r = { "<cmd>Telescope resume<cr>", "Resume" },
-      s = { "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", "LSP Symbols" },
-      t = { "<cmd>Telescope treesitter<cr>", "Treesitter Symbol" },
-    },
     ["\\"] = { "<cmd>NvimTreeToggle<cr>", "NvimTree" },
     ["|"] = { "<cmd>NvimTreeFindFile<cr>", "NvimTree (Current File)" },
-    m = {
-      name = "Easy Motion",
-      w = { "<Plug>(easymotion-overwin-w)", "Word" },
-    },
   }
 
   which_key.register(leaderKeymap, {
@@ -76,9 +80,23 @@ local function mapKeys(which_key)
       "\"sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
       "Search Current Selection",
     },
+    p = {
+      name = "Print",
+      v = { "<cmd>lua require('refactoring').debug.print_var()<CR>", "Print Var" },
+    },
+
     r = {
       name = "Refactor",
-      r = { "<Esc><cmd>lua require('telescope').extensions.refactoring.refactors()<CR>", "Refactor Selection" },
+      -- Extract function supports only visual mode
+      e = { "<cmd>lua require('refactoring').refactor('Extract Function')<CR>", "Extract Function" },
+      f = {
+        "<cmd>lua require('refactoring').refactor('Extract Function To File')<CR>",
+        "Extract Function To File",
+      },
+      -- Inline variable works in both visual and normal mode
+      i = { "<cmd>lua require('refactoring').refactor('Inline Variable')<CR>", "Inline Variable" },
+      -- Extract variable supports only visual mode
+      v = { "<cmd>lua require('refactoring').refactor('Extract Variable')<CR>", "Extract Variable" },
     },
     z = { ":'<,'>sort<cr>", "sort" },
   }

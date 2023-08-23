@@ -44,17 +44,10 @@ local function mapKeys()
     -- d is reserved for debug actions, so use uppercase D
     D = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Show Diagnostic" },
 
-    -- TODO: is rn more canonical?
     r = {
       name = "Refactor",
       n = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
-      -- ["e"] = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
     },
-
-    -- TDOO: never used these, remove?
-    -- buf_set_keymap("n", "<leader>wa", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", opts)
-    -- buf_set_keymap("n", "<leader>wr", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", opts)
-    -- buf_set_keymap("n", "<leader>wl", "<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>", opts)
   }
 
   which_key.register(keymapWithLeader, {

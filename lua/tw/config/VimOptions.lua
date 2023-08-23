@@ -57,10 +57,7 @@ local function setOptions()
   -- folding
   set.foldmethod = "expr" -- fold based on treesitter
   set.foldexpr = "nvim_treesitter#foldexpr()"
-  set.foldnestmax = 10   -- deepest fold is 10 levels
   set.foldenable = false -- dont fold by default
-  set.foldlevel = 1      -- this is just what i use
-  set.foldlevelstart = 99
   set.foldopen = "insert" -- open folds when inserted into
 
   -- Auto completion
