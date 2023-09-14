@@ -4,7 +4,7 @@ A vim plugin to hold my custom functions, commands, etc. that I use in my vim co
 
 # Installing
 
-This repo should be installed as an nvim plugin. Once installed it will use packer to fetch all it's dependent plugins. Here's an example `init.lua`.
+This repo should be installed as an nvim plugin. Once installed it will use packer to fetch all it's dependent plugins. Here's an example `init.vim`.
 
 ```vim
 " Set to 0 for a more minimal installation without LSP support
