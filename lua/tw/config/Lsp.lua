@@ -116,9 +116,11 @@ function M.setup(lua_ls_root, nix_rocks_tree)
     "dockerls",
     "jsonls",
     "jsonnet_ls",
-    "nixd",
     "pyright",
-    "rnix",
+    -- 3 options for nix LSP
+    -- "rnix",
+    -- "nixd",
+    "nil_ls",
     "terraformls",
     "tsserver",
     "vimls",

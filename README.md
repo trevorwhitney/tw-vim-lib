@@ -2,7 +2,54 @@
 
 A vim plugin to hold my custom functions, commands, etc. that I use in my vim configuration
 
-# Calling Lua Functions From Vim
+# Installing
+
+```vim
+" Set to 0 for a more minimal installation without LSP support
+" when set to 1, need to set these other variables as well
+let s:lsp_support = 1
+let s:lua_ls_path = '<PATH_TO_LUA_LANGUAGE_SERVER_ROOT_DIR>' " language server should be at /bin/lua-language-server in this directory
+let s:rocks_tree_root = '<PATH_TO_LUA_ROCKS_ROOT>'
+let g:jdtls_home = '<PATH_TO_JDTLS_HOME_DIR>'
+
+let mapleader = ' ' " space as leader
+
+lua <<EOF
+-- Set the packpath so packer can install packages
+local fn = vim.fn
+local package_root = table.concat({fn.stdpath('data'), "site", "pack"}, "/")
+vim.cmd("set packpath^=" .. package_root)
+
+local install_path = table.concat({package_root, "packer", "start", "packer.nvim"}, "/")
+local compile_path = table.concat({install_path, "plugin", "packer_compiled.lua"}, "/")
+
+local vim_lib_install_path = package_root .. '/packer/start/tw-vim-lib'
+
+-- all my config (including packer) is in my tw-vim-lib plugin (this repo), so fetch that manually
+if fn.empty(fn.glob(vim_lib_install_path)) > 0 then
+        vim_lib_bootstrap = fn.system({'git', 'clone', 'https://github.com/trevorwhitney/tw-vim-lib', vim_lib_install_path})
+end
+
+require("packer").init({
+        package_root = package_root,
+        compile_path = compile_path,
+})
+
+require('tw.packer').install(require('packer').use)
+
+-- sync packer if this is a fresh install
+if vim_lib_bootstrap then
+  require('packer').sync()
+end
+
+local lua_ls_path = vim.api.nvim_eval('get(s:, "lua_ls_path", "")')
+local rocks_tree_root = vim.api.nvim_eval('get(s:, "rocks_tree_root", "")')
+
+require('tw.config').setup(lua_ls_path, rocks_tree_root)
+EOF
+```
+
+## Calling Lua Functions From Vim
 
 ```lua
 local M = {}
@@ -27,18 +74,18 @@ command! -nargs=* TestTwo call v:lua.require("example").testTwo(<f-args>)
 
 #TODO
 
-* telescope dap
-  * https://github.com/nvim-telescope/telescope-dap.nvim
-* replace vimux-go functions with native ones
-  
+- telescope dap
+  - https://github.com/nvim-telescope/telescope-dap.nvim
+- replace vimux-go functions with native ones
 
-# Troubleshooting
+## Troubleshooting
 
-## tree-sitter
+### tree-sitter
 
-* Find the parser file being used: `echo nvim_get_runtime_file("parser/*.so", v:true)`
+- Find the parser file being used: `echo nvim_get_runtime_file("parser/*.so", v:true)`
 
-* minimum config for debugging:
+- minimum config for debugging:
+
 ```lua
 local on_windows = vim.loop.os_uname().version:match("Windows")
 
@@ -143,4 +190,3 @@ else
 	_G.load_config()
 end
 ```
-
