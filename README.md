@@ -1,8 +1,10 @@
 # tw-vim-lib
 
-A vim plugin to hold my custom functions, commands, etc. that I use in my vim configuration
+A vim plugin to hold my custom functions, commands, etc. that I use in my vim configuration. I currently use this with neovim, not sure how much works with vim 8 out of the box.
 
 # Installing
+
+This repo should be installed as an nvim plugin. Once installed it will use packer to fetch all it's dependent plugins. Here's an example `init.lua`.
 
 ```vim
 " Set to 0 for a more minimal installation without LSP support
