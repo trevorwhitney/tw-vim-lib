@@ -234,6 +234,8 @@ function Packer.install(use)
       end,
     })
 
+    use("gabrielpoca/replacer.nvim")
+
     installNativeLsp(use)
 
     installTelescope(use)

@@ -34,6 +34,7 @@ local function mapKeys(which_key)
     r = {
       name = "Refactor",
       r = { "<cmd>lua require('telescope').extensions.refactoring.refactors()<CR>", "Refactor Menu" },
+      p = { "<cmd>lua require('replacer').run()<cr>", "Replacer" },
       -- Inline variable works in both visual and normal mode
       i = { "<cmd>lua require('refactoring').refactor('Inline Variable')<CR>", "Inline Variable" },
       -- Extract block only works in normal mode
@@ -56,20 +57,6 @@ local function mapKeys(which_key)
     prefix = "<leader>",
     buffer = nil,
     silent = true,
-    noremap = true,
-    nowait = false,
-  })
-
-  which_key.register({
-    r = {
-      name = "Refactor",
-      p = { ":%s/<C-r><C-w>/", "Replace (Word)" },
-    },
-  }, {
-    mode = "n",
-    prefix = "<leader>",
-    buffer = nil,
-    silent = false,
     noremap = true,
     nowait = false,
   })
