@@ -46,8 +46,7 @@ local function configureDapUI()
       },
       {
         elements = {
-          "repl",
-          -- "console",
+          "console",
         },
         size = 15,
         position = "bottom",
@@ -78,6 +77,7 @@ local function configureKeyamp()
         "Evaluate Input",
       },
       F = { "<cmd>Telescope dap frames<cr>", "List Frames" },
+      O = { "<cmd>lua require'dapui'.toggle(2)<cr>", "Toggle Console" },
       R = { "<cmd>lua require'dap'.run_to_cursor()<cr>", "Run to Cursor" },
       S = { "<cmd>lua require'dap.ui.widgets'.scopes()<cr>", "Scopes" },
       T = { "<cmd>lua require'dap'.clear_breakpoints()<cr>", "Clear Breakpoints" },
@@ -134,37 +134,54 @@ local function configureAutoComplete()
 end
 
 local function additionalAdapters()
-  local dap = {
-    adapters = {
-      go = {
-        type = "server",
-        port = 9004,
+  require("dap-vscode-js").setup({
+    node_path = "node",                                                                      -- Path of node executable. Defaults to $NODE_PATH, and then "node"
+    debugger_path = vim.env.HOME .. "/.local/share/nvim/site/pack/packer/opt/vscode-js-debug", -- Path to vscode-js-debug installation.
+    adapters = { "pwa-node" },                                                               -- which adapters to register in nvim-dap
+    -- log_file_path = vim.env.HOME .. "/dap_vscode_js.log", -- Path for file logging
+    -- log_file_level = vim.log.levels.DEBUG, -- Logging level for output to file. Set to false to disable file logging.
+    -- log_console_level = vim.log.levels.DEBUG -- Logging level for output to console. Set to false to disable console output.
+  })
+
+  for _, language in ipairs({ "typescript", "javascript" }) do
+    require("dap").configurations[language] = {
+      {
+        type = "pwa-node",
+        request = "launch",
+        name = "Launch file",
+        program = "${file}",
+        cwd = "${workspaceFolder}",
       },
-    },
-    configurations = {
-      go = {
-        {
-          type = "go",
-          name = "delve container debug",
-          request = "attach",
-          mode = "remote",
-          substitutepath = {
-            {
-              from = "${workspaceFolder}",
-              to = "/opt/app",
-            },
-          },
+      {
+        type = "pwa-node",
+        request = "attach",
+        name = "Attach",
+        processId = require("dap.utils").pick_process,
+        cwd = "${workspaceFolder}",
+      },
+      {
+        console = "integratedTerminal",
+        cwd = "${workspaceFolder}",
+        internalConsoleOptions = "neverOpen",
+        name = "Debug Jest Tests",
+        request = "launch",
+        rootPath = "${workspaceFolder}",
+        runtimeExecutable = "node",
+        type = "pwa-node",
+        runtimeArgs = {
+          "./node_modules/jest/bin/jest.js",
+          "--runInBand",
         },
       },
-    },
-  }
+    }
+  end
 end
 
 function M.setup()
   configureDapUI()
   configureKeyamp()
   configureAutoComplete()
-  -- additionalAdapters()
+  additionalAdapters()
 
   -- Uncomment to change log level
   -- require("dap").set_log_level("DEBUG")
