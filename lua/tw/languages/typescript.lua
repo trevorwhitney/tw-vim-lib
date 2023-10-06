@@ -55,10 +55,6 @@ function Typescript.debug_test()
     filename,
   }
 
-  for key, value in pairs(runtimeArgs) do
-    print(key, value)
-  end
-
   local config = {
     console = "integratedTerminal",
     cwd = "${workspaceFolder}",
@@ -74,7 +70,7 @@ function Typescript.debug_test()
 
   dap.run(config)
   -- open the console
-  require("dapui").toggle(2)
+  require("dapui").open(2)
 end
 
 return Typescript

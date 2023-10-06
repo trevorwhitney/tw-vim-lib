@@ -25,7 +25,6 @@ local function setOptions()
   set.mouse = "a"                             -- enable mouse in all modes
   set.scrolloff = 5
   set.shiftwidth = 2                          -- Width of autoindent
-  set.switchbuf = "useopen"
   set.tabstop = 2                             -- Tab settings
   set.tags:prepend("./.git/tags")
   set.undodir = vim.env.HOME .. "/.vim/undodir"
@@ -61,8 +60,7 @@ local function setOptions()
   set.foldopen = "insert" -- open folds when inserted into
 
   -- Auto completion
-  -- set.completeopt = { "menuone", "noselect" }
-  set.completeopt = { "menu", "menuone", "longest", "noselect" }
+  set.completeopt = { "menu", "menuone", "longest" }
   set.wildignore:append({ "*\\tmp\\*", "*.swp", "*.swo", "*.zip", ".git", ".cabal-sandbox" })
   set.wildmode = { "longest", "list", "full" }
   set.wildmenu = true
@@ -73,7 +71,7 @@ local function setOptions()
   set.backupdir = { vim.env.HOME .. "/.vim/tmp" }
 
   -- Switchbuf
-  set.switchbuf = { "uselast", "useopen", "usetab" }
+  set.switchbuf = { "useopen", "uselast" }
 
   -- Always show the signcolumn, otherwise it would shift the text each time
   -- diagnostics appear/become resolved.

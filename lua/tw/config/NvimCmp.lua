@@ -15,7 +15,6 @@ local function jumpable(dir)
   ---sets the current buffer's luasnip to the one nearest the cursor
   ---@return boolean true if a node is found, false otherwise
   local function seek_luasnip_cursor_node()
-    -- TODO(kylo252): upstream this
     -- for outdated versions of luasnip
     if not luasnip.session.current_nodes then
       return false
@@ -87,10 +86,16 @@ local function jumpable(dir)
   end
 
   if dir == -1 then
-    return luasnip.in_snippet() and luasnip.jumpable( -1)
+    return luasnip.in_snippet() and luasnip.jumpable(-1)
   else
     return luasnip.in_snippet() and seek_luasnip_cursor_node() and luasnip.jumpable(1)
   end
+end
+
+local has_words_before = function()
+  unpack = unpack or table.unpack
+  local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+  return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
 end
 
 local function configure()
@@ -109,69 +114,89 @@ local function configure()
       documentation = cmp.config.window.bordered(),
     },
     mapping = cmp.mapping.preset.insert({
-      ["<C-b>"] = cmp.mapping.scroll_docs( -4),
+      ["<C-b>"] = cmp.mapping.scroll_docs(-4),
       ["<C-B>"] = cmp.mapping.scroll_docs(4),
       ["<C-e>"] = cmp.mapping.abort(),
       ["<C-Space>"] = cmp.mapping.complete(),
-      ["<C-y>"] = cmp.mapping({
-        i = cmp.mapping.confirm({ select = false }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-        c = function(fallback)
+      -- ["<C-y>"] = cmp.mapping({
+      --   i = cmp.mapping.confirm({ select = false }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+      --   c = function(fallback)
+      --     if cmp.visible() then
+      --       cmp.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace })
+      --     else
+      --       fallback()
+      --     end
+      --   end,
+      -- }),
+
+      -- ["<Tab>"] = cmp.mapping(function(fallback)
+      --   if cmp.visible() then
+      --     local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false }
+      --     local is_insert_mode = function()
+      --       return vim.api.nvim_get_mode().mode:sub(1, 1) == "i"
+      --     end
+      --     if is_insert_mode() then -- prevent overwriting brackets
+      --       confirm_opts.behavior = cmp.ConfirmBehavior.Insert
+      --     end
+
+      --     local entry = cmp.get_selected_entry()
+      --     if not entry then
+      --       cmp.select_next_item()
+      --     else
+      --       if cmp.confirm(confirm_opts) then
+      --         return -- success, exit early
+      --       end
+      --     end
+      --   end
+
+      --   if jumpable(1) and luasnip.jump(1) then
+      --     return -- success, exit early
+      --   end
+      --   fallback() -- if not exited early, always fallback
+      -- end),
+      --
+      ["<Tab>"] = cmp.mapping(function(fallback)
+        if cmp.visible() then
+          cmp.select_next_item()
+        elseif has_words_before() then
+          cmp.complete()
+        else
+          fallback()
+        end
+      end, { "i", "s" }),
+
+      ["<S-Tab>"] = cmp.mapping(function(fallback)
+        if cmp.visible() then
+          cmp.select_prev_item()
+        else
+          fallback()
+        end
+      end, { "i", "s" }),
+
+      -- enter accepts the current selection or jumps to the next snippet field
+      ["<CR>"] = cmp.mapping({
+        i = function(fallback)
           if cmp.visible() then
-            cmp.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace })
+            local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = true }
+            cmp.confirm(confirm_opts)
+          elseif jumpable(1) then
+            luasnip.jump(1)
           else
             fallback()
           end
         end,
+        s = cmp.mapping.confirm({ select = true }),
+        c = cmp.mapping.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace }),
       }),
 
-      ["<Tab>"] = cmp.mapping(function(fallback)
-        if cmp.visible() then
-          local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false }
-          local is_insert_mode = function()
-            return vim.api.nvim_get_mode().mode:sub(1, 1) == "i"
-          end
-          if is_insert_mode() then -- prevent overwriting brackets
-            confirm_opts.behavior = cmp.ConfirmBehavior.Insert
-          end
-
-          local entry = cmp.get_selected_entry()
-          if not entry then
-            cmp.select_next_item()
-          else
-            if cmp.confirm(confirm_opts) then
-              return -- success, exit early
-            end
-          end
+      -- luasnip change previous snippet field
+      ["<C-y>"] = cmp.mapping(function(fallback)
+        if luasnip.jumpable(-1) then
+          luasnip.jump(-1)
+        else
+          fallback()
         end
-
-        if jumpable(1) and luasnip.jump(1) then
-          return -- success, exit early
-        end
-        fallback() -- if not exited early, always fallback
-      end),
-
-      -- enter accepts the current selection
-      ["<CR>"] = cmp.mapping(function(fallback)
-        if cmp.visible() then
-          local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false }
-          local is_insert_mode = function()
-            return vim.api.nvim_get_mode().mode:sub(1, 1) == "i"
-          end
-          if is_insert_mode() then -- prevent overwriting brackets
-            confirm_opts.behavior = cmp.ConfirmBehavior.Insert
-          end
-
-          local entry = cmp.get_selected_entry()
-          if entry and cmp.confirm(confirm_opts) then
-            return -- success, exit early
-          end
-        end
-
-        if jumpable(1) and luasnip.jump(1) then
-          return -- success, exit early
-        end
-        fallback() -- if not exited early, always fallback
-      end),
+      end, { "i", "s" }),
 
       -- Copilot accept
       ["<C-f>"] = cmp.mapping(function(_)

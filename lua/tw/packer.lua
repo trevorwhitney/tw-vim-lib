@@ -83,6 +83,13 @@ local function installNvimCmp(use)
       require("luasnip.loaders.from_vscode").lazy_load()
     end,
   })
+
+  use({
+    "L3MON4D3/LuaSnip",
+    requires = {
+      "rafamadriz/friendly-snippets",
+    },
+  })
 end
 
 function Packer.install(use)
@@ -242,6 +249,7 @@ function Packer.install(use)
     })
 
     use("gabrielpoca/replacer.nvim")
+    use("romainl/vim-qf")
 
     installNativeLsp(use)
 
