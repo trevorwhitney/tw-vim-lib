@@ -109,6 +109,12 @@ function M.setup(lua_ls_root, nix_rocks_tree)
     lua_ls = require("tw.languages.lua").configureLsp(lua_ls_root, nix_rocks_tree),
     gopls = require("tw.languages.go").configure_lsp,
     ccls = require("tw.languages.c").configure_lsp,
+
+    -- 3 options for nix LSP
+    -- "rnix",
+    -- "nixd",
+    -- "nil_ls"
+    nil_ls = require("tw.languages.nix").configure_lsp,
   }
 
   local defaultLanguages = {
@@ -117,10 +123,6 @@ function M.setup(lua_ls_root, nix_rocks_tree)
     "jsonls",
     "jsonnet_ls",
     "pyright",
-    -- 3 options for nix LSP
-    -- "rnix",
-    -- "nixd",
-    "nil_ls",
     "terraformls",
     "tsserver",
     "vimls",
