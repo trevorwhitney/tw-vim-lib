@@ -159,7 +159,13 @@ function Packer.install(use)
     use("tommcdo/vim-exchange")
     use("tpope/vim-abolish")
     use("tpope/vim-commentary")
-    use("tpope/vim-dispatch")
+    use({
+      "tpope/vim-dispatch",
+      config = function()
+        vim.g["dispatch_no_maps"] = 1
+      end,
+    })
+
     use("tpope/vim-eunuch")
     use({ "tpope/vim-fugitive", requires = "tpope/vim-rhubarb" })
     use("tpope/vim-projectionist")
@@ -243,9 +249,12 @@ function Packer.install(use)
     use({
       "vim-test/vim-test",
       config = function()
-        vim.g["test#strategy"] = "vimux"
+        vim.g["test#strategy"] = "dispatch"
         vim.g["test#go#gotest#options"] = "-v"
       end,
+      requires = {
+        { "tpope/vim-dispatch" },
+      },
     })
 
     use("gabrielpoca/replacer.nvim")

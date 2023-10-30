@@ -9,14 +9,14 @@ local function mapKeys()
   local keymap = {
     g = {
       name = "Got To",
-      d = { "<cmd>lua require('telescope.builtin').lsp_definitions({fname_width=0.6})<cr>", "Definition" },
+      d = { "<cmd>lua require('telescope.builtin').lsp_definitions({fname_width=0.6, reuse_win=true})<cr>", "Definition" },
       i = {
-        "<cmd>lua require('telescope.builtin').lsp_implementations({fname_width=0.6})<cr>",
+        "<cmd>lua require('telescope.builtin').lsp_implementations({fname_width=0.6, reuse_win=true})<cr>",
         "Implementations",
       },
       r = { "<cmd>lua require('telescope.builtin').lsp_references({fname_width=0.6})<cr>", "References" },
       y = {
-        "<cmd>lua require('telescope.builtin').lsp_type_definitions({fname_width=0.6})<cr>",
+        "<cmd>lua require('telescope.builtin').lsp_type_definitions({fname_width=0.6, reuse_win=true})<cr>",
         "Type Definition",
       },
     },
@@ -102,7 +102,7 @@ function M.on_attach(_, bufnr)
   end
 end
 
-function M.setup(lua_ls_root, nix_rocks_tree)
+function M.setup(lua_ls_root, nix_rocks_tree, use_eslint_daemon)
   -- Use a loop to conveniently call 'setup' on multiple servers and
   -- map buffer local keybindings when the language server attaches
   local customLanguages = {
@@ -148,6 +148,9 @@ function M.setup(lua_ls_root, nix_rocks_tree)
   for lsp, fn in pairs(customLanguages) do
     nvim_lsp[lsp].setup(fn(M.on_attach, capabilities))
   end
+
+  -- NullLS
+  require("tw.config.NullLs").setup(use_eslint_daemon)
 end
 
 return M
