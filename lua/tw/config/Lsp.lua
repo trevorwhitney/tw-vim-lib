@@ -109,6 +109,7 @@ function M.setup(lua_ls_root, nix_rocks_tree, use_eslint_daemon)
     lua_ls = require("tw.languages.lua").configureLsp(lua_ls_root, nix_rocks_tree),
     gopls = require("tw.languages.go").configure_lsp,
     ccls = require("tw.languages.c").configure_lsp,
+    yamlls = require("tw.languages.yaml").configure_lsp,
 
     -- 3 options for nix LSP
     -- "rnix",
@@ -126,7 +127,6 @@ function M.setup(lua_ls_root, nix_rocks_tree, use_eslint_daemon)
     "terraformls",
     "tsserver",
     "vimls",
-    "yamlls",
   }
 
   local capabilities = require("cmp_nvim_lsp").default_capabilities()

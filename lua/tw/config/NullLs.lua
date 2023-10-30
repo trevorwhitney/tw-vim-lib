@@ -34,7 +34,7 @@ function M.setup(use_eslint_daemon)
       }),
       null_ls.builtins.diagnostics.statix,
       null_ls.builtins.diagnostics.tsc,
-      -- null_ls.builtins.diagnostics.yamllint,
+      null_ls.builtins.diagnostics.yamllint,
       null_ls.builtins.formatting.fixjson,
       null_ls.builtins.formatting.gofmt,
       null_ls.builtins.formatting.goimports,
