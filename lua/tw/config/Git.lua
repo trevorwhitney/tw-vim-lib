@@ -58,9 +58,6 @@ local function setup()
           },
           p = { "<cmd>lua require('gitsigns').preview_hunk()<cr>", "Preview Hunk" },
 
-          r = { "<cmd>lua require('gitsigns').reset_hunk()<cr>", "Reset Hunk" },
-          R = { "<cmd>lua require('gitsigns').reset_buffer()<cr>", "Reset Buffer" },
-          -- also use x to match fugitive
           x = { "<cmd>lua require('gitsigns').reset_hunk()<cr>", "Reset Hunk" },
           X = { "<cmd>lua require('gitsigns').reset_buffer()<cr>", "Reset Buffer" },
 

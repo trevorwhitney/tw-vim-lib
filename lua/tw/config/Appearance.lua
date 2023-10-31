@@ -14,18 +14,8 @@ function M.setup()
   vim.g.solarized_borders = true
   vim.g.solarized_disable_background = true
 
-  -- material
-  -- vim.g.material_style = "lighter"
-  -- vim.cmd("colorscheme material")
-
-  -- Load dawnfox colorscheme
-  -- vim.cmd("colorscheme dayfox")
-
   -- Load solarized colorscheme
   require("solarized").set()
-  --
-  -- Load dawnfox colorscheme
-  -- vim.cmd("colorscheme seoulbones")
 end
 
 return M

@@ -118,43 +118,6 @@ local function configure()
       ["<C-B>"] = cmp.mapping.scroll_docs(4),
       ["<C-e>"] = cmp.mapping.abort(),
       ["<C-Space>"] = cmp.mapping.complete(),
-      -- ["<C-y>"] = cmp.mapping({
-      --   i = cmp.mapping.confirm({ select = false }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-      --   c = function(fallback)
-      --     if cmp.visible() then
-      --       cmp.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace })
-      --     else
-      --       fallback()
-      --     end
-      --   end,
-      -- }),
-
-      -- ["<Tab>"] = cmp.mapping(function(fallback)
-      --   if cmp.visible() then
-      --     local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false }
-      --     local is_insert_mode = function()
-      --       return vim.api.nvim_get_mode().mode:sub(1, 1) == "i"
-      --     end
-      --     if is_insert_mode() then -- prevent overwriting brackets
-      --       confirm_opts.behavior = cmp.ConfirmBehavior.Insert
-      --     end
-
-      --     local entry = cmp.get_selected_entry()
-      --     if not entry then
-      --       cmp.select_next_item()
-      --     else
-      --       if cmp.confirm(confirm_opts) then
-      --         return -- success, exit early
-      --       end
-      --     end
-      --   end
-
-      --   if jumpable(1) and luasnip.jump(1) then
-      --     return -- success, exit early
-      --   end
-      --   fallback() -- if not exited early, always fallback
-      -- end),
-      --
       ["<Tab>"] = cmp.mapping(function(fallback)
         if cmp.visible() then
           cmp.select_next_item()

@@ -18,11 +18,6 @@ local function mapKeys(which_key)
     f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
     F = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Find Grep" },
 
-    m = {
-      name = "Easy Motion",
-      w = { "<Plug>(easymotion-overwin-w)", "Word" },
-    },
-
     p = {
       name = "Print",
       d = { "<cmd>lua require('refactoring').debug.printf({below = false})<CR>", "Print Debug Line" },
@@ -122,22 +117,6 @@ local function mapKeys(which_key)
     noremap = true,
     nowait = true,
   })
-
-  for _, mode in ipairs({ "x", "s", "o" }) do
-    which_key.register({
-      m = {
-        name = "Easy Motion",
-        w = { "<Plug>(easymotion-bd-w)", "Word" },
-      },
-    }, {
-      mode = mode,
-      prefix = "<leader>",
-      buffer = nil,
-      silent = true,
-      noremap = true,
-      nowait = true,
-    })
-  end
 end
 
 function M.setup()
