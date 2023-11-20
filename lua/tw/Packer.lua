@@ -252,6 +252,23 @@ function Packer.install(use)
 		use("gabrielpoca/replacer.nvim")
 		use("romainl/vim-qf")
 
+		use({
+			"nvimdev/lspsaga.nvim",
+			after = "nvim-lspconfig",
+			config = function()
+				require("lspsaga").setup({})
+			end,
+
+      -- TODO: for code formatting?
+      -- maybe replace poorly performing LSPs?
+			-- use({
+			-- 	"stevearc/conform.nvim",
+			-- 	config = function()
+			-- 		require("conform").setup()
+			-- 	end,
+			-- }),
+		})
+
 		installNativeLsp(use)
 
 		installTelescope(use)

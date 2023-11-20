@@ -3,6 +3,9 @@ local M = {}
 local function setup()
   require("gitsigns").setup({
     current_line_blame = true,
+    -- highlight numbers instead of using the sign column
+    signcolumn = false,
+    numhl = true,
     on_attach = function(bufnr)
       local gs = package.loaded.gitsigns
 

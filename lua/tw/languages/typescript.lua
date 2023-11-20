@@ -69,8 +69,6 @@ function Typescript.debug_test()
   }
 
   dap.run(config)
-  -- open the console
-  require("dapui").open(2)
 end
 
 return Typescript

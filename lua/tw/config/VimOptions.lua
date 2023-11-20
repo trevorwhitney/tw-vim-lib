@@ -75,12 +75,7 @@ local function setOptions()
 
   -- Always show the signcolumn, otherwise it would shift the text each time
   -- diagnostics appear/become resolved.
-  if vim.fn.has("patch-8.1.1564") then
-    -- Recently vim can merge signcolumn and number column into one
-    set.signcolumn = "number"
-  else
-    set.signcolumn = "auto:2"
-  end
+  set.signcolumn = "number"
 
   -- disable python2 provider
   vim.g["loaded_python_provider"] = 0

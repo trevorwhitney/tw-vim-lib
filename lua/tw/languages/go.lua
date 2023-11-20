@@ -123,7 +123,6 @@ function Go.debug_go_test(...)
   end
 
   dap.run(config)
-  dap.repl.open()
 end
 
 return Go
