@@ -99,7 +99,8 @@ local function mapKeys(which_key)
 
       b = { "<cmd>Branches<cr>", "Branches" },
       c = { "<cmd>DapToggleConsole<cr>", "Dap Console" },
-      d = { "<cmd>Telescope diagnostics<CR>", "Diagnostic List" },
+      -- d = { "<cmd>Telescope diagnostics<CR>", "Diagnostic List" },
+      d = { "<cmd>Lspsaga show_workspace_diagnostics ++normal<CR>", "Diagnostic List" },
       l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
       m = { "<cmd>Telescope marks<cr>", "Marks" },
       o = { "<cmd>Telescope lsp_document_symbols<cr>", "Outline" },
