@@ -35,16 +35,18 @@ function M.setup(use_eslint_daemon)
       null_ls.builtins.diagnostics.statix,
       null_ls.builtins.diagnostics.tsc,
       null_ls.builtins.diagnostics.yamllint,
-      null_ls.builtins.formatting.fixjson,
-      null_ls.builtins.formatting.gofmt,
-      null_ls.builtins.formatting.goimports,
-      null_ls.builtins.formatting.nixpkgs_fmt,
-      null_ls.builtins.formatting.prettier,
-      null_ls.builtins.formatting.shfmt,
-      null_ls.builtins.formatting.stylua,
-      null_ls.builtins.formatting.terraform_fmt,
-      null_ls.builtins.formatting.trim_newlines,
-      null_ls.builtins.formatting.trim_whitespace,
+
+      -- use conform for formtatting
+      -- null_ls.builtins.formatting.fixjson,
+      -- null_ls.builtins.formatting.gofmt,
+      -- null_ls.builtins.formatting.goimports,
+      -- null_ls.builtins.formatting.nixpkgs_fmt,
+      -- null_ls.builtins.formatting.prettier,
+      -- null_ls.builtins.formatting.shfmt,
+      -- null_ls.builtins.formatting.stylua,
+      -- null_ls.builtins.formatting.terraform_fmt,
+      -- null_ls.builtins.formatting.trim_newlines,
+      -- null_ls.builtins.formatting.trim_whitespace,
     },
   }
 

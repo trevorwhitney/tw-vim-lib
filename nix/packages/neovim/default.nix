@@ -31,10 +31,12 @@ let
       jdtls
 
       ccls # c++ language server
+      codespell
       delve
       gopls
       jsonnet-language-server
       lua-language-server
+      prettierd
       pyright
       shellcheck
       shfmt
