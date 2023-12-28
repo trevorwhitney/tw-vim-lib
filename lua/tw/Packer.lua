@@ -22,6 +22,9 @@ local function installNativeLsp(use)
 						quit = { "q", "<Esc>" },
 					},
 				},
+				lightbulb = {
+					sign_priority = 5,
+				},
 				code_action = {
 					keys = {
 						quit = { "q", "<Esc>" },
@@ -256,6 +259,8 @@ function Packer.install(use)
 			config = function()
 				vim.g["test#strategy"] = "dispatch"
 				vim.g["test#go#gotest#options"] = "-v"
+				vim.g["test#javascript#jest#options"] = "--no-coverage"
+				-- vim.g["test#javascript#mocha#executable"] = "npm test --"
 			end,
 			requires = {
 				{ "tpope/vim-dispatch" },
