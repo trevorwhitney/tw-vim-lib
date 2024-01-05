@@ -2,6 +2,7 @@ Packer = {}
 
 local function installNativeLsp(use)
 	use("neovim/nvim-lspconfig") -- Collection of configurations for built-in LSP client
+	use({ "jose-elias-alvarez/null-ls.nvim", requires = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" } })
 	use({
 		"nvimdev/lspsaga.nvim",
 		after = "nvim-lspconfig",
@@ -275,35 +276,7 @@ function Packer.install(use)
 			requires = { "nvim-lua/plenary.nvim" },
 		})
 
-		-- TODO: for code formatting?
-		-- maybe replace poorly performing LSPs?
-		use({
-			"stevearc/conform.nvim",
-			config = function()
-				require("conform").setup({
-					formatters_by_ft = {
-						bash = { "shfmt", "shellcheck" },
-						go = { "gofmt", "goimports" },
-						javascript = { { "prettierd", "prettier" }, "eslint_d" },
-						json = { { "prettierd", "prettier" }, "fixjson" },
-						jsonnet = { "jsonnetfmt" },
-						lua = { "stylua" },
-						markdown = { { "prettierd", "prettier" }, "markdownlint" },
-						nix = { "nixpkgs_fmt" },
-						sh = { "shfmt", "shellcheck" },
-						terraform = { "terraform_fmt" },
-						typescript = { { "prettierd", "prettier" }, "eslint_d" },
-
-						["*"] = { "codespell" },
-						["_"] = { "trim_whitespace", "trim_newlines" },
-					},
-					format_on_save = {
-						lsp_fallback = true,
-						timeout_ms = 500,
-					},
-				})
-			end,
-		})
+		use("stevearc/conform.nvim")
 
 		installNativeLsp(use)
 		installTelescope(use)

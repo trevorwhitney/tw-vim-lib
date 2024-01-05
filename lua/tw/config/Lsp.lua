@@ -9,13 +9,19 @@ local function mapKeys()
 	local keymap = {
 		g = {
 			name = "Got To",
-			d = { "<cmd>Lspsaga goto_definition<cr>", "Definition" },
-			i = { "<cmd>Lspsaga finder imp<cr>", "Implementations" },
-			r = { "<cmd>Lspsaga finder ref+imp+tyd<cr>", "References" },
-			-- y = {
-			--   "<cmd>Lspsaga finder tyd<cr>",
-			--   "Type Definition",
-			-- },
+			d = {
+				"<cmd>lua require('telescope.builtin').lsp_definitions({fname_width=0.6, reuse_win=true})<cr>",
+				"Definition",
+			},
+			i = {
+				"<cmd>lua require('telescope.builtin').lsp_implementations({fname_width=0.6, reuse_win=true})<cr>",
+				"Implementations",
+			},
+			r = { "<cmd>lua require('telescope.builtin').lsp_references({fname_width=0.6})<cr>", "References" },
+			y = {
+				"<cmd>lua require('telescope.builtin').lsp_type_definitions({fname_width=0.6, reuse_win=true})<cr>",
+				"Type Definition",
+			},
 		},
 		["]d"] = { "<cmd>Lspsaga diagnostic_jump_prev<cr>", "Next Diagnostic" },
 		["[d"] = { "<cmd>Lspsaga diagnostic_jump_next<cr>", "Previous Diagnostic" },
@@ -44,7 +50,7 @@ local function mapKeys()
 
 		r = {
 			name = "Refactor",
-			n = { "<cmd>Lspsaga rename<cr>", "Rename" },
+			n = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
 		},
 	}
 
@@ -100,7 +106,6 @@ function M.on_attach(_, bufnr)
 	end
 end
 
--- TODO: when null-ls is removed, the eslint deamon option should be removed too
 function M.setup(lua_ls_root, nix_rocks_tree, use_eslint_daemon)
 	-- Use a loop to conveniently call 'setup' on multiple servers and
 	-- map buffer local keybindings when the language server attaches
@@ -148,8 +153,8 @@ function M.setup(lua_ls_root, nix_rocks_tree, use_eslint_daemon)
 		nvim_lsp[lsp].setup(fn(M.on_attach, capabilities))
 	end
 
-	-- NullLS
-	-- require("tw.config.NullLs").setup(use_eslint_daemon)
+	require("tw.config.NullLs").setup(use_eslint_daemon)
+	require("tw.config.Conform").setup(use_eslint_daemon)
 end
 
 return M
