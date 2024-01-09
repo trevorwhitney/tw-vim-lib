@@ -8,6 +8,9 @@ local function installNativeLsp(use)
 		after = "nvim-lspconfig",
 		config = function()
 			require("lspsaga").setup({
+				ui = {
+					code_action = "󰛨 ",
+				},
 				finder = {
 					max_height = 0.8,
 					left_width = 0.35,
@@ -25,6 +28,7 @@ local function installNativeLsp(use)
 				},
 				lightbulb = {
 					sign_priority = 5,
+					virtual_text = false,
 				},
 				code_action = {
 					keys = {
