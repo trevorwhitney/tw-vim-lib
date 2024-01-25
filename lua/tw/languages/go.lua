@@ -37,7 +37,8 @@ function Go.debug(...)
 	local dap = require("dap")
 	local filename = vim.fn.expand("%")
 	if string.find(filename, "_test.go") then
-		Go.debug_go_test(...)
+		-- Go.debug_go_test(...)
+		require("neotest").run.run({ strategy = "dap" })
 	else
 		dap.continue()
 	end

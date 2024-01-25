@@ -59,6 +59,7 @@ local ensure_installed = {
   "tsx",
   "typescript",
   "vim",
+  "vimdoc",
   "wgsl",
   "yaml",
 }

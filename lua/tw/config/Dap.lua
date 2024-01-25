@@ -70,10 +70,7 @@ local function configureKeyamp()
 		d = {
 			name = "Debug",
 			B = { "<cmd>Telescope dap list_breakpoints<cr>", "List Breakpoints" },
-			C = {
-				"<cmd>lua require'dap'.set_breakpoint(vim.fn.input '[Condition] > ')<cr>",
-				"Conditional Breakpoint",
-			},
+			C = { "<cmd>lua require'dap'.clear_breakpoints()<cr>", "Clear Breakpoints" },
 			E = {
 				"<cmd>lua require'dapui'.eval(vim.fn.input '[Expression] > ', { enter = true})<cr>",
 				"Evaluate Input",
@@ -82,7 +79,10 @@ local function configureKeyamp()
 			O = { "<cmd>lua require'dapui'.toggle(2)<cr>", "Toggle Console" },
 			R = { "<cmd>lua require'dap'.run_to_cursor()<cr>", "Run to Cursor" },
 			S = { "<cmd>lua require'dap.ui.widgets'.scopes()<cr>", "Scopes" },
-			T = { "<cmd>lua require'dap'.clear_breakpoints()<cr>", "Clear Breakpoints" },
+			T = {
+				"<cmd>lua require'dap'.set_breakpoint(vim.fn.input '[Condition] > ')<cr>",
+				"Conditional Breakpoint",
+			},
 			U = { "<cmd>lua require'dapui'.toggle()<cr>", "Toggle UI" },
 			X = { "<cmd>lua require'dap'.terminate()<cr>", "Terminate" },
 

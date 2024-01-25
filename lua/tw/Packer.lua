@@ -139,6 +139,34 @@ local function installTreesitter(use)
 	use("nvim-treesitter/nvim-treesitter-textobjects") -- Additional textobjects for treesitter
 end
 
+local function installTesting(use)
+	use({
+		"vim-test/vim-test",
+		config = function()
+			vim.g["test#strategy"] = "dispatch"
+			vim.g["test#go#gotest#options"] = "-v"
+			vim.g["test#javascript#jest#options"] = "--no-coverage"
+			-- vim.g["test#javascript#mocha#executable"] = "npm test --"
+		end,
+		requires = {
+			{ "tpope/vim-dispatch" },
+		},
+	})
+
+	use({
+		"nvim-neotest/neotest",
+		requires = {
+			"antoinemadec/FixCursorHold.nvim",
+			"folke/neodev.nvim",
+			"nvim-lua/plenary.nvim",
+			"nvim-treesitter/nvim-treesitter",
+
+			"nvim-neotest/neotest-go",
+			"nvim-neotest/neotest-vim-test",
+		},
+	})
+end
+
 function Packer.install(use)
 	require("packer").startup(function()
 		use("wbthomason/packer.nvim")
@@ -235,15 +263,7 @@ function Packer.install(use)
 		})
 
 		use("towolf/vim-helm")
-		use({
-			"milkypostman/vim-togglelist",
-			config = function()
-				vim.g["toggle_list_no_mappings"] = 1
-			end,
-		})
-
 		use("mfussenegger/nvim-jdtls")
-
 		use("github/copilot.vim")
 
 		use({
@@ -259,19 +279,6 @@ function Packer.install(use)
 
 		use("chrisbra/NrrwRgn")
 
-		use({
-			"vim-test/vim-test",
-			config = function()
-				vim.g["test#strategy"] = "dispatch"
-				vim.g["test#go#gotest#options"] = "-v"
-				vim.g["test#javascript#jest#options"] = "--no-coverage"
-				-- vim.g["test#javascript#mocha#executable"] = "npm test --"
-			end,
-			requires = {
-				{ "tpope/vim-dispatch" },
-			},
-		})
-
 		use("gabrielpoca/replacer.nvim")
 		use("romainl/vim-qf")
 
@@ -282,11 +289,22 @@ function Packer.install(use)
 
 		use("stevearc/conform.nvim")
 
+		use({ "folke/trouble.nvim", requires = { "nvim-tree/nvim-web-devicons" } })
+
+		use({
+			"hedyhli/outline.nvim",
+			config = function()
+				require("outline").setup({})
+			end,
+		})
+
 		installNativeLsp(use)
 		installTelescope(use)
 		installDap(use)
 		installNvimCmp(use)
 		installTreesitter(use)
+
+		installTesting(use)
 	end)
 end
 
