@@ -78,7 +78,7 @@ let
       withRuby = true;
       withPython3 = true;
 
-      # manually overriden in package
+      # manually overridden in package
       withNodeJs = false;
 
       extraPython3Packages = ps: with ps; [ pynvim ];
@@ -94,6 +94,11 @@ let
 
       customRC = builtins.concatStringsSep "\n" (with pkgs; [
         "lua <<EOF"
+        "if vim.g.vscode then"
+        "-- vscode-neovim"
+        "require('tw.config').setup_vscode()"
+        "else"
+        "-- ordinary Neovim"
         "require('tw.config').setup({"
       ] ++ (if withLspSupport then [
         "lsp_support = true,"
@@ -106,6 +111,7 @@ let
       ]) ++ [
         "extra_path = {'${stdenv.cc}/bin', '${tree-sitter}/bin'},"
         "})"
+        "end"
         "EOF"
       ]);
     };

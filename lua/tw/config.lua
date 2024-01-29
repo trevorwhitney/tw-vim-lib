@@ -59,4 +59,9 @@ function Config.setup(user_options)
 	end
 end
 
+function Config.setup_vscode()
+	vim.g.mapleader = " "
+	require("tw.config.VimOptions").setup()
+end
+
 return Config

@@ -73,6 +73,23 @@
                 in
                 python-with-packages
               )
+
+              # vs code
+              (vscode-with-extensions.override {
+                vscodeExtensions =
+                  with vscode-extensions; [
+                    github.copilot
+                    asvetliakov.vscode-neovim
+                  ];
+                # ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+                #   {
+                #     name = "vscode-neovim";
+                #     publisher = "asvetliakov";
+                #     version = "1.5.0";
+                #     sha256 = "Y74Fkq0Mz7I5EmU6gCrOo72ecZVOIS0Pk6jgX3tqir4=";
+                #   }
+                # ];
+              })
             ];
           };
       }) // {
