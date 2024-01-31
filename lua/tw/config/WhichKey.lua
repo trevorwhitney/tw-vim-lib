@@ -6,20 +6,20 @@ local function mapKeys(which_key)
 
 		b = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
 
+		-- Diagnostics
+		d = { "<cmd>Lspsaga show_line_diagnostics<cr>", "Line Diagnostics" },
+		D = { "<cmd>lua require('trouble').toggle('document_diagnostics')<cr>", "Document Diagnostics" },
+
 		-- Test
 		t = {
 			name = "Test",
-			-- 	-- t = { ":w<cr> :TestNearest<cr>", "Test Nearest" },
-			-- 	-- l = { ":w<cr> :TestLast<cr>", "Test Last" },
-			-- 	-- f = { ":w<cr> :TestFile<cr>", "Test File" },
-			f = { ":w<cr> <cmd>lua require('neotest').run.run(vim.fn.expand(\"%\"))<cr>", "Test File" },
-			l = { ":w<cr> <cmd>lua require('neotest').run.run_last()<cr>", "Test Last" },
-			n = { "<cmd>lua require('neotest').jump.next({ status = 'failed' })<cr>", "Next Failed" },
-			o = { ":w<cr> <cmd>lua require('neotest').output_panel.toggle()<cr>", "Test Output" },
 			O = { ":Copen!<cr>", "Verbose Test Output" },
-			p = { "<cmd>lua require('neotest').jump.prev({ status = 'failed' })<cr>", "Previous Failed" },
-			s = { ":w<cr> <cmd>lua require('neotest').summary.toggle()<cr>", "Test Summary" },
-			t = { ":w<cr> <cmd>lua require('neotest').run.run()<cr>", "Test Nearest" },
+
+			f = { ":w<cr> :TestFile<cr>", "Test File" },
+			l = { ":w<cr> :TestLast<cr>", "Test Last" },
+			o = { ":Copen<cr>", "Test Output" },
+			t = { ":w<cr> :TestNearest<cr>", "Test Nearest" },
+			v = { ":TestVisit<cr>", "Open Last Run Test" },
 		},
 
 		-- Find
@@ -107,21 +107,37 @@ local function mapKeys(which_key)
 
 			b = { "<cmd>Branches<cr>", "Branches" },
 			c = { "<cmd>DapToggleConsole<cr>", "Dap Console" },
-			-- d = { "<cmd>Telescope diagnostics<CR>", "Diagnostic List" },
-			d = { "<cmd>lua require('trouble').toggle('document_diagnostics')<cr>", "Diagnostic List" },
-			D = { "<cmd>lua require('trouble').toggle('workspace_diagnostics')<cr>", "Workspace Diagnostic List" },
+			d = { "<cmd>lua require('trouble').toggle('workspace_diagnostics')<cr>", "Workspace Diagnostics" },
 			j = { "<cmd>Telescope jumplist<cr>", "Jump List" },
 			l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
 			m = { "<cmd>Telescope marks<cr>", "Marks" },
-			-- o = { "<cmd>Telescope lsp_document_symbols<cr>", "Outline" },
 			o = { "<cmd>Outline<cr>", "Outline" },
 			p = { "<cmd>pclose<cr>", "Close Preview" },
 			q = { "<cmd>lua require('trouble').toggle('quickfix')<cr>", "Quickfix" },
 			r = { "<cmd>call DapToggleRepl()<cr>", "Dap REPL" },
 			s = { "<cmd>Git<cr>", "Git Status" },
-			-- t = { "<cmd>Telescope tagstack<cr>", "Tag Stack" },
 			t = { ":w<cr> <cmd>lua require('trouble').toggle()<cr>", "Toggle Trouble" },
 		},
+
+		-- Unimpaired style
+		["]b"] = { ":bnext<cr>", "Next Buffer" },
+		["[b"] = { ":bprevious<cr>", "Previous Buffer" },
+		["]d"] = { "<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'document_diagnostics'})<cr>", "Next Diagnostic" },
+		["[d"] = { "<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'document_diagnostics'})<cr>", "Previous Diagnostic" },
+		["]D"] = { "<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'workspace_diagnostics'})<cr>", "Next Workspace Diagnostic" },
+		["[D"] = { "<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'workspace_diagnostics'})<cr>", "Previous Workspace Diagnostic" },
+		["]q"] = {
+			"<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'quickfix'})<cr>",
+			"Next Quickfix",
+		},
+		["[q"] = {
+			"<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'quickfix'})<cr>",
+			"Previous Quickfix",
+		},
+		["[t"] = { ":tabprevious<cr>", "Previous Tab" },
+		["]t"] = { ":tabnext<cr>", "Next Tab" },
+		["[T"] = { ":tabfirst<cr>", "First Tab" },
+		["]T"] = { ":tablast<cr>", "Last Tab" },
 	}
 
 	which_key.register(noLeaderKeymap, {

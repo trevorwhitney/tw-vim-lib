@@ -142,29 +142,25 @@ end
 local function installTesting(use)
 	use({
 		"vim-test/vim-test",
-		config = function()
-			vim.g["test#strategy"] = "dispatch"
-			vim.g["test#go#gotest#options"] = "-v"
-			vim.g["test#javascript#jest#options"] = "--no-coverage"
-			-- vim.g["test#javascript#mocha#executable"] = "npm test --"
-		end,
 		requires = {
 			{ "tpope/vim-dispatch" },
 		},
 	})
 
-	use({
-		"nvim-neotest/neotest",
-		requires = {
-			"antoinemadec/FixCursorHold.nvim",
-			"folke/neodev.nvim",
-			"nvim-lua/plenary.nvim",
-			"nvim-treesitter/nvim-treesitter",
+  -- TODO: keep for a bit to see if there's any movement on https://github.com/nvim-neotest/neotest/issues/353
+  -- but it was running the wrong go tests for me using the neotest-vim-test runner
+	-- use({
+	-- 	"nvim-neotest/neotest",
+	-- 	requires = {
+	-- 		"antoinemadec/FixCursorHold.nvim",
+	-- 		"folke/neodev.nvim",
+	-- 		"nvim-lua/plenary.nvim",
+	-- 		"nvim-treesitter/nvim-treesitter",
 
-			"nvim-neotest/neotest-go",
-			"nvim-neotest/neotest-vim-test",
-		},
-	})
+	-- 		"nvim-neotest/neotest-go",
+	-- 		"nvim-neotest/neotest-vim-test",
+	-- 	},
+	-- })
 end
 
 function Packer.install(use)
@@ -198,7 +194,6 @@ function Packer.install(use)
 		use("machakann/vim-highlightedyank")
 		use({ "mg979/vim-visual-multi", branch = "master" }) -- multi-cursor
 		use("pedrohdz/vim-yaml-folds")
-		use("tommcdo/vim-exchange")
 		use("tpope/vim-abolish")
 		use("tpope/vim-commentary")
 		use({
@@ -210,11 +205,9 @@ function Packer.install(use)
 
 		use("tpope/vim-eunuch")
 		use({ "tpope/vim-fugitive", requires = "tpope/vim-rhubarb" })
-		use("tpope/vim-projectionist")
 		use("tpope/vim-repeat")
 		use("tpope/vim-rsi")
 		use("tpope/vim-surround")
-		use("tpope/vim-unimpaired")
 		use("fladson/vim-kitty")
 		use("chrisbra/colorizer")
 
@@ -246,20 +239,6 @@ function Packer.install(use)
 				require("lualine").setup({ options = { theme = "solarized" } })
 			end,
 			requires = { "kyazdani42/nvim-web-devicons", opt = true },
-		})
-
-		use({
-			"ahmedkhalf/project.nvim",
-			config = function()
-				require("project_nvim").setup({})
-			end,
-		})
-
-		use({
-			"pwntester/octo.nvim",
-			config = function()
-				require("octo").setup()
-			end,
 		})
 
 		use("towolf/vim-helm")

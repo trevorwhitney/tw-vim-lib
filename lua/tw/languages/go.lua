@@ -37,8 +37,8 @@ function Go.debug(...)
 	local dap = require("dap")
 	local filename = vim.fn.expand("%")
 	if string.find(filename, "_test.go") then
-		-- Go.debug_go_test(...)
-		require("neotest").run.run({ strategy = "dap" })
+		Go.debug_go_test(...)
+		-- require("neotest").run.run({ strategy = "dap" })
 	else
 		dap.continue()
 	end
@@ -96,13 +96,11 @@ local function get_name(path)
 
 	local parts = {}
 
-	if nearest["namespace"] ~= nil and nearest["namespace"] ~= "" then
+	if nearest["namespace"] ~= nil and #nearest["namespace"] > 0 then
 		table.insert(parts, table.concat(nearest["namespace"], "/"))
 	end
 
-	if nearest["test"] ~= nil and nearest["test"] ~= "" then
-		table.insert(parts, table.concat(nearest["test"], "/"))
-	end
+	table.insert(parts, table.concat(nearest["test"], "/"))
 
 	local name = table.concat(parts, "/")
 
@@ -114,7 +112,8 @@ end
 
 function Go.debug_go_test(...)
 	local dap = require("dap")
-	local test_name = vim.fn.input("[Name] > ", get_name(vim.fn["expand"]("%")))
+	local fname = get_name(vim.fn["expand"]("%"))
+	local test_name = vim.fn.input({ prompt = "[Name] > ", default = fname })
 
 	local tags = { ... }
 

@@ -36,8 +36,6 @@ local function mapKeys()
 				"Type Definition",
 			},
 		},
-		["]d"] = { "<cmd>Lspsaga diagnostic_jump_prev<cr>", "Next Diagnostic" },
-		["[d"] = { "<cmd>Lspsaga diagnostic_jump_next<cr>", "Previous Diagnostic" },
 	}
 
 	which_key.register(keymap, {
@@ -50,16 +48,10 @@ local function mapKeys()
 	})
 
 	local keymapWithLeader = {
-		-- ["="] = { "<cmd>lua vim.lsp.buf.format()<cr>", "Format" },
-
 		a = { "<cmd>Lspsaga code_action<cr>", "Code Action" },
 
 		k = { "<cmd>Lspsaga hover_doc<cr>", "Show Hover" },
 		K = { "<cmd>Lspsaga peek_definition<cr>", "Peek Definition" },
-
-		D = { "<cmd>Lspsaga show_line_diagnostics<CR>", "Show Diagnostic" },
-		e = { "<cmd>Lspsaga show_line_diagnostics<CR>", "Show Diagnostic" },
-		E = { "<cmd>Lspsaga show_buf_diagnostics ++normal<CR>", "Show Diagnostic" },
 
 		r = {
 			name = "Refactor",

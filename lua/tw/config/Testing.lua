@@ -1,6 +1,6 @@
 local M = {}
 
-local function configure()
+local function configure_neotest()
 	local neotest_ns = vim.api.nvim_create_namespace("neotest")
 	vim.diagnostic.config({
 		virtual_text = {
@@ -38,8 +38,16 @@ local function configure()
 	})
 end
 
+local function configre_vim_test()
+	vim.g["test#strategy"] = "dispatch"
+	vim.g["test#go#gotest#options"] = "-v"
+	vim.g["test#javascript#jest#options"] = "--no-coverage"
+	-- vim.g["test#javascript#mocha#executable"] = "npm test --"
+end
+
 function M.setup()
-	configure()
+	-- configure_neotest()
+	configre_vim_test()
 end
 
 return M
