@@ -62,6 +62,7 @@ end
 function Config.setup_vscode()
 	vim.g.mapleader = " "
 	require("tw.config.VimOptions").setup()
+	require("tw.config.VsCode").setup()
 end
 
 return Config

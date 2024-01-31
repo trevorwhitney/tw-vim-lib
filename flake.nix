@@ -80,6 +80,8 @@
                   with vscode-extensions; [
                     github.copilot
                     asvetliakov.vscode-neovim
+                    golang.go
+                    stephlin.vscode-tmux-keybinding
                   ];
                 # ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
                 #   {
