@@ -1,10 +1,6 @@
 local M = {}
 
-function M.setup()
-	-- light background
-	vim.opt.background = "light"
-	vim.opt.termguicolors = true
-
+local function solarized()
 	-- solarized
 	vim.g.solarized_italic_comments = true
 	vim.g.solarized_italic_keywords = true
@@ -13,13 +9,17 @@ function M.setup()
 	vim.g.solarized_contrast = true
 	vim.g.solarized_borders = true
 	vim.g.solarized_disable_background = true
+end
 
-	-- Load solarized colorscheme
-	require("solarized").set()
+function M.setup()
+	-- light background
+	vim.opt.background = "light"
+	vim.opt.termguicolors = true
 
-	if vim.wo.diff then
-		vim.cmd("colorscheme quiet")
-	end
+	solarized()
+
+	vim.cmd("colorscheme tw-light")
+	-- require("solarized").set()
 end
 
 return M

@@ -147,8 +147,8 @@ local function installTesting(use)
 		},
 	})
 
-  -- TODO: keep for a bit to see if there's any movement on https://github.com/nvim-neotest/neotest/issues/353
-  -- but it was running the wrong go tests for me using the neotest-vim-test runner
+	-- TODO: keep for a bit to see if there's any movement on https://github.com/nvim-neotest/neotest/issues/353
+	-- but it was running the wrong go tests for me using the neotest-vim-test runner
 	-- use({
 	-- 	"nvim-neotest/neotest",
 	-- 	requires = {
@@ -161,6 +161,12 @@ local function installTesting(use)
 	-- 		"nvim-neotest/neotest-vim-test",
 	-- 	},
 	-- })
+end
+
+local function installColors(use)
+	-- color schemes
+	use({ "trevorwhitney/solarized.nvim" })
+	use({ "kepano/flexoki-neovim", as = "flexoki" })
 end
 
 function Packer.install(use)
@@ -210,18 +216,6 @@ function Packer.install(use)
 		use("tpope/vim-surround")
 		use("fladson/vim-kitty")
 		use("chrisbra/colorizer")
-
-		-- color schemes
-		use({ "trevorwhitney/solarized.nvim" })
-		use("EdenEast/nightfox.nvim")
-		use({
-			"mcchrish/zenbones.nvim",
-			-- Optionally install Lush. Allows for more configuration or extending the colorscheme
-			-- If you don't want to install lush, make sure to set g:zenbones_compat = 1
-			-- In Vim, compat mode is turned on as Lush only works in Neovim.
-			requires = "rktjmp/lush.nvim",
-		})
-
 		use("andymass/vim-matchup") -- show matching pairs
 		use({
 			"windwp/nvim-autopairs",
@@ -282,8 +276,8 @@ function Packer.install(use)
 		installDap(use)
 		installNvimCmp(use)
 		installTreesitter(use)
-
 		installTesting(use)
+		installColors(use)
 	end)
 end
 
