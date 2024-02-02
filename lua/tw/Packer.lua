@@ -166,7 +166,7 @@ end
 local function installColors(use)
 	-- color schemes
 	use({ "trevorwhitney/solarized.nvim" })
-	use({ "kepano/flexoki-neovim", as = "flexoki" })
+	use({ "trevorwhitney/flexoki-neovim", as = "flexoki" })
 end
 
 function Packer.install(use)

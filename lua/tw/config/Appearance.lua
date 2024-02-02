@@ -17,8 +17,7 @@ function M.setup()
 	vim.opt.termguicolors = true
 
 	solarized()
-
-	vim.cmd("colorscheme tw-light")
+	vim.cmd("colorscheme flexoki-light")
 	-- require("solarized").set()
 end
 
