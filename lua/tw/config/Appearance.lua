@@ -11,13 +11,24 @@ local function solarized()
 	vim.g.solarized_disable_background = true
 end
 
+local function everforest()
+	require("everforest").setup({
+		background = "soft",
+		ui_contrast = "high",
+		on_highlights = function(hl, palette) end,
+		colours_override = function(palette) end,
+	})
+end
+
 function M.setup()
 	-- light background
 	vim.opt.background = "light"
 	vim.opt.termguicolors = true
 
 	solarized()
-	vim.cmd("colorscheme flexoki-light")
+	everforest()
+	vim.cmd("colorscheme everforest")
+	-- vim.cmd("colorscheme flexoki")
 	-- require("solarized").set()
 end
 
