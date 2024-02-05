@@ -16,7 +16,7 @@
         inherit self;
       };
     in
-    flake-utils.lib.eachSystem [ "x86_64-linux" ]
+    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-darwin" ]
       (system:
       let
         pkgs = import nixpkgs {

@@ -63,6 +63,12 @@ let
     ] else [ ];
 
   treesitterPackages = with pkgs; [
+    # TODO: not entirely sure which of these fixed it
+    # but we did move to clang++, so maybe of the last 2?
+    libgcc
+    libclang
+    clangStdenv
+
     stdenv.cc
     tree-sitter
   ];
@@ -70,7 +76,7 @@ let
   packages = basePackages ++ treesitterPackages ++ lspPackages ++ extraPackages;
 
   extraMakeWrapperArgs = lib.optionalString (packages != [ ])
-    ''--suffix PATH : "${lib.makeBinPath packages}"'';
+    ''--prefix PATH : "${lib.makeBinPath packages}"'';
 
   neovimConfig = neovimUtils.makeNeovimConfig
     {
