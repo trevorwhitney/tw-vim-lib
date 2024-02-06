@@ -1,6 +1,5 @@
 local M = {}
 local api = vim.api
-local lualine = require("lualine")
 
 local function setup_solarized()
 	-- solarized
@@ -37,8 +36,8 @@ local function change_colors()
 		vim.opt.background = os.getenv("BACKGROUND") or "light"
 	end
 
-	lualine.setup({ options = { theme = "everforest" } })
 	vim.cmd("colorscheme everforest")
+	require("lualine").setup({ options = { theme = "everforest" } })
 
 	-- different theme options
 	-- vim.cmd("colorscheme everforest")
