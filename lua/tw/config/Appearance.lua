@@ -1,6 +1,8 @@
 local M = {}
+local api = vim.api
+local lualine = require("lualine")
 
-local function solarized()
+local function setup_solarized()
 	-- solarized
 	vim.g.solarized_italic_comments = true
 	vim.g.solarized_italic_keywords = true
@@ -11,25 +13,48 @@ local function solarized()
 	vim.g.solarized_disable_background = true
 end
 
-local function everforest()
+local function setup_everforest()
 	require("everforest").setup({
 		background = "soft",
 		ui_contrast = "high",
-		on_highlights = function(hl, palette) end,
-		colours_override = function(palette) end,
+		on_highlights = function(_, _) end,
+		colours_override = function(_) end,
 	})
 end
 
-function M.setup()
-	-- light background
-	vim.opt.background = "light"
-	vim.opt.termguicolors = true
+local function change_colors()
+	if vim.fn.has("macunix") then
+		local current_style = vim.fn.system("defaults read -g AppleInterfaceStyle")
+		local dark_re = vim.regex("^Dark")
+		local match = dark_re:match_str(current_style)
 
-	solarized()
-	everforest()
+		if match then
+			vim.opt.background = "dark"
+		else
+			vim.opt.background = "light"
+		end
+	else
+		vim.opt.background = os.getenv("BACKGROUND") or "light"
+	end
+
+	lualine.setup({ options = { theme = "everforest" } })
 	vim.cmd("colorscheme everforest")
+
+	-- different theme options
+	-- vim.cmd("colorscheme everforest")
 	-- vim.cmd("colorscheme flexoki")
 	-- require("solarized").set()
+end
+
+function M.setup()
+	vim.opt.termguicolors = true
+
+	setup_solarized()
+	setup_everforest()
+
+	change_colors()
+
+	api.nvim_create_autocmd("Signal", { pattern = "SIGUSR1", callback = change_colors })
 end
 
 return M

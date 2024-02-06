@@ -237,9 +237,6 @@ function Packer.install(use)
 		})
 		use({
 			"nvim-lualine/lualine.nvim",
-			config = function()
-				require("lualine").setup({ options = { theme = "solarized" } })
-			end,
 			requires = { "kyazdani42/nvim-web-devicons", opt = true },
 		})
 
