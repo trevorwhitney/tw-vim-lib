@@ -122,10 +122,22 @@ local function mapKeys(which_key)
 		-- Unimpaired style
 		["]b"] = { ":bnext<cr>", "Next Buffer" },
 		["[b"] = { ":bprevious<cr>", "Previous Buffer" },
-		["]d"] = { "<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'document_diagnostics'})<cr>", "Next Diagnostic" },
-		["[d"] = { "<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'document_diagnostics'})<cr>", "Previous Diagnostic" },
-		["]D"] = { "<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'workspace_diagnostics'})<cr>", "Next Workspace Diagnostic" },
-		["[D"] = { "<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'workspace_diagnostics'})<cr>", "Previous Workspace Diagnostic" },
+		["]d"] = {
+			"<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'document_diagnostics'})<cr>",
+			"Next Diagnostic",
+		},
+		["[d"] = {
+			"<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'document_diagnostics'})<cr>",
+			"Previous Diagnostic",
+		},
+		["]D"] = {
+			"<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'workspace_diagnostics'})<cr>",
+			"Next Workspace Diagnostic",
+		},
+		["[D"] = {
+			"<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'workspace_diagnostics'})<cr>",
+			"Previous Workspace Diagnostic",
+		},
 		["]q"] = {
 			"<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'quickfix'})<cr>",
 			"Next Quickfix",
@@ -150,6 +162,35 @@ local function mapKeys(which_key)
 	})
 end
 
+local function vimMappings()
+	-- TODO: won't work until nvim >= 0.10
+	-- vim.keymap.set('ca', 'Qa', 'qa')
+	-- vim.keymap.set('ca', 'Qa!', 'qa!')
+	-- vim.keymap.set('ca', 'QA', 'qa')
+	-- vim.keymap.set('ca', 'QA!', 'qa!')
+	-- vim.keymap.set('ca', 'Q!', 'q!')
+	vim.keymap.set("n", "<C-q>", "<Nop>", { noremap = true })
+	vim.keymap.set("x", "il", "g_o^", { noremap = true })
+	vim.keymap.set("o", "il", ":normal vil<cr>", { noremap = true })
+	vim.keymap.set("x", "al", "$o^", { noremap = true })
+	vim.keymap.set("o", "al", ":normal val<cr>", { noremap = true })
+
+	vim.keymap.set("i", "jj", "<Esc>", { noremap = true, nowait = true })
+	vim.keymap.set("c", "w!!", ":w !sudo tee > /dev/null %")
+
+	vim.keymap.set("i", "<C-o>", "<C-x><C-o>", { noremap = true })
+
+	vim.keymap.set("n", "<C-J>", "<C-W><C-J>", { noremap = true })
+	vim.keymap.set("n", "<C-K>", "<C-W><C-K>", { noremap = true })
+	vim.keymap.set("n", "<C-L>", "<C-W><C-L>", { noremap = true })
+	vim.keymap.set("n", "<C-H>", "<C-W><C-H>", { noremap = true })
+	vim.keymap.set("n", "<C-w>q", ":window close<cr>", { noremap = true })
+
+	-- ====== Readline / RSI =======
+	vim.keymap.set("i", "<c-k>", "<c-o>D", { noremap = true })
+	vim.keymap.set("c", "<c-k>", "<c-\\>e getcmdpos() == 1 ? '' : getcmdline()[:getcmdpos()-2]<cr>", { noremap = true })
+end
+
 function M.setup()
 	local which_key = require("which-key")
 	which_key.setup({
@@ -159,6 +200,7 @@ function M.setup()
 	})
 
 	mapKeys(which_key)
+	vimMappings()
 end
 
 return M

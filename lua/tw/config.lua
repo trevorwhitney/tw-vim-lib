@@ -43,16 +43,20 @@ function Config.setup(user_options)
 	require("tw.Packer").install(require("packer").use)
 
 	require("tw.config.VimOptions").setup()
+
+	require("tw.config.Augroups").setup()
+	require("tw.config.Augroups").setup()
+
 	require("tw.config.Appearance").setup()
-	require("tw.config.WhichKey").setup()
+	require("tw.config.Copilot").setup()
+	require("tw.config.Dap").setup()
+	require("tw.config.Git").setup()
+	require("tw.config.NvimCmp").setup()
 	require("tw.config.NvimTree").setup()
 	require("tw.config.Telescope").setup()
-	require("tw.config.Dap").setup()
-	require("tw.config.Treesitter").setup()
-	require("tw.config.Copilot").setup()
-	require("tw.config.NvimCmp").setup()
-	require("tw.config.Git").setup()
 	require("tw.config.Testing").setup()
+	require("tw.config.Treesitter").setup()
+	require("tw.config.WhichKey").setup()
 
 	if options.lsp_support then
 		require("tw.config.Lsp").setup(options.lua_ls_root, options.rocks_tree_root, options.use_eslint_daemon)

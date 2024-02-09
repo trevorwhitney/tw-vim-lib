@@ -1,0 +1,83 @@
+local M = {}
+local api = vim.api
+
+local function set_of(list)
+	local set = {}
+	for i = 1, #list do
+		set[list[i]] = true
+	end
+	return set
+end
+
+local function not_in(var, arr)
+	if set_of(arr)[var] == nil then
+		return true
+	end
+end
+
+local function autosave()
+	local group = api.nvim_create_augroup("Autosave", {
+		clear = true,
+	})
+
+	api.nvim_create_autocmd({ "BufLeave", "FocusLost" }, {
+		pattern = "*",
+		callback = function(event)
+			local buf = event.buf
+			local fn = vim.fn
+			local skip_fts = {
+				"dapui_console",
+				"dap-repl",
+				"fugitive",
+			}
+
+			local is_modifiable = fn.getbufvar(buf, "&modifiable") == 1
+			local is_normal_buffer = fn.getbufvar(buf, "&buftype") == ""
+			local ft = fn.getbufvar(buf, "&filetype")
+			local is_savable_ft = not_in(ft, skip_fts)
+
+			-- return is_modifiable and is_savable_ft and not exclude_name and not exclude_ft
+			if is_modifiable and is_normal_buffer and is_savable_ft then
+				vim.cmd("update")
+			end
+		end,
+		group = group,
+	})
+end
+
+local function hiddenFugitive()
+	local group = api.nvim_create_augroup("HiddenFugitive", {
+		clear = true,
+	})
+
+	api.nvim_create_autocmd({ "BufReadPost" }, {
+		pattern = "fugitive://*",
+		command = "set bufhidden=delete",
+		group = group,
+	})
+end
+
+local function wipeRegisters()
+	api.nvim_create_user_command(
+		"WipeReg",
+		"for i in range(34,122) | silent! call setreg(nr2char(i), []) | endfor",
+		{ bang = true }
+	)
+	local group = api.nvim_create_augroup("VimStartup", {
+		clear = true,
+	})
+
+	api.nvim_create_autocmd({ "VimEnter" }, {
+		pattern = "*",
+		command = "WipeReg",
+		group = group,
+	})
+end
+
+function M.setup()
+	autosave()
+	hiddenFugitive()
+	wipeRegisters()
+end
+
+return M
