@@ -115,7 +115,7 @@ local function mapKeys(which_key)
 			p = { "<cmd>pclose<cr>", "Close Preview" },
 			q = { "<cmd>lua require('trouble').toggle('quickfix')<cr>", "Quickfix" },
 			r = { "<cmd>call DapToggleRepl()<cr>", "Dap REPL" },
-			s = { "<cmd>Git<cr>", "Git Status" },
+			s = { "<cmd>lua require('tw.config.Git').toggleGitStatus()<cr>", "Git Status" },
 			t = { ":w<cr> <cmd>lua require('trouble').toggle()<cr>", "Toggle Trouble" },
 		},
 

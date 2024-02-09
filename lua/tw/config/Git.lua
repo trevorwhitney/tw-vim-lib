@@ -133,6 +133,15 @@ function M.diffSplit(commit)
   vim.cmd("Gdiffsplit " .. commit)
 end
 
+function M.toggleGitStatus()
+  local fugitiveBuf = vim.fn.bufnr("fugitive://")
+  if fugitiveBuf >= 0 and vim.fn.bufwinnr(fugitiveBuf) >= 0 then
+    vim.cmd("bunload " .. fugitiveBuf)
+  else
+    vim.cmd("Git")
+  end
+end
+
 function M.browseCurrentLine()
   local linenum = vim.api.nvim_win_get_cursor(0)
   vim.cmd(unpack(linenum) .. "GBrowse")
