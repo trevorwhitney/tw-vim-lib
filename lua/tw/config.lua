@@ -45,7 +45,7 @@ function Config.setup(user_options)
 	require("tw.config.VimOptions").setup()
 
 	require("tw.config.Augroups").setup()
-	require("tw.config.Augroups").setup()
+	require("tw.config.Commands").setup()
 
 	require("tw.config.Appearance").setup()
 	require("tw.config.Copilot").setup()
