@@ -65,7 +65,8 @@ let
   treesitterPackages = with pkgs; [
     # TODO: not entirely sure which of these fixed it
     # but we did move to clang++, so maybe of the last 2?
-    libgcc
+    # TODO: libgcc was removed, replace with gcc.cc.libgcc if actually needed
+    # libgcc
     libclang
     clangStdenv
 
