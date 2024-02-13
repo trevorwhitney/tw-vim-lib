@@ -75,7 +75,7 @@ function M.setup()
 	require("nvim-tree").setup({
 		on_attach = on_attach,
 		view = {
-			adaptive_size = true,
+			width = { min = 30, max = 50 },
 		},
 		sync_root_with_cwd = true,
 	})
