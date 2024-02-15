@@ -163,32 +163,37 @@ local function mapKeys(which_key)
 end
 
 local function vimMappings()
-	-- TODO: won't work until nvim >= 0.10
-	-- vim.keymap.set('ca', 'Qa', 'qa')
-	-- vim.keymap.set('ca', 'Qa!', 'qa!')
-	-- vim.keymap.set('ca', 'QA', 'qa')
-	-- vim.keymap.set('ca', 'QA!', 'qa!')
-	-- vim.keymap.set('ca', 'Q!', 'q!')
-	vim.keymap.set("n", "<C-q>", "<Nop>", { noremap = true })
-	vim.keymap.set("x", "il", "g_o^", { noremap = true })
-	vim.keymap.set("o", "il", ":normal vil<cr>", { noremap = true })
-	vim.keymap.set("x", "al", "$o^", { noremap = true })
-	vim.keymap.set("o", "al", ":normal val<cr>", { noremap = true })
+	local cmd = vim.cmd
+	cmd.ca("Qa", "qa")
+	cmd.ca("QA", "qa")
+	cmd.ca("q", "q")
 
-	vim.keymap.set("i", "jj", "<Esc>", { noremap = true, nowait = true })
-	vim.keymap.set("c", "w!!", ":w !sudo tee > /dev/null %")
+	local api = vim.api
+	api.nvim_create_user_command("Qa", ":qa", { bang = true, nargs = 0 })
+	api.nvim_create_user_command("QA", ":qa", { bang = true, nargs = 0 })
+	api.nvim_create_user_command("Q", ":q", { bang = true, nargs = 0 })
 
-	vim.keymap.set("i", "<C-o>", "<C-x><C-o>", { noremap = true })
+	local keymap = vim.keymap
+	keymap.set("n", "<C-q>", "<Nop>", { noremap = true })
+	keymap.set("x", "il", "g_o^", { noremap = true })
+	keymap.set("o", "il", ":normal vil<cr>", { noremap = true })
+	keymap.set("x", "al", "$o^", { noremap = true })
+	keymap.set("o", "al", ":normal val<cr>", { noremap = true })
 
-	vim.keymap.set("n", "<C-J>", "<C-W><C-J>", { noremap = true })
-	vim.keymap.set("n", "<C-K>", "<C-W><C-K>", { noremap = true })
-	vim.keymap.set("n", "<C-L>", "<C-W><C-L>", { noremap = true })
-	vim.keymap.set("n", "<C-H>", "<C-W><C-H>", { noremap = true })
-	vim.keymap.set("n", "<C-w>q", ":window close<cr>", { noremap = true })
+	keymap.set("i", "jj", "<Esc>", { noremap = true, nowait = true })
+	keymap.set("c", "w!!", ":w !sudo tee > /dev/null %")
+
+	keymap.set("i", "<C-o>", "<C-x><C-o>", { noremap = true })
+
+	keymap.set("n", "<C-J>", "<C-W><C-J>", { noremap = true })
+	keymap.set("n", "<C-K>", "<C-W><C-K>", { noremap = true })
+	keymap.set("n", "<C-L>", "<C-W><C-L>", { noremap = true })
+	keymap.set("n", "<C-H>", "<C-W><C-H>", { noremap = true })
+	keymap.set("n", "<C-w>q", ":window close<cr>", { noremap = true })
 
 	-- ====== Readline / RSI =======
-	vim.keymap.set("i", "<c-k>", "<c-o>D", { noremap = true })
-	vim.keymap.set("c", "<c-k>", "<c-\\>e getcmdpos() == 1 ? '' : getcmdline()[:getcmdpos()-2]<cr>", { noremap = true })
+	keymap.set("i", "<c-k>", "<c-o>D", { noremap = true })
+	keymap.set("c", "<c-k>", "<c-\\>e getcmdpos() == 1 ? '' : getcmdline()[:getcmdpos()-2]<cr>", { noremap = true })
 end
 
 function M.setup()
