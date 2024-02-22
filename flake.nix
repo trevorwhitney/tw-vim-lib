@@ -38,43 +38,49 @@
         };
 
 
-        devShells.default = pkgs.mkShell
-          {
-            packages = with pkgs; [
-              # General
-              bashInteractive
-              git
-              gnumake
-              zip
+        devShells.default =
+          let
+            neovim = pkgs.neovim {
+              inherit
+                goPkg
+                nodeJsPkg;
+              withLspSupport = true;
+              useEslintDaemon = true;
+              goBuildTags = "foo";
+            };
+          in
 
-              # NodeJS
-              nodeJsPkg
-              (yarn.override {
-                nodejs = nodeJsPkg;
-              })
+          pkgs.mkShell
+            {
+              packages = [
+                neovim
+              ] ++ (with pkgs; [
+                # General
+                bashInteractive
+                git
+                gnumake
+                zip
 
-              (pkgs.neovim.override {
-                inherit
-                  goPkg
-                  nodeJsPkg;
-                withLspSupport = true;
-                useEslintDaemon = true;
-              })
+                # NodeJS
+                nodeJsPkg
+                (yarn.override {
+                  nodejs = nodeJsPkg;
+                })
 
-              # python with extra packages
-              (
-                let
-                  extra-python-packages = python-packages:
-                    with python-packages; [
-                      gyp
-                    ];
-                  python-with-packages = python311.withPackages
-                    extra-python-packages;
-                in
-                python-with-packages
-              )
-            ];
-          };
+                # python with extra packages
+                (
+                  let
+                    extra-python-packages = python-packages:
+                      with python-packages; [
+                        gyp
+                      ];
+                    python-with-packages = python311.withPackages
+                      extra-python-packages;
+                  in
+                  python-with-packages
+                )
+              ]);
+            };
       }) // {
       inherit (nix) overlay;
     };
