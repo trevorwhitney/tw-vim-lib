@@ -8,6 +8,7 @@
 , goPkg ? pkgs.go
 , useEslintDaemon ? true
 , extraPackages ? [ ]
+, goBuildTags ? ""
 , ...
 }:
 let
@@ -101,11 +102,6 @@ let
 
       customRC = builtins.concatStringsSep "\n" (with pkgs; [
         "lua <<EOF"
-        "if vim.g.vscode then"
-        "-- vscode-neovim"
-        "require('tw.config').setup_vscode()"
-        "else"
-        "-- ordinary Neovim"
         "require('tw.config').setup({"
       ] ++ (if withLspSupport then [
         "lsp_support = true,"
@@ -113,12 +109,12 @@ let
         "rocks_tree_root = '${lua51Packages.luarocks}',"
         "jdtls_home = '${jdtls}',"
         "use_eslint_daemon = ${lib.boolToString useEslintDaemon},"
+        "go_build_tags = '${goBuildTags}',"
       ] else [
         "lsp_support = false,"
       ]) ++ [
         "extra_path = {'${stdenv.cc}/bin', '${tree-sitter}/bin'},"
         "})"
-        "end"
         "EOF"
       ]);
     };
@@ -129,9 +125,4 @@ with pkgs; (wrapNeovimUnstable
     wrapperArgs =
       (lib.escapeShellArgs neovimConfig.wrapperArgs) + " "
         + extraMakeWrapperArgs;
-    # TODO: do I need any of these other wrapper args from the original?
-    # wrapperArgs =
-    #   (lib.escapeShellArgs neovimConfig.wrapperArgs) + " "
-    #     + extraMakeWrapperArgs + " " + extraMakeWrapperLuaCArgs + " "
-    #     + extraMakeWrapperLuaArgs;
   }))

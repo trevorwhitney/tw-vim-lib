@@ -111,12 +111,22 @@ function M.on_attach(_, bufnr)
 	end
 end
 
-function M.setup(lua_ls_root, nix_rocks_tree, use_eslint_daemon)
+local default_options = {
+	lua_ls_root = vim.api.nvim_eval('get(s:, "lua_ls_path", "")'),
+	rocks_tree_root = vim.api.nvim_eval('get(s:, "rocks_tree_root", "")'),
+	use_eslint_daemon = true,
+	go_build_tags = "",
+}
+local options = vim.tbl_extend("force", {}, default_options)
+
+function M.setup(lsp_options)
+	lsp_options = lsp_options or {}
+	options = vim.tbl_extend("force", options, lsp_options)
 	-- Use a loop to conveniently call 'setup' on multiple servers and
 	-- map buffer local keybindings when the language server attaches
 	local customLanguages = {
-		lua_ls = require("tw.languages.lua").configureLsp(lua_ls_root, nix_rocks_tree),
-		gopls = require("tw.languages.go").configure_lsp,
+		lua_ls = require("tw.languages.lua").configureLsp(options.lua_ls_root, options.rocks_tree_root),
+		gopls = require("tw.languages.go").configure_lsp(options.go_build_tags),
 		ccls = require("tw.languages.c").configure_lsp,
 		yamlls = require("tw.languages.yaml").configure_lsp,
 
@@ -158,8 +168,9 @@ function M.setup(lua_ls_root, nix_rocks_tree, use_eslint_daemon)
 		nvim_lsp[lsp].setup(fn(M.on_attach, capabilities))
 	end
 
-	require("tw.config.NullLs").setup(use_eslint_daemon)
-	require("tw.config.Conform").setup(use_eslint_daemon)
+	require("tw.config.NullLs").setup(options.use_eslint_daemon)
+	require("tw.config.Conform").setup(options.use_eslint_daemon)
+	require("tw.languages.go").setupVimGo(options.go_build_tags)
 end
 
 return M

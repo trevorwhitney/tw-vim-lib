@@ -49,6 +49,8 @@ local function installNativeLsp(use)
 			})
 		end,
 	})
+
+	use("fatih/vim-go")
 end
 
 local function installTelescope(use)
@@ -190,16 +192,6 @@ function Packer.install(use)
 		use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open go commands in tmux split
 		use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
 		use("coachshea/vim-textobj-markdown")
-		use({
-			"fatih/vim-go",
-			config = function()
-				vim.g["go_code_completion_enabled"] = 0
-				vim.g["go_def_mapping_enabled"] = 0
-				vim.g["go_build_tags"] = "e2e_gem,requires_docker"
-				vim.g["go_textobj_enabled"] = 0
-				vim.g["go_gopls_enabled"] = 0
-			end,
-		})
 		use("folke/which-key.nvim")
 		use("google/vim-jsonnet")
 		use("junegunn/vader.vim")

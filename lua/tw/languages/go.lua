@@ -1,36 +1,38 @@
 local Go = {}
 
-function Go.configure_lsp(on_attach, capabilities)
-	return {
-		on_attach = on_attach,
-		capabilities = capabilities,
-		cmd = { "gopls", "serve" },
-		flags = {
-			debounce_text_changes = 150,
-		},
-		settings = {
-			gopls = {
-				analyses = {
-					unusedparams = true,
-				},
-				buildFlags = {
-					"-tags=requires_docker,linux,cgo,promtail_journal_enabled",
-				},
-				staticcheck = true,
+function Go.configure_lsp(go_build_tags)
+	return function(on_attach, capabilities)
+		return {
+			on_attach = on_attach,
+			capabilities = capabilities,
+			cmd = { "gopls", "serve" },
+			flags = {
+				debounce_text_changes = 150,
 			},
-		},
-		on_new_config = function(new_config, new_root_dir)
-			local res = run_sync({ "go", "list", "-m" }, {
-				cwd = new_root_dir,
-			})
-			if res.status_code ~= 0 then
-				print("go list failed")
-				return
-			end
+			settings = {
+				gopls = {
+					analyses = {
+						unusedparams = true,
+					},
+					buildFlags = {
+						"-tags=" .. go_build_tags,
+					},
+					staticcheck = true,
+				},
+			},
+			on_new_config = function(new_config, new_root_dir)
+				local res = run_sync({ "go", "list", "-m" }, {
+					cwd = new_root_dir,
+				})
+				if res.status_code ~= 0 then
+					print("go list failed")
+					return
+				end
 
-			new_config.settings.gopls["local"] = res.stdout
-		end,
-	}
+				new_config.settings.gopls["local"] = res.stdout
+			end,
+		}
+	end
 end
 
 function Go.debug(...)
@@ -131,6 +133,14 @@ function Go.debug_go_test(...)
 	end
 
 	dap.run(config)
+end
+
+function Go.setupVimGo(go_build_tags)
+	vim.g["go_code_completion_enabled"] = 0
+	vim.g["go_def_mapping_enabled"] = 0
+	vim.g["go_build_tags"] = go_build_tags
+	vim.g["go_textobj_enabled"] = 0
+	vim.g["go_gopls_enabled"] = 0
 end
 
 return Go

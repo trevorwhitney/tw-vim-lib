@@ -7,6 +7,7 @@ local default_options = {
 	jdtls_home = "",
 	use_eslint_daemon = true,
 	extra_path = {},
+	go_build_tags = "",
 }
 
 local options = vim.tbl_extend("force", {}, default_options)
@@ -59,14 +60,13 @@ function Config.setup(user_options)
 	require("tw.config.WhichKey").setup()
 
 	if options.lsp_support then
-		require("tw.config.Lsp").setup(options.lua_ls_root, options.rocks_tree_root, options.use_eslint_daemon)
+		require("tw.config.Lsp").setup({
+			lua_ls_root = options.lua_ls_root,
+			rocks_tree_root = options.rocks_tree_root,
+			use_eslint_daemon = options.use_eslint_daemon,
+			go_build_tags = options.go_build_tags,
+		})
 	end
-end
-
-function Config.setup_vscode()
-	vim.g.mapleader = " "
-	require("tw.config.VimOptions").setup()
-	require("tw.config.VsCode").setup()
 end
 
 return Config
