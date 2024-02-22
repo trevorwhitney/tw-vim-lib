@@ -105,7 +105,7 @@ local function mapKeys(which_key)
 			name = "Windows",
 			S = { "<cmd>Telescope git_status<cr>", "Git Status (Telescope)" },
 
-			b = { "<cmd>Branches<cr>", "Branches" },
+			b = { "<cmd>Telescope git_branches<cr>", "Branches" },
 			c = { "<cmd>DapToggleConsole<cr>", "Dap Console" },
 			d = { "<cmd>lua require('trouble').toggle('workspace_diagnostics')<cr>", "Workspace Diagnostics" },
 			j = { "<cmd>Telescope jumplist<cr>", "Jump List" },
@@ -116,7 +116,7 @@ local function mapKeys(which_key)
 			q = { "<cmd>lua require('trouble').toggle('quickfix')<cr>", "Quickfix" },
 			r = { "<cmd>call DapToggleRepl()<cr>", "Dap REPL" },
 			s = { "<cmd>lua require('tw.config.Git').toggleGitStatus()<cr>", "Git Status" },
-			t = { ":w<cr> <cmd>lua require('trouble').toggle()<cr>", "Toggle Trouble" },
+			t = { "<cmd>lua require('trouble').toggle()<cr>", "Toggle Trouble" },
 		},
 
 		-- Unimpaired style
@@ -167,11 +167,16 @@ local function vimMappings()
 	cmd.ca("Qa", "qa")
 	cmd.ca("QA", "qa")
 	cmd.ca("q", "q")
+	cmd.ca("W", "w")
+	cmd.ca("WQ", "wq")
 
 	local api = vim.api
 	api.nvim_create_user_command("Qa", ":qa", { bang = true, nargs = 0 })
 	api.nvim_create_user_command("QA", ":qa", { bang = true, nargs = 0 })
 	api.nvim_create_user_command("Q", ":q", { bang = true, nargs = 0 })
+	api.nvim_create_user_command("Wq", ":wq", { bang = true, nargs = 0 })
+	api.nvim_create_user_command("WQ", ":wq", { bang = true, nargs = 0 })
+	api.nvim_create_user_command("W", ":w", { bang = true, nargs = 0 })
 
 	local keymap = vim.keymap
 	keymap.set("n", "<C-q>", "<Nop>", { noremap = true })
