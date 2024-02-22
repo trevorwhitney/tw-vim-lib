@@ -29,6 +29,7 @@ local function autosave()
 				"dapui_console",
 				"dap-repl",
 				"fugitive",
+        "Trouble"
 			}
 
 			local is_modifiable = fn.getbufvar(buf, "&modifiable") == 1
