@@ -120,36 +120,20 @@ local function mapKeys(which_key)
 		},
 
 		-- Unimpaired style
-		["]b"] = { ":bnext<cr>", "Next Buffer" },
-		["[b"] = { ":bprevious<cr>", "Previous Buffer" },
-		["]d"] = {
-			"<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'document_diagnostics'})<cr>",
-			"Next Diagnostic",
-		},
-		["[d"] = {
-			"<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'document_diagnostics'})<cr>",
-			"Previous Diagnostic",
-		},
-		["]D"] = {
-			"<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'workspace_diagnostics'})<cr>",
-			"Next Workspace Diagnostic",
-		},
-		["[D"] = {
-			"<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'workspace_diagnostics'})<cr>",
-			"Previous Workspace Diagnostic",
-		},
-		["]q"] = {
-			"<cmd>lua require('trouble').next({skip_groups = true, jump = true, mode = 'quickfix'})<cr>",
-			"Next Quickfix",
-		},
-		["[q"] = {
-			"<cmd>lua require('trouble').previous({skip_groups = true, jump = true, mode = 'quickfix'})<cr>",
-			"Previous Quickfix",
-		},
-		["[t"] = { ":tabprevious<cr>", "Previous Tab" },
-		["]t"] = { ":tabnext<cr>", "Next Tab" },
-		["[T"] = { ":tabfirst<cr>", "First Tab" },
-		["]T"] = { ":tablast<cr>", "Last Tab" },
+		["]b"] = { "<cmd>bnext<cr>", "Next Buffer" },
+		["[b"] = { "<cmd>bprevious<cr>", "Previous Buffer" },
+
+    ["]d"] = { "<cmd>Lspsaga diagnostic_jump_next<cr>", "Next Diagnostic" },
+		["[d"] = { "<cmd>Lspsaga diagnostic_jump_prev<cr>", "Previous Diagnostic" },
+
+		["]q"] = { "<cmd>cnext<cr>", "Next Quickfix" },
+		["[q"] = { "<cmd>cprevious<cr>", "Previous Quickfix" },
+     
+		["[t"] = { "<cmd>tabprevious<cr>", "Previous Tab" },
+		["]t"] = { "<cmd>tabnext<cr>", "Next Tab" },
+
+		["[T"] = { "<cmd>tabfirst<cr>", "First Tab" },
+		["]T"] = { "<cmd>tablast<cr>", "Last Tab" },
 	}
 
 	which_key.register(noLeaderKeymap, {
