@@ -192,6 +192,7 @@ local function vimMappings()
 	cmd.ca("q", "q")
 	cmd.ca("W", "w")
 	cmd.ca("WQ", "wq")
+	cmd.ca("Wq", "wq")
 
 	local api = vim.api
 	api.nvim_create_user_command("Qa", ":qa", { bang = true, nargs = 0 })
