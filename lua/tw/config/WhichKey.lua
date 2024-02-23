@@ -7,8 +7,7 @@ local function mapKeys(which_key)
 		b = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
 
 		-- Diagnostics
-		d = { "<cmd>Lspsaga show_line_diagnostics<cr>", "Line Diagnostics" },
-		D = { "<cmd>lua require('trouble').toggle('document_diagnostics')<cr>", "Document Diagnostics" },
+		D = { "<cmd>Lspsaga show_line_diagnostics<cr>", "Line Diagnostics" },
 
 		-- Test
 		t = {
@@ -103,11 +102,12 @@ local function mapKeys(which_key)
 	local noLeaderKeymap = {
 		["\\"] = {
 			name = "Windows",
+			D = { "<cmd>lua require('trouble').toggle('workspace_diagnostics')<cr>", "Workspace Diagnostics" },
 			S = { "<cmd>Telescope git_status<cr>", "Git Status (Telescope)" },
 
 			b = { "<cmd>Telescope git_branches<cr>", "Branches" },
 			c = { "<cmd>DapToggleConsole<cr>", "Dap Console" },
-			d = { "<cmd>lua require('trouble').toggle('workspace_diagnostics')<cr>", "Workspace Diagnostics" },
+		  d = { "<cmd>lua require('trouble').toggle('document_diagnostics')<cr>", "Document Diagnostics" },
 			j = { "<cmd>Telescope jumplist<cr>", "Jump List" },
 			l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
 			m = { "<cmd>Telescope marks<cr>", "Marks" },
