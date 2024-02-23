@@ -1,6 +1,7 @@
 local M = {}
 
 local function mapKeys(which_key)
+	local trouble = require("trouble")
 	local leaderKeymap = {
 		["="] = { "<cmd>lua require('conform').format({ lsp_fallback=true })<cr>", "Format" },
 
@@ -107,7 +108,7 @@ local function mapKeys(which_key)
 
 			b = { "<cmd>Telescope git_branches<cr>", "Branches" },
 			c = { "<cmd>DapToggleConsole<cr>", "Dap Console" },
-		  d = { "<cmd>lua require('trouble').toggle('document_diagnostics')<cr>", "Document Diagnostics" },
+			d = { "<cmd>lua require('trouble').toggle('document_diagnostics')<cr>", "Document Diagnostics" },
 			j = { "<cmd>Telescope jumplist<cr>", "Jump List" },
 			l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
 			m = { "<cmd>Telescope marks<cr>", "Marks" },
@@ -120,20 +121,58 @@ local function mapKeys(which_key)
 		},
 
 		-- Unimpaired style
-		["]b"] = { "<cmd>bnext<cr>", "Next Buffer" },
-		["[b"] = { "<cmd>bprevious<cr>", "Previous Buffer" },
+		["]b"] = { ":bnext<cr>", "Next Buffer" },
+		["[b"] = { ":bprevious<cr>", "Previous Buffer" },
 
-    ["]d"] = { "<cmd>Lspsaga diagnostic_jump_next<cr>", "Next Diagnostic" },
-		["[d"] = { "<cmd>Lspsaga diagnostic_jump_prev<cr>", "Previous Diagnostic" },
+		["]d"] = {
+			function()
+				trouble.open("document_diagnostics")
+				trouble.next({ skip_groups = true, jump = true, mode = "document_diagnostics" })
+			end,
+			"Next Diagnostic (Document)",
+		},
+		["[d"] = {
+			function()
+				trouble.open("document_diagnostics")
+				trouble.previous({ skip_groups = true, jump = true, mode = "document_diagnostics" })
+			end,
+			"Previous Diagnostic (Document)",
+		},
 
-		["]q"] = { "<cmd>cnext<cr>", "Next Quickfix" },
-		["[q"] = { "<cmd>cprevious<cr>", "Previous Quickfix" },
-     
-		["[t"] = { "<cmd>tabprevious<cr>", "Previous Tab" },
-		["]t"] = { "<cmd>tabnext<cr>", "Next Tab" },
+		["]D"] = {
+			function()
+				trouble.open("workspace_diagnostics")
+				trouble.next({ skip_groups = true, jump = true, mode = "workspace_diagnostics" })
+			end,
+			"Next Diagnostic (Workspace)",
+		},
+		["[D"] = {
+			function()
+				trouble.open("workspace_diagnostics")
+				trouble.previous({ skip_groups = true, jump = true, mode = "workspace_diagnostics" })
+			end,
+			"Previous Diagnostic (Workspace)",
+		},
 
-		["[T"] = { "<cmd>tabfirst<cr>", "First Tab" },
-		["]T"] = { "<cmd>tablast<cr>", "Last Tab" },
+		["]q"] = {
+			function()
+				trouble.open("quickfix")
+				trouble.next({ skip_groups = true, jump = true, mode = "quickfix" })
+			end,
+			"Next Quickfix",
+		},
+		["[q"] = {
+			function()
+				trouble.open("quickfix")
+				trouble.previous({ skip_groups = true, jump = true, mode = "quickfix" })
+			end,
+			"Previous Quickfix",
+		},
+
+		["[t"] = { ":tabprevious<cr>", "Previous Tab" },
+		["]t"] = { ":tabnext<cr>", "Next Tab" },
+		["[T"] = { ":tabfirst<cr>", "First Tab" },
+		["]T"] = { ":tablast<cr>", "Last Tab" },
 	}
 
 	which_key.register(noLeaderKeymap, {
