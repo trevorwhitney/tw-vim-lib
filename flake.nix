@@ -52,6 +52,7 @@
 
           pkgs.mkShell
             {
+              EDITOR = "nvim";
               packages = [
                 neovim
               ] ++ (with pkgs; [

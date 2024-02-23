@@ -89,7 +89,7 @@ let
       # manually overridden in package
       withNodeJs = false;
 
-      extraPython3Packages = ps: with ps; [ pynvim ];
+      extraPython3Packages = ps: with ps; [ pynvim tiktoken ];
       plugins = with pkgs.vimPlugins; [
         packer-nvim
         (vimUtils.buildVimPlugin rec {
