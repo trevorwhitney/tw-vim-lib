@@ -29,10 +29,11 @@ local function autosave()
 				"dapui_console",
 				"dap-repl",
 				"fugitive",
-        "Trouble"
+				"Trouble",
 			}
 
 			local is_modifiable = fn.getbufvar(buf, "&modifiable") == 1
+			local is_writable = fn.filewritable(fn.expand(fn.bufname(buf))) == 1
 			local is_normal_buffer = fn.getbufvar(buf, "&buftype") == ""
 
 			local name = fn.bufname(buf)
@@ -43,7 +44,7 @@ local function autosave()
 			local is_savable_ft = not_in(ft, skip_fts)
 
 			-- return is_modifiable and is_savable_ft and not exclude_name and not exclude_ft
-			if is_modifiable and is_normal_buffer and is_savable_ft and not exclude_name then
+			if is_modifiable and is_writable and is_normal_buffer and is_savable_ft and not exclude_name then
 				vim.cmd("update")
 			end
 		end,
