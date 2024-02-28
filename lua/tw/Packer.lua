@@ -233,6 +233,7 @@ function Packer.install(use)
 		})
 
 		use("towolf/vim-helm")
+		use("rfratto/vim-river")
 		use("mfussenegger/nvim-jdtls")
 		use("github/copilot.vim")
     use({
