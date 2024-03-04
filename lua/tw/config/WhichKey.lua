@@ -26,6 +26,14 @@ local function mapKeys(which_key)
 		f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
 		F = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Find Grep" },
 
+    o = {
+      name = "Outline",
+      o = { "<cmd>Outline<cr>", "Outline" },
+      f = { "<cmd>OutlineFollow<cr>", "Outline Follow" },
+
+      O = { "<cmd>OutlineFocusOutline<cr>", "Outline Focus" },
+    }
+
 		p = {
 			name = "Print",
 			d = { "<cmd>lua require('refactoring').debug.printf({below = false})<CR>", "Print Debug Line" },
@@ -104,6 +112,7 @@ local function mapKeys(which_key)
 		["\\"] = {
 			name = "Windows",
 			D = { "<cmd>lua require('trouble').toggle('workspace_diagnostics')<cr>", "Workspace Diagnostics" },
+			O = { "<cmd>OutlineFocusOutline<cr>", "Outline" },
 			S = { "<cmd>Telescope git_status<cr>", "Git Status (Telescope)" },
 
 			b = { "<cmd>Telescope git_branches<cr>", "Branches" },
