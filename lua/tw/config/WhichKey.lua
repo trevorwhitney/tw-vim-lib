@@ -26,14 +26,6 @@ local function mapKeys(which_key)
 		f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
 		F = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Find Grep" },
 
-    o = {
-      name = "Outline",
-      o = { "<cmd>Outline<cr>", "Outline" },
-      f = { "<cmd>OutlineFollow<cr>", "Outline Follow" },
-
-      O = { "<cmd>OutlineFocusOutline<cr>", "Outline Focus" },
-    },
-
 		p = {
 			name = "Print",
 			d = { "<cmd>lua require('refactoring').debug.printf({below = false})<CR>", "Print Debug Line" },
@@ -112,7 +104,7 @@ local function mapKeys(which_key)
 		["\\"] = {
 			name = "Windows",
 			D = { "<cmd>lua require('trouble').toggle('workspace_diagnostics')<cr>", "Workspace Diagnostics" },
-			O = { "<cmd>OutlineFocusOutline<cr>", "Outline" },
+			O = { "<cmd>OutlineClose<cr>", "Close Outline" },
 			S = { "<cmd>Telescope git_status<cr>", "Git Status (Telescope)" },
 
 			b = { "<cmd>Telescope git_branches<cr>", "Branches" },
@@ -121,7 +113,20 @@ local function mapKeys(which_key)
 			j = { "<cmd>Telescope jumplist<cr>", "Jump List" },
 			l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
 			m = { "<cmd>Telescope marks<cr>", "Marks" },
-			o = { "<cmd>Outline<cr>", "Outline" },
+			o = { function()
+        local outline = require('outline')
+
+        if outline.is_open() then
+          if outline.has_focus() then
+            outline.close()
+          else
+            outline.follow_cursor()
+          end
+        else
+          outline.open()
+          outline.follow_cursor()
+        end
+      end, "Outline" },
 			p = { "<cmd>pclose<cr>", "Close Preview" },
 			q = { "<cmd>lua require('trouble').toggle('quickfix')<cr>", "Quickfix" },
 			r = { "<cmd>call DapToggleRepl()<cr>", "Dap REPL" },
