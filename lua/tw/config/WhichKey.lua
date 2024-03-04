@@ -170,15 +170,15 @@ local function mapKeys(which_key)
 
 		["]q"] = {
 			function()
-				trouble.open("quickfix")
-				trouble.next({ skip_groups = true, jump = true, mode = "quickfix" })
+				trouble.open()
+				trouble.next({ skip_groups = true, jump = true})
 			end,
 			"Next Quickfix",
 		},
 		["[q"] = {
 			function()
-				trouble.open("quickfix")
-				trouble.previous({ skip_groups = true, jump = true, mode = "quickfix" })
+				trouble.open()
+				trouble.previous({ skip_groups = true, jump = true})
 			end,
 			"Previous Quickfix",
 		},
