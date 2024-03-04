@@ -102,6 +102,21 @@ local function configure()
   local cmp = require("cmp")
   local luasnip = require("luasnip")
 
+  local select = cmp.mapping({
+    i = function(fallback)
+      if cmp.visible() then
+        local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = true }
+        cmp.confirm(confirm_opts)
+      elseif jumpable(1) then
+        luasnip.jump(1)
+      else
+        fallback()
+      end
+    end,
+    s = cmp.mapping.confirm({ select = true }),
+    c = cmp.mapping.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace }),
+  })
+
   cmp.setup({
     confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false },
     snippet = {
@@ -118,15 +133,6 @@ local function configure()
       ["<C-B>"] = cmp.mapping.scroll_docs(4),
       ["<C-e>"] = cmp.mapping.abort(),
       ["<C-Space>"] = cmp.mapping.complete(),
-      ["<Tab>"] = cmp.mapping(function(fallback)
-        if cmp.visible() then
-          cmp.select_next_item()
-        elseif has_words_before() then
-          cmp.complete()
-        else
-          fallback()
-        end
-      end, { "i", "s" }),
 
       ["<S-Tab>"] = cmp.mapping(function(fallback)
         if cmp.visible() then
@@ -136,21 +142,20 @@ local function configure()
         end
       end, { "i", "s" }),
 
-      -- enter accepts the current selection or jumps to the next snippet field
-      ["<CR>"] = cmp.mapping({
-        i = function(fallback)
-          if cmp.visible() then
-            local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = true }
-            cmp.confirm(confirm_opts)
-          elseif jumpable(1) then
-            luasnip.jump(1)
-          else
-            fallback()
-          end
-        end,
-        s = cmp.mapping.confirm({ select = true }),
-        c = cmp.mapping.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace }),
-      }),
+      ["<Tab>"] = select,
+      -- Uncomment to make enter accept the current selection or jumps to the next snippet field
+      -- ["<CR>"] = select,
+      --
+      -- Uncomment to have tab pick next option, rather than selecting
+      -- ["<Tab>"] = cmp.mapping(function(fallback)
+      --   if cmp.visible() then
+      --     cmp.select_next_item()
+      --   elseif has_words_before() then
+      --     cmp.complete()
+      --   else
+      --     fallback()
+      --   end
+      -- end, { "i", "s" }),
 
       -- luasnip change previous snippet field
       ["<C-y>"] = cmp.mapping(function(fallback)

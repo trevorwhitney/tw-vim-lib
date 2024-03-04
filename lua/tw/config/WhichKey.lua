@@ -32,7 +32,7 @@ local function mapKeys(which_key)
       f = { "<cmd>OutlineFollow<cr>", "Outline Follow" },
 
       O = { "<cmd>OutlineFocusOutline<cr>", "Outline Focus" },
-    }
+    },
 
 		p = {
 			name = "Print",
