@@ -57,6 +57,7 @@ function Config.setup(user_options)
 	require("tw.config.Telescope").setup()
 	require("tw.config.Testing").setup()
 	require("tw.config.Treesitter").setup()
+	require("tw.config.Trouble").setup()
 	require("tw.config.WhichKey").setup()
 
 	if options.lsp_support then

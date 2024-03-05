@@ -103,13 +103,13 @@ local function mapKeys(which_key)
 	local noLeaderKeymap = {
 		["\\"] = {
 			name = "Windows",
-			D = { "<cmd>lua require('trouble').toggle('workspace_diagnostics')<cr>", "Workspace Diagnostics" },
+			D = { function() trouble.toggle('workspace_diagnostics') end, "Workspace Diagnostics" },
 			O = { "<cmd>OutlineClose<cr>", "Close Outline" },
 			S = { "<cmd>Telescope git_status<cr>", "Git Status (Telescope)" },
 
 			b = { "<cmd>Telescope git_branches<cr>", "Branches" },
 			c = { "<cmd>DapToggleConsole<cr>", "Dap Console" },
-			d = { "<cmd>lua require('trouble').toggle('document_diagnostics')<cr>", "Document Diagnostics" },
+			d = { function() trouble.toggle('document_diagnostics') end, "Document Diagnostics" },
 			j = { "<cmd>Telescope jumplist<cr>", "Jump List" },
 			l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
 			m = { "<cmd>Telescope marks<cr>", "Marks" },
@@ -128,61 +128,55 @@ local function mapKeys(which_key)
         end
       end, "Outline" },
 			p = { "<cmd>pclose<cr>", "Close Preview" },
-			q = { "<cmd>lua require('trouble').toggle('quickfix')<cr>", "Quickfix" },
+			q = { function() trouble.toggle('quickfix') end, "Quickfix" },
 			r = { "<cmd>call DapToggleRepl()<cr>", "Dap REPL" },
 			s = { "<cmd>lua require('tw.config.Git').toggleGitStatus()<cr>", "Git Status" },
-			t = { "<cmd>lua require('trouble').toggle()<cr>", "Toggle Trouble" },
+			t = { function() trouble.toggle() end, "Toggle Trouble" },
 		},
 
 		-- Unimpaired style
 		["]b"] = { ":bnext<cr>", "Next Buffer" },
 		["[b"] = { ":bprevious<cr>", "Previous Buffer" },
 
-		["]d"] = {
-			function()
-				trouble.open("document_diagnostics")
-				trouble.next({ skip_groups = true, jump = true, mode = "document_diagnostics" })
-			end,
-			"Next Diagnostic (Document)",
-		},
-		["[d"] = {
-			function()
-				trouble.open("document_diagnostics")
-				trouble.previous({ skip_groups = true, jump = true, mode = "document_diagnostics" })
-			end,
-			"Previous Diagnostic (Document)",
-		},
-
-		["]D"] = {
-			function()
-				trouble.open("workspace_diagnostics")
-				trouble.next({ skip_groups = true, jump = true, mode = "workspace_diagnostics" })
-			end,
-			"Next Diagnostic (Workspace)",
-		},
-		["[D"] = {
-			function()
-				trouble.open("workspace_diagnostics")
-				trouble.previous({ skip_groups = true, jump = true, mode = "workspace_diagnostics" })
-			end,
-			"Previous Diagnostic (Workspace)",
-		},
-
+    -- Trouble / Quickfix
 		["]q"] = {
 			function()
-				trouble.open()
+        if not trouble.is_open() then
+          trouble.toggle()
+        end
+
 				trouble.next({ skip_groups = true, jump = true})
 			end,
 			"Next Quickfix",
 		},
 		["[q"] = {
 			function()
-				trouble.open()
+        if not trouble.is_open() then
+          trouble.toggle()
+        end
+
 				trouble.previous({ skip_groups = true, jump = true})
 			end,
 			"Previous Quickfix",
 		},
 
+    -- LSP references
+		["]r"] = {
+			function()
+				trouble.open("lsp_references")
+				trouble.next({ skip_groups = true, jump = true, mode = "lsp_references" })
+			end,
+			"Next Reference",
+		},
+		["[r"] = {
+			function()
+				trouble.open("ls_references")
+				trouble.previous({ skip_groups = true, jump = true, mode = "lsp_references"})
+			end,
+			"Previous Reference",
+		},
+
+    -- Tabs
 		["[t"] = { ":tabprevious<cr>", "Previous Tab" },
 		["]t"] = { ":tabnext<cr>", "Next Tab" },
 		["[T"] = { ":tabfirst<cr>", "First Tab" },
