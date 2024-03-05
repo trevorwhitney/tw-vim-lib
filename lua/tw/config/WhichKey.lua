@@ -25,6 +25,7 @@ local function mapKeys(which_key)
 		-- Find
 		f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
 		F = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Find Grep" },
+		s = { "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", "Find Symbol" },
 
 		p = {
 			name = "Print",
@@ -65,10 +66,15 @@ local function mapKeys(which_key)
 	})
 
 	vim.cmd("command! -nargs=* TelescopeLiveGrepRaw call v:lua.require('tw.telescope').live_grep_args(<q-args>)")
+	vim.cmd("command! -nargs=* TelescopeDynamicWorkspaceSymbol call v:lua.require('tw.telescope').dynamic_workspace_symbols(<q-args>)")
 	local leaderVisualKeymap = {
 		["*"] = {
 			"\"sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
 			"Search Current Selection",
+		},
+	  s = {
+			"\"sy:TelescopeDynamicWorkspaceSymbol <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
+			"Search Current Symbol",
 		},
 		p = {
 			name = "Print",
