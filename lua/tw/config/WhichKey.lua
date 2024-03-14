@@ -66,13 +66,30 @@ local function mapKeys(which_key)
 	})
 
 	vim.cmd("command! -nargs=* TelescopeLiveGrepRaw call v:lua.require('tw.telescope').live_grep_args(<q-args>)")
-	vim.cmd("command! -nargs=* TelescopeDynamicWorkspaceSymbol call v:lua.require('tw.telescope').dynamic_workspace_symbols(<q-args>)")
+	vim.cmd(
+		"command! -nargs=* TelescopeDynamicWorkspaceSymbol call v:lua.require('tw.telescope').dynamic_workspace_symbols(<q-args>)"
+	)
+
+	vim.api.nvim_create_user_command("FormatSelection", function(args)
+		local range = nil
+		if args.count ~= -1 then
+			local end_line = vim.api.nvim_buf_get_lines(0, args.line2 - 1, args.line2, true)[1]
+			range = {
+				start = { args.line1, 0 },
+				["end"] = { args.line2, end_line:len() },
+			}
+		end
+		require("conform").format({ async = true, lsp_fallback = true, range = range })
+	end, { range = true })
+
 	local leaderVisualKeymap = {
 		["*"] = {
 			"\"sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
 			"Search Current Selection",
 		},
-	  s = {
+		["="] = { "<cmd>FormatSelection<cr>", "Format" },
+
+		s = {
 			"\"sy:TelescopeDynamicWorkspaceSymbol <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
 			"Search Current Symbol",
 		},
@@ -109,64 +126,87 @@ local function mapKeys(which_key)
 	local noLeaderKeymap = {
 		["\\"] = {
 			name = "Windows",
-			D = { function() trouble.toggle('workspace_diagnostics') end, "Workspace Diagnostics" },
+			D = {
+				function()
+					trouble.toggle("workspace_diagnostics")
+				end,
+				"Workspace Diagnostics",
+			},
 			O = { "<cmd>OutlineClose<cr>", "Close Outline" },
 			S = { "<cmd>Telescope git_status<cr>", "Git Status (Telescope)" },
 
 			b = { "<cmd>Telescope git_branches<cr>", "Branches" },
 			c = { "<cmd>DapToggleConsole<cr>", "Dap Console" },
-			d = { function() trouble.toggle('document_diagnostics') end, "Document Diagnostics" },
+			d = {
+				function()
+					trouble.toggle("document_diagnostics")
+				end,
+				"Document Diagnostics",
+			},
 			j = { "<cmd>Telescope jumplist<cr>", "Jump List" },
 			l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
 			m = { "<cmd>Telescope marks<cr>", "Marks" },
-			o = { function()
-        local outline = require('outline')
+			o = {
+				function()
+					local outline = require("outline")
 
-        if outline.is_open() then
-          if outline.has_focus() then
-            outline.close()
-          else
-            outline.follow_cursor()
-          end
-        else
-          outline.open()
-          outline.follow_cursor()
-        end
-      end, "Outline" },
+					if outline.is_open() then
+						if outline.has_focus() then
+							outline.close()
+						else
+							outline.follow_cursor()
+						end
+					else
+						outline.open()
+						outline.follow_cursor()
+					end
+				end,
+				"Outline",
+			},
 			p = { "<cmd>pclose<cr>", "Close Preview" },
-			q = { function() trouble.toggle('quickfix') end, "Quickfix" },
+			q = {
+				function()
+					trouble.toggle("quickfix")
+				end,
+				"Quickfix",
+			},
 			r = { "<cmd>call DapToggleRepl()<cr>", "Dap REPL" },
 			s = { "<cmd>lua require('tw.config.Git').toggleGitStatus()<cr>", "Git Status" },
-			t = { function() trouble.toggle() end, "Toggle Trouble" },
+			t = {
+				function()
+					trouble.toggle()
+				end,
+				"Toggle Trouble",
+			},
 		},
 
 		-- Unimpaired style
 		["]b"] = { ":bnext<cr>", "Next Buffer" },
 		["[b"] = { ":bprevious<cr>", "Previous Buffer" },
 
-    -- Trouble / Quickfix
+		-- Trouble / Quickfix
 		["]q"] = {
 			function()
-        if not trouble.is_open() then
-          trouble.toggle()
-        end
+				if not trouble.is_open() then
+					trouble.toggle()
+				end
 
-				trouble.next({ skip_groups = true, jump = true})
+				trouble.next({ skip_groups = true, jump = true })
 			end,
 			"Next Quickfix",
 		},
 		["[q"] = {
 			function()
-        if not trouble.is_open() then
-          trouble.toggle()
-        end
+				if not trouble.is_open() then
+					trouble.toggle()
+				end
 
-				trouble.previous({ skip_groups = true, jump = true})
+				trouble.previous({ skip_groups = true, jump = true })
 			end,
 			"Previous Quickfix",
 		},
 
-    -- LSP references
+		-- LSP references
 		["]r"] = {
 			function()
 				trouble.open("lsp_references")
@@ -177,12 +217,12 @@ local function mapKeys(which_key)
 		["[r"] = {
 			function()
 				trouble.open("ls_references")
-				trouble.previous({ skip_groups = true, jump = true, mode = "lsp_references"})
+				trouble.previous({ skip_groups = true, jump = true, mode = "lsp_references" })
 			end,
 			"Previous Reference",
 		},
 
-    -- Tabs
+		-- Tabs
 		["[t"] = { ":tabprevious<cr>", "Previous Tab" },
 		["]t"] = { ":tabnext<cr>", "Next Tab" },
 		["[T"] = { ":tabfirst<cr>", "First Tab" },
