@@ -114,11 +114,10 @@ local function configure()
       end
     end,
     s = cmp.mapping.confirm({ select = true }),
-    c = cmp.mapping.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace }),
+    c = cmp.mapping.confirm({ select = true }),
   })
 
   cmp.setup({
-    confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = false },
     snippet = {
       expand = function(args)
         require("luasnip").lsp_expand(args.body)
