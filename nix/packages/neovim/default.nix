@@ -34,7 +34,10 @@ let
       ccls # c++ language server
       codespell
       delve
+      gofumpt
       gopls
+      golines
+      gotools
       jsonnet-language-server
       lua-language-server
       prettierd

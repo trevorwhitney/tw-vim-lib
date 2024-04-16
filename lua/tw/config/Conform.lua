@@ -12,7 +12,7 @@ local function configure(use_eslint_daemon)
 	require("conform").setup({
 		formatters_by_ft = {
 			bash = { "shfmt", "shellcheck" },
-			go = { "gofmt", "goimports" },
+			go = { "golines", "goimports", "gofumpt" },
 			javascript = { eslint, { "prettierd", "prettier" } },
 			json = { { "prettierd", "prettier" }, "fixjson" },
 			jsonnet = { "jsonnetfmt" },
