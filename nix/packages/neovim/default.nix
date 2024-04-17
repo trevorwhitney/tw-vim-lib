@@ -35,8 +35,9 @@ let
       codespell
       delve
       gofumpt
-      gopls
+      golangci-lint
       golines
+      gopls
       gotools
       jsonnet-language-server
       lua-language-server
