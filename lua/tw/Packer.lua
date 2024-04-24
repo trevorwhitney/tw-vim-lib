@@ -93,7 +93,7 @@ local function installDap(use)
 
 	use({
 		"rcarriga/nvim-dap-ui",
-		requires = { "mfussenegger/nvim-dap" },
+		requires = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
 	})
 
 	use({ "mxsdev/nvim-dap-vscode-js", requires = { "mfussenegger/nvim-dap" } })
@@ -197,7 +197,6 @@ function Packer.install(use)
 		use("junegunn/vader.vim")
 		use("kana/vim-textobj-entire")
 		use("kana/vim-textobj-user")
-		use("machakann/vim-highlightedyank")
 		use({ "mg979/vim-visual-multi", branch = "master" }) -- multi-cursor
 		use("pedrohdz/vim-yaml-folds")
 		use("tpope/vim-abolish")

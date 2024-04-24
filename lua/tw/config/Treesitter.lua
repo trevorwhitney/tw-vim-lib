@@ -67,7 +67,7 @@ local ensure_installed = {
 local function configure()
 	-- clang++ needed on OS X
 	-- TODO: test on linux
-	require("nvim-treesitter.install").compilers = { "clang++", "clang", "cc", "gcc", "clang", "cl", "zig" }
+	require("nvim-treesitter.install").compilers = { "clang", "cc" }
 	require("nvim-treesitter.configs").setup({
 		ensure_installed = ensure_installed,
 		sync_install = false, -- install languages synchronously (only applied to `ensure_installed`)
