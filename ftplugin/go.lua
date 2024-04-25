@@ -12,8 +12,8 @@ local function keybindings()
 			name = "Debug",
 			d = { ":w<cr> <cmd>lua require('tw.languages.go').debug()<cr>", "Debug" },
 			D = {
-				":w<cr> <cmd>lua require('tw.languages.go').debug(vim.fn.input('[Tags] > '))<cr>",
-				"Debug (With Tags)",
+				":w<cr> <cmd>lua require('tw.languages.go').debug(vim.fn.input('[Build Flags] > '))<cr>",
+				"Debug (With Flags)",
 			},
 			m = {
 				":w<cr> <cmd>lua require('tw.languages.go').remote_debug(vim.fn.input('[Remote Path] > '), vim.fn.input('[Port] > '))<cr>",

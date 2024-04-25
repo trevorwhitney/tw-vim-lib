@@ -113,26 +113,27 @@ local function get_name(path)
 end
 
 function Go.debug_go_test(...)
-	local dap = require("dap")
-	local fname = get_name(vim.fn["expand"]("%"))
-	local test_name = vim.fn.input({ prompt = "[Name] > ", default = fname })
+  local dap = require("dap")
+  local fname = get_name(vim.fn["expand"]("%"))
+  local test_name = vim.fn.input({ prompt = "[Name] > ", default = fname })
 
-	local tags = { ... }
+  local flags = { ... }
+  local buildFlags = vim.fn["test#go#gotest#build_args"](flags)
 
-	local config = {
-		type = "go",
-		name = test_name,
-		request = "launch",
-		mode = "test",
-		program = "./${relativeFileDirname}",
-		args = { "-test.run", test_name },
-	}
+  local config = {
+    type = "go",
+    name = test_name,
+    request = "launch",
+    mode = "test",
+    program = "./${relativeFileDirname}",
+    args = { "-test.run", test_name },
+  }
 
-	if #tags > 0 then
-		config["buildFlags"] = "-tags=" .. table.concat(tags, ",")
-	end
+  if #buildFlags > 0 then
+    config["buildFlags"] = table.concat(buildFlags, " ")
+  end
 
-	dap.run(config)
+  dap.run(config)
 end
 
 function Go.setupVimGo(go_build_tags)
