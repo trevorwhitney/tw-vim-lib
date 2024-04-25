@@ -10,5 +10,5 @@ nnoremap <buffer> k gk
 vnoremap <buffer> j gj
 vnoremap <buffer> k gk
 
-setlocal shiftwidth = 2
-setlocal tabstop = 2
+setlocal shiftwidth=2
+setlocal tabstop=2
