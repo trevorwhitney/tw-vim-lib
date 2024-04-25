@@ -11,7 +11,7 @@ local function format(bufnr, options)
     "lua",
   }
   if vim.tbl_contains(ignore_filetypes, vim.bo[bufnr].filetype) then
-    local opts = vim.tbl_deep_extend("force", { async = true }, options)
+    local opts = vim.tbl_deep_extend("force", { timeout_ms = 500 }, options)
     return conform_format(opts)
   end
 
@@ -38,7 +38,7 @@ local function format(bufnr, options)
   end
 
   for _, range in pairs(ranges) do
-    local opts = vim.tbl_deep_extend("force", { range = range, async = true }, options)
+    local opts = vim.tbl_deep_extend("force", { range = range, timeout_ms = 500 }, options)
     conform_format(opts)
   end
 end
