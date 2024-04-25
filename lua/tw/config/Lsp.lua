@@ -119,7 +119,7 @@ local default_options = {
 }
 local options = vim.tbl_extend("force", {}, default_options)
 
-function M.setup(lsp_options)
+function setup_lspconfig(lsp_options)
 	lsp_options = lsp_options or {}
 	options = vim.tbl_extend("force", options, lsp_options)
 	-- Use a loop to conveniently call 'setup' on multiple servers and
@@ -171,6 +171,13 @@ function M.setup(lsp_options)
 	require("tw.config.NullLs").setup(options.use_eslint_daemon)
 	require("tw.config.Conform").setup(options.use_eslint_daemon)
 	require("tw.languages.go").setupVimGo(options.go_build_tags)
+end
+
+
+function M.setup(lsp_options)
+  vim.lsp.set_log_level("debug")
+
+  setup_lspconfig(lsp_options)
 end
 
 return M
