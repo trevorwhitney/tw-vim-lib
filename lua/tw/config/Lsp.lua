@@ -139,6 +139,7 @@ function setup_lspconfig(lsp_options)
 
 	local defaultLanguages = {
 		"bashls",
+    "bufls",
 		"dockerls",
 		"jsonls",
 		"jsonnet_ls",

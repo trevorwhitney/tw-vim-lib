@@ -31,6 +31,8 @@ let
       stylua
       jdtls
 
+      buf
+      buf-language-server
       ccls # c++ language server
       codespell
       delve
