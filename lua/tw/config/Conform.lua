@@ -8,12 +8,9 @@ local function format(bufnr, options)
 		"dap-repl",
 		"dapui_console",
 		"fugitive",
-		"lua",
 	}
 	if vim.tbl_contains(ignore_filetypes, vim.bo[bufnr].filetype) then
-		local opts = vim.tbl_deep_extend("force", { timeout_ms = 500 }, options)
-		conform_format(opts)
-		return opts
+    return
 	end
 
 	local lines = vim.fn.system("git diff --unified=0 " .. vim.fn.bufname(bufnr)):gmatch("[^\n\r]+")
@@ -42,7 +39,7 @@ local function format(bufnr, options)
 		conform_format(opts)
 	end
 
-	return vim.tbl_deep_extend("force", { timeout_ms = 500 }, options)
+	return
 end
 
 local function configure(use_eslint_daemon)
@@ -71,7 +68,9 @@ local function configure(use_eslint_daemon)
 			["*"] = { "codespell" },
 			["_"] = { "trim_whitespace", "trim_newlines" },
 		},
-		format_on_save = format,
+		format_on_save = {
+			timeout_ms = 500,
+		},
 	})
 end
 
