@@ -1,6 +1,8 @@
 local M = {}
 local conform_format = require("conform").format
 
+local go_formatters = { "goimports", "gofumpt" }
+
 local function format(bufnr, options)
 	local options = options or {}
 	local ignore_filetypes = {
@@ -9,8 +11,17 @@ local function format(bufnr, options)
 		"dapui_console",
 		"fugitive",
 	}
-	if vim.tbl_contains(ignore_filetypes, vim.bo[bufnr].filetype) then
-    return
+	local buf_ft = vim.bo[bufnr].filetype
+	if vim.tbl_contains(ignore_filetypes, buf_ft) then
+		return
+	end
+
+	if buf_ft == "go" then
+		options = vim.tbl_deep_extend(
+			"force",
+			options,
+			{ formatters = vim.tbl_extend("keep", { "golines" }, go_formatters) }
+		)
 	end
 
 	local lines = vim.fn.system("git diff --unified=0 " .. vim.fn.bufname(bufnr)):gmatch("[^\n\r]+")
@@ -54,7 +65,7 @@ local function configure(use_eslint_daemon)
 	require("conform").setup({
 		formatters_by_ft = {
 			bash = { "shfmt", "shellcheck" },
-			go = { "golines", "goimports", "gofumpt" },
+			go = go_formatters,
 			javascript = { eslint, { "prettierd", "prettier" } },
 			json = { { "prettierd", "prettier" }, "fixjson" },
 			jsonnet = { "jsonnetfmt" },
