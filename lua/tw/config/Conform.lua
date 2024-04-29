@@ -12,7 +12,8 @@ local function format(bufnr, options)
 	}
 	if vim.tbl_contains(ignore_filetypes, vim.bo[bufnr].filetype) then
 		local opts = vim.tbl_deep_extend("force", { timeout_ms = 500 }, options)
-		return conform_format(opts)
+		conform_format(opts)
+		return opts
 	end
 
 	local lines = vim.fn.system("git diff --unified=0 " .. vim.fn.bufname(bufnr)):gmatch("[^\n\r]+")
@@ -40,6 +41,8 @@ local function format(bufnr, options)
 		local opts = vim.tbl_deep_extend("force", { range = range, timeout_ms = 500 }, options)
 		conform_format(opts)
 	end
+
+	return vim.tbl_deep_extend("force", { timeout_ms = 500 }, options)
 end
 
 local function configure(use_eslint_daemon)

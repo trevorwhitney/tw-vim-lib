@@ -165,7 +165,7 @@ local function installTesting(use)
 	-- })
 end
 
-local function installColors(use)
+local function installUI(use)
 	-- color schemes
 	use({ "trevorwhitney/solarized.nvim" })
 	use({ "trevorwhitney/flexoki-neovim", as = "flexoki", branch = "enable-more-plugins" })
@@ -177,6 +177,7 @@ local function installColors(use)
 			require("everforest").setup()
 		end,
 	})
+	use("stevearc/dressing.nvim")
 end
 
 function Packer.install(use)
@@ -284,7 +285,7 @@ function Packer.install(use)
 		installNvimCmp(use)
 		installTreesitter(use)
 		installTesting(use)
-		installColors(use)
+		installUI(use)
 	end)
 end
 
