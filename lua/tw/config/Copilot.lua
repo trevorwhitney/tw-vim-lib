@@ -1,41 +1,41 @@
 local M = {}
 
 local function configure()
-  vim.g.copilot_no_tab_map = true
-  vim.api.nvim_set_var("copilot_filetypes", {
-    ["dap-repl"] = false,
-  })
+	vim.g.copilot_no_tab_map = true
+	vim.api.nvim_set_var("copilot_filetypes", {
+		["dap-repl"] = false,
+	})
 end
 
 local function configureKeymap()
-  local keymap = {
-    name = "Copilot",
-    ["<C-j>"] = { "<Plug>(copilot-next)", "Next" },
-    ["<C-k>"] = { "<Plug>(copilot-previous)", "Previous" },
-  }
+	local keymap = {
+		name = "Copilot",
+		["<C-j>"] = { "<Plug>(copilot-next)", "Next" },
+		["<C-k>"] = { "<Plug>(copilot-previous)", "Previous" },
+	}
 
-  local which_key = require("which-key")
+	local which_key = require("which-key")
 
-  which_key.register(keymap, {
-    mode = "i",
-    prefix = nil,
-    buffer = nil,
-    silent = true,
-    noremap = true,
-    nowait = false,
-  })
+	which_key.register(keymap, {
+		mode = "i",
+		prefix = nil,
+		buffer = nil,
+		silent = true,
+		noremap = true,
+		nowait = false,
+	})
 
-  vim.keymap.set(
-    "i",
-    "<Plug>(vimrc:copilot-dummy-map)",
-    'copilot#Accept("")',
-    { silent = true, expr = true, desc = "Copilot dummy accept, needed for nvim-cmp" }
-  )
+	vim.keymap.set(
+		"i",
+		"<Plug>(vimrc:copilot-dummy-map)",
+		'copilot#Accept("")',
+		{ silent = true, expr = true, desc = "Copilot dummy accept, needed for nvim-cmp" }
+	)
 end
 
 function M.setup()
-  configure()
-  configureKeymap()
+	configure()
+	configureKeymap()
 end
 
 return M

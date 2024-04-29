@@ -82,17 +82,17 @@ local function wipeRegisters()
 end
 
 local function highlightedYank()
-  local group = api.nvim_create_augroup("HighlightedYank", {
-    clear = true,
-  })
+	local group = api.nvim_create_augroup("HighlightedYank", {
+		clear = true,
+	})
 
-  api.nvim_create_autocmd({ "TextYankPost" }, {
-    pattern = "*",
-    callback = function()
-      vim.highlight.on_yank({ higroup = "Visual", timeout = 250, on_visual = false})
-    end,
-    group = group,
-  })
+	api.nvim_create_autocmd({ "TextYankPost" }, {
+		pattern = "*",
+		callback = function()
+			vim.highlight.on_yank({ higroup = "Visual", timeout = 250, on_visual = false })
+		end,
+		group = group,
+	})
 end
 
 function M.setup()

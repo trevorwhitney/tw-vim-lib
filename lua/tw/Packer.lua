@@ -235,16 +235,16 @@ function Packer.install(use)
 		use("rfratto/vim-river")
 		use("mfussenegger/nvim-jdtls")
 		use("github/copilot.vim")
-    use({
-       "dpayne/CodeGPT.nvim",
-       requires = {
-          "MunifTanjim/nui.nvim",
-          "nvim-lua/plenary.nvim",
-       },
-       config = function()
-          require("codegpt.config")
-       end
-    })
+		use({
+			"dpayne/CodeGPT.nvim",
+			requires = {
+				"MunifTanjim/nui.nvim",
+				"nvim-lua/plenary.nvim",
+			},
+			config = function()
+				require("codegpt.config")
+			end,
+		})
 
 		use({
 			"ThePrimeagen/refactoring.nvim",

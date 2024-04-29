@@ -1,11 +1,11 @@
 local M = {}
 
 local function commentary()
-  vim.cmd("setlocal commentstring=#\\ \\%s")
+	vim.cmd("setlocal commentstring=#\\ \\%s")
 end
 
 function M.setup()
-  commentary()
+	commentary()
 end
 
 M.setup()

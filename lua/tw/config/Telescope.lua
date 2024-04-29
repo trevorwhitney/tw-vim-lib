@@ -3,15 +3,14 @@ local telescope = require("telescope")
 local actions = require("telescope.actions")
 
 local function openTroubleQF(prompt_bufnr)
-  actions.send_to_qflist(prompt_bufnr)
-  trouble.open('quickfix')
+	actions.send_to_qflist(prompt_bufnr)
+	trouble.open("quickfix")
 end
 
 local function configure()
 	telescope.load_extension("fzf")
 	telescope.load_extension("refactoring")
 	telescope.load_extension("dap")
-
 
 	telescope.setup({
 		pickers = {
@@ -21,8 +20,8 @@ local function configure()
 		},
 		defaults = {
 			mappings = {
-        i = { ["<C-q>"] = openTroubleQF },
-        n = { ["<C-q>"] = openTroubleQF },
+				i = { ["<C-q>"] = openTroubleQF },
+				n = { ["<C-q>"] = openTroubleQF },
 			},
 		},
 	})

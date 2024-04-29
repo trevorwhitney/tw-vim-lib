@@ -2,12 +2,15 @@ local M = {}
 
 local function mapKeys(which_key)
 	local trouble = require("trouble")
-  local format = require("tw.config.Conform").format
+	local format = require("tw.config.Conform").format
 	local leaderKeymap = {
-		["="] = { function() 
-			vim.cmd("update")
-      format({ lsp_fallback=false })
-    end, "Format" },
+		["="] = {
+			function()
+				vim.cmd("update")
+				format({ lsp_fallback = false })
+			end,
+			"Format",
+		},
 
 		b = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
 

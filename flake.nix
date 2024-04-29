@@ -60,6 +60,7 @@
                 bashInteractive
                 git
                 gnumake
+                stylua
                 zip
 
                 # NodeJS

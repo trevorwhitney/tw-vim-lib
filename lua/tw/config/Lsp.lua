@@ -47,11 +47,15 @@ local function mapKeys()
 		nowait = false,
 	})
 
+	local format = require("tw.config.Conform").format
 	local keymapWithLeader = {
-		["="] = { function() 
-			vim.cmd("update")
-      format({ lsp_fallback=false })
-    end, "Format" },
+		["="] = {
+			function()
+				vim.cmd("update")
+				format({ lsp_fallback = false })
+			end,
+			"Format",
+		},
 
 		a = { "<cmd>Lspsaga code_action<cr>", "Code Action" },
 
@@ -124,7 +128,7 @@ local default_options = {
 }
 local options = vim.tbl_extend("force", {}, default_options)
 
-function setup_lspconfig(lsp_options)
+local function setup_lspconfig(lsp_options)
 	lsp_options = lsp_options or {}
 	options = vim.tbl_extend("force", options, lsp_options)
 	-- Use a loop to conveniently call 'setup' on multiple servers and
@@ -143,19 +147,19 @@ function setup_lspconfig(lsp_options)
 		nil_ls = require("tw.languages.nix").configure_lsp,
 	}
 
-  local defaultLanguages = {
-    "bashls",
-    "dockerls",
-    "golangci_lint_ls",
-    "jsonls",
-    "jsonnet_ls",
-    "marksman",
-    "pyright",
-    "statix",
-    "terraformls",
-    "tsserver",
-    "vimls",
-  }
+	local defaultLanguages = {
+		"bashls",
+		"dockerls",
+		"golangci_lint_ls",
+		"jsonls",
+		"jsonnet_ls",
+		"marksman",
+		"pyright",
+		"statix",
+		"terraformls",
+		"tsserver",
+		"vimls",
+	}
 
 	local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
@@ -182,11 +186,10 @@ function setup_lspconfig(lsp_options)
 	require("tw.languages.go").setupVimGo(options.go_build_tags)
 end
 
-
 function M.setup(lsp_options)
-  vim.lsp.set_log_level("debug")
+	vim.lsp.set_log_level("debug")
 
-  setup_lspconfig(lsp_options)
+	setup_lspconfig(lsp_options)
 end
 
 return M
