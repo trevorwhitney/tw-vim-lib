@@ -1,6 +1,6 @@
 local M = {}
 
-local nvim_lsp = require("lspconfig")
+local lspconfig = require("lspconfig")
 
 local function mapKeys()
 	local which_key = require("which-key")
@@ -48,6 +48,11 @@ local function mapKeys()
 	})
 
 	local keymapWithLeader = {
+		["="] = { function() 
+			vim.cmd("update")
+      format({ lsp_fallback=false })
+    end, "Format" },
+
 		a = { "<cmd>Lspsaga code_action<cr>", "Code Action" },
 
 		k = { "<cmd>Lspsaga hover_doc<cr>", "Show Hover" },
@@ -129,6 +134,7 @@ function setup_lspconfig(lsp_options)
 		gopls = require("tw.languages.go").configure_lsp(options.go_build_tags),
 		ccls = require("tw.languages.c").configure_lsp,
 		yamlls = require("tw.languages.yaml").configure_lsp,
+		eslint = require("tw.languages.eslint").configure_lsp,
 
 		-- 3 options for nix LSP
 		-- "rnix",
@@ -137,22 +143,25 @@ function setup_lspconfig(lsp_options)
 		nil_ls = require("tw.languages.nix").configure_lsp,
 	}
 
-	local defaultLanguages = {
-		"bashls",
-		"dockerls",
-		"jsonls",
-		"jsonnet_ls",
-		"pyright",
-		"terraformls",
-		"tsserver",
-		"vimls",
-	}
+  local defaultLanguages = {
+    "bashls",
+    "dockerls",
+    "golangci_lint_ls",
+    "jsonls",
+    "jsonnet_ls",
+    "marksman",
+    "pyright",
+    "statix",
+    "terraformls",
+    "tsserver",
+    "vimls",
+  }
 
 	local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 	for _, lsp in ipairs(defaultLanguages) do
-		if nvim_lsp[lsp] then
-			nvim_lsp[lsp].setup({
+		if lspconfig[lsp] then
+			lspconfig[lsp].setup({
 				capabilities = capabilities,
 				on_attach = M.on_attach,
 				flags = {
@@ -165,10 +174,10 @@ function setup_lspconfig(lsp_options)
 	end
 
 	for lsp, fn in pairs(customLanguages) do
-		nvim_lsp[lsp].setup(fn(M.on_attach, capabilities))
+		lspconfig[lsp].setup(fn(M.on_attach, capabilities))
 	end
 
-	require("tw.config.NullLs").setup(options.use_eslint_daemon)
+	-- require("tw.config.NullLs").setup(options.use_eslint_daemon)
 	require("tw.config.Conform").setup(options.use_eslint_daemon)
 	require("tw.languages.go").setupVimGo(options.go_build_tags)
 end

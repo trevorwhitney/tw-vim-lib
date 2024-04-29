@@ -36,19 +36,24 @@ let
       delve
       gofumpt
       golangci-lint
+      golangci-lint-langserver
       golines
       gopls
       gotools
       jsonnet-language-server
       lua-language-server
+      marksman
       prettierd
       pyright
       shellcheck
       shfmt
       terraform-ls
+      typescript
       vale
       vim-vint
+      vscode-langservers-extracted
       yamllint
+      yaml-language-server
 
       nodePackages.bash-language-server
       nodePackages.dockerfile-language-server-nodejs
@@ -57,12 +62,10 @@ let
       nodePackages.fixjson
       nodePackages.neovim
       nodePackages.prettier
-      nodePackages.typescript
       nodePackages.typescript-language-server
       nodePackages.vim-language-server
       nodePackages.vscode-langservers-extracted
       nodePackages.write-good
-      nodePackages.yaml-language-server
 
       lua51Packages.luacheck
     ] else [ ];

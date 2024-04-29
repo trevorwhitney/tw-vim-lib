@@ -6,7 +6,7 @@ local function mapKeys(which_key)
 	local leaderKeymap = {
 		["="] = { function() 
 			vim.cmd("update")
-      format({ lsp_fallback=true })
+      format({ lsp_fallback=false })
     end, "Format" },
 
 		b = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
