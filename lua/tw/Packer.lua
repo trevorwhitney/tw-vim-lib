@@ -181,19 +181,21 @@ local function installUI(use)
 		"stevearc/dressing.nvim",
 		config = function()
 			require("dressing").setup({
-				mappings = {
-					n = {
-						["<Esc>"] = "Close",
-						["<CR>"] = "Confirm",
-					},
-					i = {
-						["<C-c>"] = "Close",
-						["<CR>"] = "Confirm",
-						["<Up>"] = "HistoryPrev",
-						["<Down>"] = "HistoryNext",
+				input = {
+					mappings = {
+						n = {
+							["<Esc>"] = "Close",
+							["<CR>"] = "Confirm",
+						},
+						i = {
+							["<C-c>"] = "Close",
+							["<CR>"] = "Confirm",
+							["<Up>"] = "HistoryPrev",
+							["<Down>"] = "HistoryNext",
 
-						["<C-p>"] = "HistoryPrev",
-						["<C-n>"] = "HistoryNext",
+							["<C-p>"] = "HistoryPrev",
+							["<C-n>"] = "HistoryNext",
+						},
 					},
 				},
 			})
