@@ -3,11 +3,15 @@ local M = {}
 local function mapKeys(which_key)
 	local trouble = require("trouble")
 	local format = require("tw.config.Conform").format
+	local async = require("plenary.async")
+
 	local leaderKeymap = {
 		["="] = {
 			function()
-				vim.cmd("update")
-				format({ lsp_fallback = false })
+        async.void(function()
+          vim.cmd("update")
+          format({ lsp_fallback = false })
+        end)
 			end,
 			"Format",
 		},

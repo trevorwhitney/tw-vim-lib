@@ -5,6 +5,7 @@ local go_formatters = { "goimports", "gofumpt" }
 
 local function format(bufnr, options)
 	local options = options or {}
+  options = vim.tbl_deep_extend("force", options, { async = true })
 	local ignore_filetypes = {
 		"Trouble",
 		"dap-repl",
@@ -17,11 +18,8 @@ local function format(bufnr, options)
 	end
 
 	if buf_ft == "go" then
-		options = vim.tbl_deep_extend(
-			"force",
-			options,
-			{ formatters = vim.tbl_extend("keep", { "golines" }, go_formatters) }
-		)
+		options =
+			vim.tbl_deep_extend("force", options, { formatters = vim.tbl_extend("keep", { "golines" }, go_formatters) })
 	end
 
 	local lines = vim.fn.system("git diff --unified=0 " .. vim.fn.bufname(bufnr)):gmatch("[^\n\r]+")
