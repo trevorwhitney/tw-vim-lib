@@ -177,30 +177,6 @@ local function installUI(use)
 			require("everforest").setup()
 		end,
 	})
-	use({
-		"stevearc/dressing.nvim",
-		config = function()
-			require("dressing").setup({
-				input = {
-					mappings = {
-						n = {
-							["<Esc>"] = "Close",
-							["<CR>"] = "Confirm",
-						},
-						i = {
-							["<C-c>"] = "Close",
-							["<CR>"] = "Confirm",
-							["<Up>"] = "HistoryPrev",
-							["<Down>"] = "HistoryNext",
-
-							["<C-p>"] = "HistoryPrev",
-							["<C-n>"] = "HistoryNext",
-						},
-					},
-				},
-			})
-		end,
-	})
 end
 
 function Packer.install(use)
