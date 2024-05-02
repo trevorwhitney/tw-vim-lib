@@ -274,7 +274,12 @@ function Packer.install(use)
 		use({
 			"hedyhli/outline.nvim",
 			config = function()
-				require("outline").setup({})
+				require("outline").setup({
+					outline_window = {
+						width = 50,
+						relative_width = false,
+					},
+				})
 			end,
 		})
 
