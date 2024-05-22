@@ -27,12 +27,12 @@ local function keybindings()
 			a = { ":w<cr> :GolangTestCurrentPackage<cr>", "Package Tests" },
 			T = {
 				function()
-					local go = require("tw.languages.go")
+          local go = require("tw.languages.go")
+          local package_name = "./" .. vim.fn.expand("%:h")
 
-					local package_name = "./" .. vim.fn.expand("%:h")
-					local test_name = go.get_test_name()
+          local test_name = go.get_test_name(vim.fn.getreg("*"))
 
-					vim.cmd("update")
+          vim.cmd("update")
 					vim.fn.execute(string.format("Dispatch go test -v -run '%s' %s ", test_name, package_name))
 				end,
 				"Test (Prompt for Name)",

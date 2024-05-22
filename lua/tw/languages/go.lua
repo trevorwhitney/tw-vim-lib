@@ -83,13 +83,13 @@ local function get_name(path)
 	return escaped_regex
 end
 
-function Go.get_test_name()
+function Go.get_test_name(default)
 	local filename = vim.fn.expand("%")
 	if string.find(filename, "_test.go") then
 		filename = get_name(filename)
 	end
 
-	return vim.fn.input({ prompt = "[Name] > ", default = filename })
+	return vim.fn.input({ prompt = "[Name] > ", default = default or filename })
 end
 
 function Go.remote_debug(path, port)
@@ -120,7 +120,6 @@ function Go.remote_debug(path, port)
 		io.write("Error launching adapter")
 	end
 end
-
 
 function Go.debug_go_test(...)
 	local dap = require("dap")
