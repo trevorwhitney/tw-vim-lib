@@ -117,6 +117,22 @@ local function configure()
 		c = cmp.mapping.confirm({ select = true }),
 	})
 
+	local selectPrevious = cmp.mapping(function(fallback)
+		if cmp.visible() then
+			cmp.select_prev_item()
+		else
+			fallback()
+		end
+	end, { "i", "s" })
+
+	local selectNext = cmp.mapping(function(fallback)
+		if cmp.visible() then
+			cmp.select_next_item()
+		else
+			fallback()
+		end
+	end, { "i", "s" })
+
 	cmp.setup({
 		snippet = {
 			expand = function(args)
@@ -132,14 +148,10 @@ local function configure()
 			["<C-B>"] = cmp.mapping.scroll_docs(4),
 			["<C-e>"] = cmp.mapping.abort(),
 			["<C-Space>"] = cmp.mapping.complete(),
+			["<C-p>"] = selectPrevious,
+			["<C-n>"] = selectNext,
 
-			["<S-Tab>"] = cmp.mapping(function(fallback)
-				if cmp.visible() then
-					cmp.select_prev_item()
-				else
-					fallback()
-				end
-			end, { "i", "s" }),
+			-- ["<S-Tab>"] = selectPrevious,
 
 			["<Tab>"] = select,
 			-- Uncomment to make enter accept the current selection or jumps to the next snippet field

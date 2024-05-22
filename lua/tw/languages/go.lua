@@ -46,35 +46,6 @@ function Go.debug(...)
 	end
 end
 
-function Go.remote_debug(path, port)
-	local dap = require("dap")
-
-	-- Get root of plugin directory
-	local pluginRoot = debug.getinfo(1).source:sub(2):match("(.*tw[-]vim[-]lib).*")
-
-	local goLaunchAdapter = {
-		type = "executable",
-		command = "node",
-		args = { pluginRoot .. "/debug/go/debugAdapter.js" },
-	}
-
-	local goLaunchConfig = {
-		type = "go",
-		request = "attach",
-		mode = "remote",
-		name = "Remote Attached Debugger",
-		dlvToolPath = vim.fn.system("which dlv"),
-		remotePath = path,
-		port = port,
-		cwd = vim.fn.getcwd(),
-	}
-
-	local session = dap.launch(goLaunchAdapter, goLaunchConfig)
-	if session == nil then
-		io.write("Error launching adapter")
-	end
-end
-
 -- adapt functions from vim-test to get the test name
 local function get_name(path)
 	local filename_modifier = vim.g["test#filename_modifier"] or ":."
@@ -111,6 +82,45 @@ local function get_name(path)
 
 	return escaped_regex
 end
+
+function Go.get_test_name()
+	local filename = vim.fn.expand("%")
+	if string.find(filename, "_test.go") then
+		filename = get_name(filename)
+	end
+
+	return vim.fn.input({ prompt = "[Name] > ", default = filename })
+end
+
+function Go.remote_debug(path, port)
+	local dap = require("dap")
+
+	-- Get root of plugin directory
+	local pluginRoot = debug.getinfo(1).source:sub(2):match("(.*tw[-]vim[-]lib).*")
+
+	local goLaunchAdapter = {
+		type = "executable",
+		command = "node",
+		args = { pluginRoot .. "/debug/go/debugAdapter.js" },
+	}
+
+	local goLaunchConfig = {
+		type = "go",
+		request = "attach",
+		mode = "remote",
+		name = "Remote Attached Debugger",
+		dlvToolPath = vim.fn.system("which dlv"),
+		remotePath = path,
+		port = port,
+		cwd = vim.fn.getcwd(),
+	}
+
+	local session = dap.launch(goLaunchAdapter, goLaunchConfig)
+	if session == nil then
+		io.write("Error launching adapter")
+	end
+end
+
 
 function Go.debug_go_test(...)
 	local dap = require("dap")
