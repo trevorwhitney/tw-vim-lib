@@ -89,6 +89,7 @@ function Go.get_test_name(default)
 		filename = get_name(filename)
 	end
 
+  --TODO: instead of a default, we should use telescope to present a list with all options
 	return vim.fn.input({ prompt = "[Name] > ", default = default or filename })
 end
 

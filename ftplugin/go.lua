@@ -30,7 +30,7 @@ local function keybindings()
           local go = require("tw.languages.go")
           local package_name = "./" .. vim.fn.expand("%:h")
 
-          local test_name = go.get_test_name(vim.fn.getreg("*"))
+          local test_name = go.get_test_name()
 
           vim.cmd("update")
 					vim.fn.execute(string.format("Dispatch go test -v -run '%s' %s ", test_name, package_name))
