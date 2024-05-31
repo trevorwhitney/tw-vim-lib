@@ -80,7 +80,7 @@ local function get_name(path)
 	local without_spaces = vim.fn["substitute"](name, "\\s", "_", "g")
 	local escaped_regex = vim.fn["substitute"](without_spaces, "\\([\\[\\].*+?|$^()]\\)", "\\\1", "g")
 
-	return escaped_regex
+	return escaped_regex .. "$"
 end
 
 function Go.get_test_name(default)
