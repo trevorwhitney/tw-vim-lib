@@ -105,10 +105,12 @@ local function configure()
 	local select = cmp.mapping({
 		i = function(fallback)
 			if cmp.visible() then
-				local confirm_opts = { behavior = cmp.ConfirmBehavior.Replace, select = true }
+				local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = true }
 				cmp.confirm(confirm_opts)
 			elseif jumpable(1) then
 				luasnip.jump(1)
+      elseif has_words_before() then
+        cmp.complete()
 			else
 				fallback()
 			end
