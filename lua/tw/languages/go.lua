@@ -35,12 +35,11 @@ function Go.configure_lsp(go_build_tags)
 	end
 end
 
-function Go.debug(...)
+function Go.debug(test_name)
 	local dap = require("dap")
 	local filename = vim.fn.expand("%")
 	if string.find(filename, "_test.go") then
-		Go.debug_go_test(...)
-		-- require("neotest").run.run({ strategy = "dap" })
+		Go.debug_go_test(test_name)
 	else
 		dap.continue()
 	end
@@ -89,7 +88,7 @@ function Go.get_test_name(default)
 		filename = get_name(filename)
 	end
 
-  --TODO: instead of a default, we should use telescope to present a list with all options
+	--TODO: instead of a default, we should use telescope to present a list with all options
 	return vim.fn.input({ prompt = "[Name] > ", default = default or filename })
 end
 
@@ -122,21 +121,21 @@ function Go.remote_debug(path, port)
 	end
 end
 
-function Go.debug_go_test(...)
+function Go.debug_go_test(test_name)
 	local dap = require("dap")
-	local fname = get_name(vim.fn["expand"]("%"))
-	local test_name = vim.fn.input({ prompt = "[Name] > ", default = fname })
+	local name = test_name or get_name(vim.fn["expand"]("%"))
 
-	local flags = { ... }
-	local buildFlags = vim.fn["test#go#gotest#build_args"](flags)
+	-- TODO: if still needed, move to function like debug_with_flags
+	-- local flags = { ... }
+	local buildFlags = vim.fn["test#go#gotest#build_args"]({})
 
 	local config = {
 		type = "go",
-		name = test_name,
+		name = name,
 		request = "launch",
 		mode = "test",
 		program = "./${relativeFileDirname}",
-		args = { "-test.run", test_name },
+		args = { "-test.run", name },
 	}
 
 	if #buildFlags > 0 then

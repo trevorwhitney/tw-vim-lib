@@ -10,10 +10,25 @@ local function keybindings()
 	local goKeymap = {
 		d = {
 			name = "Debug",
-			d = { ":w<cr> <cmd>lua require('tw.languages.go').debug()<cr>", "Debug" },
-			D = {
-				":w<cr> <cmd>lua require('tw.languages.go').debug(vim.fn.input('[Build Flags] > '))<cr>",
-				"Debug (With Flags)",
+			function()
+				local go = require("tw.languages.go")
+
+				vim.cmd("update")
+				go.debug()
+			end,
+			"Debug",
+		},
+		D = {
+			name = "Debug",
+			d = {
+				function()
+					local go = require("tw.languages.go")
+					local test_name = go.get_test_name()
+
+					vim.cmd("update")
+					go.debug(test_name)
+				end,
+				"Debug (Prompt for Name)",
 			},
 			m = {
 				":w<cr> <cmd>lua require('tw.languages.go').remote_debug(vim.fn.input('[Remote Path] > '), vim.fn.input('[Port] > '))<cr>",
@@ -27,12 +42,12 @@ local function keybindings()
 			a = { ":w<cr> :GolangTestCurrentPackage<cr>", "Package Tests" },
 			T = {
 				function()
-          local go = require("tw.languages.go")
-          local package_name = "./" .. vim.fn.expand("%:h")
+					local go = require("tw.languages.go")
+					local package_name = "./" .. vim.fn.expand("%:h")
 
-          local test_name = go.get_test_name()
+					local test_name = go.get_test_name()
 
-          vim.cmd("update")
+		vim.cmd("update")
 					vim.fn.execute(string.format("Dispatch go test -v -run '%s' %s ", test_name, package_name))
 				end,
 				"Test (Prompt for Name)",
