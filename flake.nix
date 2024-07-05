@@ -30,13 +30,18 @@
         nodeJsPkg = pkgs.nodejs_20;
         goPkg = pkgs.go_1_21;
       in
-      {
-        defaultPackage = pkgs.neovim;
+      rec {
+        inherit (pkgs) neovim;
 
-        packages = {
-          inherit (pkgs) neovim;
+        defaultPackage = pkgs.neovim {
+            inherit goPkg nodeJsPkg;
+            withLspSupport = true;
+            useEslintDaemon = true;
         };
 
+        packages = {
+          neovim = defaultPackage;
+        };
 
         devShells.default =
           let
