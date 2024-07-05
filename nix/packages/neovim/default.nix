@@ -67,7 +67,8 @@ let
       nodePackages.vscode-langservers-extracted
       nodePackages.write-good
 
-      lua51Packages.luacheck
+      lua53Packages.luacheck
+      lua53Packages.tiktoken_core
     ] else [ ];
 
   treesitterPackages = with pkgs; [
@@ -113,7 +114,7 @@ let
       ] ++ (if withLspSupport then [
         "lsp_support = true,"
         "lua_ls_root = '${lua-language-server}',"
-        "rocks_tree_root = '${lua51Packages.luarocks}',"
+        "rocks_tree_root = '${lua53Packages.luarocks}',"
         "jdtls_home = '${jdtls}',"
         "use_eslint_daemon = ${lib.boolToString useEslintDaemon},"
         "go_build_tags = '${goBuildTags}',"

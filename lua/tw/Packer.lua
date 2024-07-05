@@ -236,6 +236,13 @@ function Packer.install(use)
 		use("mfussenegger/nvim-jdtls")
 		use("github/copilot.vim")
 		use({
+			"CopilotC-Nvim/CopilotChat.nvim",
+			branch = "canary",
+			requires = {
+				"github/copilot.vim",
+			},
+		})
+		use({
 			"dpayne/CodeGPT.nvim",
 			requires = {
 				"MunifTanjim/nui.nvim",
