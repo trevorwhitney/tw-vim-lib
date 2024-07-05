@@ -10,17 +10,16 @@ local function keybindings()
 	local goKeymap = {
 		d = {
 			name = "Debug",
-			function()
-				local go = require("tw.languages.go")
-
-				vim.cmd("update")
-				go.debug()
-			end,
-			"Debug",
-		},
-		D = {
-			name = "Debug",
 			d = {
+				function()
+					local go = require("tw.languages.go")
+
+					vim.cmd("update")
+					go.debug()
+				end,
+				"Debug",
+			},
+			D = {
 				function()
 					local go = require("tw.languages.go")
 					local test_name = go.get_test_name()
@@ -30,10 +29,10 @@ local function keybindings()
 				end,
 				"Debug (Prompt for Name)",
 			},
-			m = {
-				":w<cr> <cmd>lua require('tw.languages.go').remote_debug(vim.fn.input('[Remote Path] > '), vim.fn.input('[Port] > '))<cr>",
-				"Remote Debug",
-			},
+		},
+		m = {
+			":w<cr> <cmd>lua require('tw.languages.go').remote_debug(vim.fn.input('[Remote Path] > '), vim.fn.input('[Port] > '))<cr>",
+			"Remote Debug",
 		},
 
 		-- Test
