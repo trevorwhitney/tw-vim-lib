@@ -8,10 +8,10 @@ local function mapKeys(which_key)
 	local leaderKeymap = {
 		["="] = {
 			function()
-        async.void(function()
-          vim.cmd("update")
-          format({ lsp_fallback = false })
-        end)
+				async.void(function()
+					vim.cmd("update")
+					format({ lsp_fallback = false })
+				end)
 			end,
 			"Format",
 		},
@@ -139,7 +139,7 @@ local function mapKeys(which_key)
 			name = "Windows",
 			D = {
 				function()
-					trouble.toggle("workspace_diagnostics")
+					trouble.toggle("diagnostics")
 				end,
 				"Workspace Diagnostics",
 			},
@@ -148,12 +148,7 @@ local function mapKeys(which_key)
 
 			b = { "<cmd>Telescope git_branches<cr>", "Branches" },
 			c = { "<cmd>DapToggleConsole<cr>", "Dap Console" },
-			d = {
-				function()
-					trouble.toggle("document_diagnostics")
-				end,
-				"Document Diagnostics",
-			},
+			d = { "<cmd>Trouble diagnostics filter.buf=0<cr>", "Document Diagnostics" },
 			j = { "<cmd>Telescope jumplist<cr>", "Jump List" },
 			l = { "<cmd>call ToggleLocationList()<cr>", "Location List" },
 			m = { "<cmd>Telescope marks<cr>", "Marks" },
@@ -218,20 +213,20 @@ local function mapKeys(which_key)
 		},
 
 		-- LSP references
-		["]r"] = {
-			function()
-				trouble.open("lsp_references")
-				trouble.next({ skip_groups = true, jump = true, mode = "lsp_references" })
-			end,
-			"Next Reference",
-		},
-		["[r"] = {
-			function()
-				trouble.open("ls_references")
-				trouble.previous({ skip_groups = true, jump = true, mode = "lsp_references" })
-			end,
-			"Previous Reference",
-		},
+		-- ["]r"] = {
+		-- 	function()
+		-- 		trouble.open("lsp_references")
+		-- 		trouble.next({ skip_groups = true, jump = true, mode = "lsp_references" })
+		-- 	end,
+		-- 	"Next Reference",
+		-- },
+		-- ["[r"] = {
+		-- 	function()
+		-- 		trouble.open("ls_references")
+		-- 		trouble.previous({ skip_groups = true, jump = true, mode = "lsp_references" })
+		-- 	end,
+		-- 	"Previous Reference",
+		-- },
 
 		-- Tabs
 		["[t"] = { ":tabprevious<cr>", "Previous Tab" },

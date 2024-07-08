@@ -9,32 +9,32 @@ local function mapKeys()
 	local keymap = {
 		g = {
 			name = "Go To",
-			-- d = {
-			-- 	"<cmd>lua require('telescope.builtin').lsp_definitions({fname_width=0.6, reuse_win=true})<cr>",
-			-- 	"Definition",
-			-- },
 			d = {
-				"<cmd>lua require('trouble').open('lsp_definitions')<cr>",
+				"<cmd>lua require('telescope.builtin').lsp_definitions({fname_width=0.4, reuse_win=true})<cr>",
 				"Definition",
 			},
-			-- i = {
-			-- 	"<cmd>lua require('telescope.builtin').lsp_implementations({fname_width=0.6, reuse_win=true})<cr>",
-			-- 	"Implementations",
+			-- d = {
+			-- 	"<cmd>lua require('trouble').open('lsp_definitions')<cr>",
+			-- 	"Definition",
 			-- },
 			i = {
-				"<cmd>lua require('trouble').open('lsp_implementations')<cr>",
+				"<cmd>lua require('telescope.builtin').lsp_implementations({fname_width=0.4, reuse_win=true})<cr>",
 				"Implementations",
 			},
-			-- r = { "<cmd>lua require('telescope.builtin').lsp_references({fname_width=0.6})<cr>", "References" },
-			r = { "<cmd>lua require('trouble').open('lsp_references')<cr>", "References" },
-			-- y = {
-			-- 	"<cmd>lua require('telescope.builtin').lsp_type_definitions({fname_width=0.6, reuse_win=true})<cr>",
-			-- 	"Type Definition",
+			-- i = {
+			-- 	"<cmd>lua require('trouble').open('lsp_implementations')<cr>",
+			-- 	"Implementations",
 			-- },
+			r = { "<cmd>lua require('telescope.builtin').lsp_references({fname_width=0.4})<cr>", "References" },
+			-- r = { "<cmd>lua require('trouble').open('lsp_references')<cr>", "References" },
 			y = {
-				"<cmd>lua require('trouble').open('lsp_type_definitions')<cr>",
+				"<cmd>lua require('telescope.builtin').lsp_type_definitions({fname_width=0.4, reuse_win=true})<cr>",
 				"Type Definition",
 			},
+			-- y = {
+			-- 	"<cmd>lua require('trouble').open('lsp_type_definitions')<cr>",
+			-- 	"Type Definition",
+			-- },
 		},
 	}
 
