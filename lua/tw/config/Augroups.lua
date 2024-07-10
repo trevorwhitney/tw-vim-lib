@@ -33,12 +33,17 @@ local function autosave()
 			}
 
 			local is_modifiable = fn.getbufvar(buf, "&modifiable") == 1
-			local is_writable = fn.filewritable(fn.expand(fn.bufname(buf))) == 1
+			local buf_name = fn.bufname(buf)
+
+			if buf_name == "" then
+				return
+			end
+
+			local is_writable = fn.filewritable(fn.expand(buf_name)) == 1
 			local is_normal_buffer = fn.getbufvar(buf, "&buftype") == ""
 
-			local name = fn.bufname(buf)
 			local name_re = vim.regex("^(fugitive|octo|\\[dap.*):?")
-			local exclude_name = name_re:match_str(name)
+			local exclude_name = name_re:match_str(buf_name)
 
 			local ft = fn.getbufvar(buf, "&filetype")
 			local is_savable_ft = not_in(ft, skip_fts)
