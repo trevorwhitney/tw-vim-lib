@@ -39,17 +39,24 @@ local function autosave()
 				return
 			end
 
+			local name_re = vim.regex("^(fugitive|octo|\\[dap.*):?.*")
+			if name_re:match_str(buf_name) then
+				return
+			end
+
+			local dap_name_re = vim.regex("^\\[dap-repl.*\\]$")
+			if dap_name_re:match_str(buf_name) then
+				return
+			end
+
 			local is_writable = fn.filewritable(fn.expand(buf_name)) == 1
 			local is_normal_buffer = fn.getbufvar(buf, "&buftype") == ""
-
-			local name_re = vim.regex("^(fugitive|octo|\\[dap.*):?")
-			local exclude_name = name_re:match_str(buf_name)
 
 			local ft = fn.getbufvar(buf, "&filetype")
 			local is_savable_ft = not_in(ft, skip_fts)
 
 			-- return is_modifiable and is_savable_ft and not exclude_name and not exclude_ft
-			if is_modifiable and is_writable and is_normal_buffer and is_savable_ft and not exclude_name then
+			if is_modifiable and is_writable and is_normal_buffer and is_savable_ft then
 				vim.cmd("update")
 			end
 		end,
