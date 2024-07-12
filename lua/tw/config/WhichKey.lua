@@ -16,27 +16,22 @@ local function mapKeys(which_key)
 			"Format",
 		},
 
+		["\\"] = { "<cmd>NvimTreeToggle<cr>", "NvimTree" },
+		["|"] = { "<cmd>NvimTreeFindFile<cr>", "NvimTree (Current File)" },
+
 		b = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
+
+		c = {
+			name = "Copilot",
+			c = { "<cmd>CopilotChat<cr>", "Chat" },
+		},
 
 		-- Diagnostics
 		D = { "<cmd>Lspsaga show_line_diagnostics<cr>", "Line Diagnostics" },
 
-		-- Test
-		t = {
-			name = "Test",
-			O = { ":Copen!<cr>", "Verbose Test Output" },
-
-			f = { ":w<cr> :TestFile<cr>", "Test File" },
-			l = { ":w<cr> :TestLast<cr>", "Test Last" },
-			o = { ":Copen<cr>", "Test Output" },
-			t = { ":w<cr> :TestNearest<cr>", "Test Nearest" },
-			v = { ":TestVisit<cr>", "Open Last Run Test" },
-		},
-
 		-- Find
 		f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
 		F = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Find Grep" },
-		s = { "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", "Find Symbol" },
 
 		p = {
 			name = "Print",
@@ -63,8 +58,19 @@ local function mapKeys(which_key)
 			"Find Grep (Current Word)",
 		},
 
-		["\\"] = { "<cmd>NvimTreeToggle<cr>", "NvimTree" },
-		["|"] = { "<cmd>NvimTreeFindFile<cr>", "NvimTree (Current File)" },
+		s = { "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>", "Find Symbol" },
+
+		-- Test
+		t = {
+			name = "Test",
+			O = { ":Copen!<cr>", "Verbose Test Output" },
+
+			f = { ":w<cr> :TestFile<cr>", "Test File" },
+			l = { ":w<cr> :TestLast<cr>", "Test Last" },
+			o = { ":Copen<cr>", "Test Output" },
+			t = { ":w<cr> :TestNearest<cr>", "Test Nearest" },
+			v = { ":TestVisit<cr>", "Open Last Run Test" },
+		},
 	}
 
 	which_key.register(leaderKeymap, {
@@ -100,10 +106,17 @@ local function mapKeys(which_key)
 		},
 		["="] = { "<cmd>FormatSelection<cr>", "Format" },
 
-		s = {
-			"\"sy:TelescopeDynamicWorkspaceSymbol <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
-			"Search Current Symbol",
+		-- Copilot
+		c = {
+			name = "Copilot",
+			c = { "<cmd>CopilotChat<cr>", "Chat" },
+			e = { "<cmd>CopilotChatExplain<cr>", "Explain" },
+			f = { "<cmd>CopilotChatFix<cr>", "Fix" },
+			o = { "<cmd>CopilotChatOptimize<cr>", "Optimize" },
+			d = { "<cmd>CopilotChatDocs<cr>", "Docs" },
+			t = { "<cmd>CopilotChatTests<cr>", "Tests" },
 		},
+
 		p = {
 			name = "Print",
 			v = { "<cmd>lua require('refactoring').debug.print_var()<CR>", "Print Var" },
@@ -122,6 +135,12 @@ local function mapKeys(which_key)
 			-- Extract variable supports only visual mode
 			v = { "<cmd>lua require('refactoring').refactor('Extract Variable')<CR>", "Extract Variable" },
 		},
+
+		s = {
+			"\"sy:TelescopeDynamicWorkspaceSymbol <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
+			"Search Current Symbol",
+		},
+
 		z = { ":'<,'>sort<cr>", "sort" },
 	}
 

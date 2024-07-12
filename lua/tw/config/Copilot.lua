@@ -7,7 +7,7 @@ local function configure()
 	})
 
 	require("CopilotChat").setup({
-		debug = true, -- Enable debugging
+		debug = false, -- Enable debugging
 		-- See Configuration section for rest
 		-- https://github.com/CopilotC-Nvim/CopilotChat.nvim/blob/canary/lua/CopilotChat/config.lua
 	})
