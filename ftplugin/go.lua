@@ -29,10 +29,31 @@ local function keybindings()
 				end,
 				"Debug (Prompt for Name)",
 			},
-		},
-		m = {
-			":w<cr> <cmd>lua require('tw.languages.go').remote_debug(vim.fn.input('[Remote Path] > '), vim.fn.input('[Port] > '))<cr>",
-			"Remote Debug",
+			m = {
+				function()
+					vim.cmd("write")
+					require("tw.languages.go").remote_debug(
+						vim.fn.input({ prompt = "Remote Path: " }),
+						vim.fn.input({ prompt = "Port: " })
+					)
+				end,
+				"Remote Debug",
+			},
+			a = {
+				function()
+					vim.cmd("write")
+					require("tw.languages.go").debug_relative()
+				end,
+				"Debug Relative",
+			},
+			A = {
+				function()
+					local args = vim.fn.input({ prompt = "Args: " })
+					vim.cmd("write")
+					require("tw.languages.go").debug_relative({ args })
+				end,
+				"Debug Relative (Arguments)",
+			},
 		},
 
 		-- Test
@@ -46,7 +67,7 @@ local function keybindings()
 
 					local test_name = go.get_test_name()
 
-		vim.cmd("update")
+		      vim.cmd("update")
 					vim.fn.execute(string.format("Dispatch go test -v -run '%s' %s ", test_name, package_name))
 				end,
 				"Test (Prompt for Name)",

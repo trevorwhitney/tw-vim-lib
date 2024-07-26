@@ -121,6 +121,29 @@ function Go.remote_debug(path, port)
 	end
 end
 
+function Go.debug_relative(args)
+	local dap = require("dap")
+	local program = vim.fn.fnamemodify(vim.fn.bufname(), ":p:h")
+	local parent_dir = vim.fn.expand("%:p:h")
+	local root = vim.fn.getcwd()
+
+	local config = {
+		type = "go",
+		name = program,
+		request = "launch",
+		program = ".",
+		cwd = parent_dir,
+	}
+
+	if #args > 0 then
+		config["args"] = args
+	end
+
+	vim.cmd("cd " .. parent_dir)
+	dap.run(config)
+	vim.cmd("cd " .. root)
+end
+
 function Go.debug_go_test(test_name)
 	local dap = require("dap")
 	local name = test_name or get_name(vim.fn["expand"]("%"))

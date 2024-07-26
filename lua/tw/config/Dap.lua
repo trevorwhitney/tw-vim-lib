@@ -69,6 +69,7 @@ local function configureKeyamp()
 	local keymap = {
 		d = {
 			name = "Debug",
+      -- a, A, d, D, and m are reserved for languages specific actions
 			B = { "<cmd>Telescope dap list_breakpoints<cr>", "List Breakpoints" },
 			C = { "<cmd>lua require'dap'.clear_breakpoints()<cr>", "Clear Breakpoints" },
 			E = {
