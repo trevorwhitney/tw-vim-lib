@@ -33,6 +33,33 @@ local function mapKeys(which_key)
 		f = { "<cmd>Telescope git_files<cr>", "Find File (Git)" },
 		F = { "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>", "Find Grep" },
 
+		-- Config
+		i = {
+			name = "Config",
+			c = {
+				function()
+					require("tw.config.Appearance").switch_colors()
+				end,
+				"Reset Colors (to System)",
+			},
+			d = {
+				function()
+					vim.opt.background = "dark"
+					vim.cmd("colorscheme everforest")
+					require("lualine").setup({ options = { theme = "everforest" } })
+				end,
+				"Dark Mode",
+			},
+			l = {
+				function()
+					vim.opt.background = "light"
+					vim.cmd("colorscheme everforest")
+					require("lualine").setup({ options = { theme = "everforest" } })
+				end,
+				"Light Mode",
+			},
+		},
+
 		p = {
 			name = "Print",
 			d = { "<cmd>lua require('refactoring').debug.printf({below = false})<CR>", "Print Debug Line" },
@@ -70,14 +97,6 @@ local function mapKeys(which_key)
 			o = { ":Copen<cr>", "Test Output" },
 			t = { ":w<cr> :TestNearest<cr>", "Test Nearest" },
 			v = { ":TestVisit<cr>", "Open Last Run Test" },
-		},
-
-		-- Switch colors
-		w = {
-			function()
-				require("tw.config.Appearance").switch_colors()
-			end,
-			"Switch Colors",
 		},
 	}
 

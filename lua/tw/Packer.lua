@@ -290,6 +290,8 @@ function Packer.install(use)
 			end,
 		})
 
+		use("dstein64/vim-win")
+
 		installNativeLsp(use)
 		installTelescope(use)
 		installDap(use)
