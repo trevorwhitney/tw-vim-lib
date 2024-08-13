@@ -56,4 +56,8 @@ function M.setup()
 	api.nvim_create_autocmd("Signal", { pattern = "SIGUSR1", callback = change_colors })
 end
 
+function M.switch_colors()
+  change_colors()
+end
+
 return M

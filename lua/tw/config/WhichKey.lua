@@ -71,6 +71,14 @@ local function mapKeys(which_key)
 			t = { ":w<cr> :TestNearest<cr>", "Test Nearest" },
 			v = { ":TestVisit<cr>", "Open Last Run Test" },
 		},
+
+		-- Switch colors
+		w = {
+			function()
+				require("tw.config.Appearance").switch_colors()
+			end,
+			"Switch Colors",
+		},
 	}
 
 	which_key.register(leaderKeymap, {
