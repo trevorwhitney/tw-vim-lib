@@ -40,12 +40,13 @@ local function setup_navigator(opts)
     height = 0.75,
     preview_height = 0.5,
     on_attach = M.on_attach,
+    default_mapping = false,
     keymaps = {
       {
         key = "<leader>=",
         func = function()
-          format({ lsp_fallback = false })
           vim.lsp.buf.format()
+          format({ lsp_fallback = false })
         end,
         mode = { 'n', 'v', 'x' },
         desc = 'format'
@@ -71,6 +72,58 @@ local function setup_navigator(opts)
         end,
         desc = 'implementation'
       },
+      {
+        key = 'gy',
+        func = function()
+          telescope.lsp_type_definitions({ fname_width = 0.4, reuse_win = true })
+        end,
+        desc = 'implementation'
+      },
+
+      { mode = 'i',    key = '<M-k>',                     func = vim.lsp.buf.signature_help, desc = 'signature_help' },
+      { key = '<c-k>', func = vim.lsp.buf.signature_help, desc = 'signature_help' },
+      { key = 'gD',    func = vim.lsp.buf.declaration,    desc = 'declaration' },
+      {
+        key = '<Leader>g0',
+        func = function()
+          telescope.lsp_document_symbols({ fname_width = 0.4, reuse_win = true })
+        end,
+        desc = 'document_symbols'
+      },
+      {
+        key = 'gW',
+        func = function()
+          telescope.lsp_workspace_symbols({ fname_width = 0.4, reuse_win = true })
+        end,
+        desc = 'workspace_symbol_live'
+      },
+
+      -- for lsp handler
+      { key = '<Space>ca', mode = 'n',                                func = require('navigator.codeAction').code_action,       desc = 'code_action' },
+      { key = '<Space>ca', mode = 'v',                                func = require('navigator.codeAction').range_code_action, desc = 'range_code_action' },
+
+      { key = '<Space>rn', func = require('navigator.rename').rename, desc = 'rename' },
+      {
+        key = '<Leader>gi',
+        func = function()
+          telescope.lsp_incoming_calls({ fname_width = 0.4, reuse_win = true })
+        end,
+        desc = 'incoming_calls'
+      },
+      {
+        key = '<Leader>go',
+        func = function()
+          telescope.lsp_outgoing_calls({ fname_width = 0.4, reuse_win = true })
+        end,
+        desc = 'outgoing_calls'
+      },
+      { key = '<Leader>k', func = require('navigator.dochighlight').hi_symbol, desc = 'hi_symbol' },
+      {
+        key = '<Space>la',
+        mode = 'n',
+        func = require('navigator.codelens').run_action,
+        desc = 'run code lens action',
+      }
     },
     lsp = {
       lua_ls = {
