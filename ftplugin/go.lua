@@ -1,131 +1,150 @@
 local M = {}
 
 local function settings()
-	local set = vim.opt
-	set.tabstop = 2
-	set.shiftwidth = 2
+  local set = vim.opt
+  set.tabstop = 2
+  set.shiftwidth = 2
 end
 
 local function keybindings()
-	local goKeymap = {
-		d = {
-			name = "Debug",
-			d = {
-				function()
-					local go = require("tw.languages.go")
+  local keymap = {
+    { "<leader>d", group = "Debug", nowait = false, remap = false },
+    {
+      "<leader>dA",
+      function()
+        local args = vim.fn.input({ prompt = "Args: " })
+        vim.cmd("write")
+        require("tw.languages.go").debug_relative({ args })
+      end,
+      desc = "Debug Relative (Arguments)",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>dD",
+      function()
+        local go = require("tw.languages.go")
+        local test_name = go.get_test_name()
 
-					vim.cmd("update")
-					go.debug()
-				end,
-				"Debug",
-			},
-			D = {
-				function()
-					local go = require("tw.languages.go")
-					local test_name = go.get_test_name()
+        vim.cmd("update")
+        go.debug(test_name)
+      end,
+      desc = "Debug (Prompt for Name)",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>da",
+      function()
+        vim.cmd("write")
+        require("tw.languages.go").debug_relative()
+      end,
+      desc = "Debug Relative",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>dd",
+      function()
+        local go = require("tw.languages.go")
 
-					vim.cmd("update")
-					go.debug(test_name)
-				end,
-				"Debug (Prompt for Name)",
-			},
-			m = {
-				function()
-					vim.cmd("write")
-					require("tw.languages.go").remote_debug(
-						vim.fn.input({ prompt = "Remote Path: " }),
-						vim.fn.input({ prompt = "Port: " })
-					)
-				end,
-				"Remote Debug",
-			},
-			a = {
-				function()
-					vim.cmd("write")
-					require("tw.languages.go").debug_relative()
-				end,
-				"Debug Relative",
-			},
-			A = {
-				function()
-					local args = vim.fn.input({ prompt = "Args: " })
-					vim.cmd("write")
-					require("tw.languages.go").debug_relative({ args })
-				end,
-				"Debug Relative (Arguments)",
-			},
-		},
+        vim.cmd("update")
+        go.debug()
+      end,
+      desc = "Debug",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>dm",
+      function()
+        vim.cmd("write")
+        require("tw.languages.go").remote_debug(
+          vim.fn.input({ prompt = "Remote Path: " }),
+          vim.fn.input({ prompt = "Port: " })
+        )
+      end,
+      desc = "Remote Debug",
+      nowait = false,
+      remap = false,
+    },
 
-		-- Test
-		t = {
-			name = "Test",
-			a = { ":w<cr> :GolangTestCurrentPackage<cr>", "Package Tests" },
-			T = {
-				function()
-					local go = require("tw.languages.go")
-					local package_name = "./" .. vim.fn.expand("%:h")
+    { "<leader>t", group = "Test",  nowait = false, remap = false },
+    {
+      "<leader>tT",
+      function()
+        local go = require("tw.languages.go")
+        local package_name = "./" .. vim.fn.expand("%:h")
 
-					local test_name = go.get_test_name()
+        local test_name = go.get_test_name()
 
-		      vim.cmd("update")
-					vim.fn.execute(string.format("Dispatch go test -v -run '%s' %s ", test_name, package_name))
-				end,
-				"Test (Prompt for Name)",
-			},
-		},
-	}
+        vim.cmd("update")
+        vim.fn.execute(string.format("Dispatch go test -v -run '%s' %s ", test_name, package_name))
+      end,
+      desc = "Test (Prompt for Name)",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>ta",
+      ":w<cr> :GolangTestCurrentPackage<cr>",
+      desc = "Package Tests",
+      nowait = false,
+      remap = false,
+    },
 
-	local whichkey = require("which-key")
+    {
+      "<leader>gT",
+      ":<C-u>wincmd o<cr> :vsplit<cr> :<C-u>GoAlternate<cr>",
+      desc = "Go to Alternate (In Vertical Split)",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>gi",
+      ":<C-u>GoImpl<cr>",
+      desc = "Go to Implementation",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>gt",
+      ":<C-u>GoAlternate<cr>",
+      desc = "Go to Alternate",
+      nowait = false,
+      remap = false,
+    },
 
-	whichkey.register(goKeymap, {
-		mode = "n",
-		prefix = "<leader>",
-		buffer = nil,
-		silent = true,
-		noremap = true,
-		nowait = false,
-	})
+    {
+      "<leader>tj",
+      ":GoAddTags json<cr>",
+      desc = "Add JSON Tags",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>tx",
+      ":GoRemoveTags<cr>",
+      desc = "Remove Tags",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>ty",
+      ":GoAddTags yaml<cr>",
+      desc = "Add YAML Tags",
+      nowait = false,
+      remap = false,
+    },
+  }
 
-	local goToKeymap = {
-		name = "Go To",
-		g = {
-			t = { ":<C-u>GoAlternate<cr>", "Alternate" },
-			T = { ":<C-u>wincmd o<cr> :vsplit<cr> :<C-u>GoAlternate<cr>", "Alternate (In Vertical Split)" },
-			i = { ":<C-u>GoImpl<cr>", "Implementation" },
-		},
-	}
-
-	whichkey.register(goToKeymap, {
-		mode = "n",
-		prefix = "<leader>",
-		buffer = nil,
-		silent = true,
-		noremap = true,
-		nowait = false,
-	})
-
-	local tagsKeymap = {
-		name = "Go Tags",
-		t = {
-			j = { ":GoAddTags json<cr>", "Add JSON Tags" },
-			y = { ":GoAddTags yaml<cr>", "Add YAML Tags" },
-			x = { ":GoRemoveTags<cr>", "Remove Tags" },
-		},
-	}
-
-	whichkey.register(tagsKeymap, {
-		mode = "n",
-		prefix = "<leader>",
-		buffer = nil,
-		silent = true,
-		noremap = true,
-		nowait = false,
-	})
+  local whichkey = require("which-key")
+  whichkey.add(keymap)
 end
 
 function M.setup()
-	settings()
-	keybindings()
+  settings()
+  keybindings()
 end
 
 M.setup()
