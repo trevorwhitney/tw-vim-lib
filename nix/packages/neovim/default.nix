@@ -68,6 +68,7 @@ let
       nodePackages.write-good
 
       lua53Packages.luacheck
+      lua53Packages.jsregexp
       lua53Packages.tiktoken_core
     ] else [ ];
 

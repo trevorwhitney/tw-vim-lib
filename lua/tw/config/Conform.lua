@@ -49,8 +49,6 @@ local function format(bufnr, options)
 		local opts = vim.tbl_deep_extend("force", { range = range }, options)
 		conform_format(opts)
 	end
-
-	return
 end
 
 local function configure(use_eslint_daemon)

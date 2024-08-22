@@ -3,52 +3,60 @@ Packer = {}
 local function installNativeLsp(use)
 	use("neovim/nvim-lspconfig") -- Collection of configurations for built-in LSP client
 	use({ "jose-elias-alvarez/null-ls.nvim", requires = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" } })
-	use({
-		"nvimdev/lspsaga.nvim",
-		after = "nvim-lspconfig",
-		config = function()
-			require("lspsaga").setup({
-				ui = {
-					code_action = "󰛨 ",
-				},
-				finder = {
-					max_height = 0.8,
-					left_width = 0.35,
-					right_width = 0.55,
-					methods = {
-						tyd = "textDocument/typeDefinition",
-					},
-					keys = {
-						toggle_or_open = "<CR>",
-						vsplit = "<C-v>",
-						split = "<C-x>",
-						tabnew = "<C-t>",
-						quit = { "q", "<Esc>" },
-					},
-				},
-				lightbulb = {
-					sign_priority = 5,
-					virtual_text = false,
-				},
-				code_action = {
-					keys = {
-						quit = { "q", "<Esc>" },
-					},
-				},
-				rename = {
-					auto_save = true,
-					keys = {
-						quit = { "q", "<Esc>" },
-					},
-				},
-				diagnostic = {
-					keys = {
-						quit = { "q", "<Esc>" },
-					},
-				},
-			})
-		end,
-	})
+	-- use({
+	-- 	"nvimdev/lspsaga.nvim",
+	-- 	after = "nvim-lspconfig",
+	-- 	config = function()
+	-- 		require("lspsaga").setup({
+	-- 			ui = {
+	-- 				code_action = "󰛨 ",
+	-- 			},
+	-- 			finder = {
+	-- 				max_height = 0.8,
+	-- 				left_width = 0.35,
+	-- 				right_width = 0.55,
+	-- 				methods = {
+	-- 					tyd = "textDocument/typeDefinition",
+	-- 				},
+	-- 				keys = {
+	-- 					toggle_or_open = "<CR>",
+	-- 					vsplit = "<C-v>",
+	-- 					split = "<C-x>",
+	-- 					tabnew = "<C-t>",
+	-- 					quit = { "q", "<Esc>" },
+	-- 				},
+	-- 			},
+	-- 			lightbulb = {
+	-- 				sign_priority = 5,
+	-- 				virtual_text = false,
+	-- 			},
+	-- 			code_action = {
+	-- 				keys = {
+	-- 					quit = { "q", "<Esc>" },
+	-- 				},
+	-- 			},
+	-- 			rename = {
+	-- 				auto_save = true,
+	-- 				keys = {
+	-- 					quit = { "q", "<Esc>" },
+	-- 				},
+	-- 			},
+	-- 			diagnostic = {
+	-- 				keys = {
+	-- 					quit = { "q", "<Esc>" },
+	-- 				},
+	-- 			},
+	-- 		})
+	-- 	end,
+  -- 	})
+
+		use({
+			"ray-x/navigator.lua",
+			requires = {
+				{ "ray-x/guihua.lua", run = "cd lua/fzy && make" },
+				{ "neovim/nvim-lspconfig" },
+			},
+		})
 
 	use("fatih/vim-go")
 end
@@ -180,7 +188,13 @@ local function installUI(use)
 end
 
 function Packer.install(use)
-	require("packer").startup(function()
+  local packer = require("packer")
+  packer.util = require('packer.util')
+  packer.init({
+    max_jobs = 5,
+  })
+
+	packer.startup(function()
 		use("wbthomason/packer.nvim")
 
 		use({
@@ -192,7 +206,7 @@ function Packer.install(use)
 		use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open go commands in tmux split
 		use("christoomey/vim-tmux-navigator") -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
 		use("coachshea/vim-textobj-markdown")
-		use("folke/which-key.nvim")
+    use({ "folke/which-key.nvim", requires = "echasnovski/mini.nvim" })
 		use("google/vim-jsonnet")
 		use("junegunn/vader.vim")
 		use("kana/vim-textobj-entire")
