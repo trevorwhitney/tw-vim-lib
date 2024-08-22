@@ -34,16 +34,43 @@ local default_options = {
 local options = vim.tbl_extend("force", {}, default_options)
 
 local function setup_navigator(opts)
+  local telescope = require('telescope.builtin')
   require("navigator").setup({
     width = 0.75,
     height = 0.75,
     preview_height = 0.5,
     on_attach = M.on_attach,
     keymaps = {
-      { key = "<leader>=", func = function()
-        format({ lsp_fallback = false })
-        vim.lsp.buf.format()
-      end, mode = { 'n', 'v', 'x' }, desc = 'format' },
+      {
+        key = "<leader>=",
+        func = function()
+          format({ lsp_fallback = false })
+          vim.lsp.buf.format()
+        end,
+        mode = { 'n', 'v', 'x' },
+        desc = 'format'
+      },
+      {
+        key = 'gr',
+        func = function()
+          telescope.lsp_references({ fname_width = 0.4 })
+        end,
+        desc = 'async_ref'
+      },
+      {
+        key = 'gd',
+        func = function()
+          telescope.lsp_definitions({ fname_width = 0.4, reuse_win = true })
+        end,
+        desc = 'definition'
+      },
+      {
+        key = 'gi',
+        func = function()
+          telescope.lsp_implementations({ fname_width = 0.4, reuse_win = true })
+        end,
+        desc = 'implementation'
+      },
     },
     lsp = {
       lua_ls = {
@@ -68,6 +95,7 @@ local function setup_navigator(opts)
               staticcheck = true,
             },
           },
+          -- Removed because I don't think run_sync is a thing
           -- on_new_config = function(new_config, new_root_dir)
           --   local res = run_sync({ "go", "list", "-m" }, {
           --     cwd = new_root_dir,
