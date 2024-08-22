@@ -66,6 +66,20 @@ local keymaps = {
 		desc = "implementation",
 	},
 	{
+		key = "gI",
+		func = function()
+			telescope.lsp_incoming_calls({ fname_width = 0.4, reuse_win = true })
+		end,
+		desc = "incoming_calls",
+	},
+	{
+		key = "go",
+		func = function()
+			telescope.lsp_outgoing_calls({ fname_width = 0.4, reuse_win = true })
+		end,
+		desc = "outgoing_calls",
+	},
+	{
 		key = "gy",
 		func = function()
 			telescope.lsp_type_definitions({ fname_width = 0.4, reuse_win = true })
@@ -123,20 +137,6 @@ local keymaps = {
 		end,
 		desc = "rename",
 	},
-	{
-		key = "<leader>gi",
-		func = function()
-			telescope.lsp_incoming_calls({ fname_width = 0.4, reuse_win = true })
-		end,
-		desc = "incoming_calls",
-	},
-	{
-		key = "<leader>go",
-		func = function()
-			telescope.lsp_outgoing_calls({ fname_width = 0.4, reuse_win = true })
-		end,
-		desc = "outgoing_calls",
-	},
 	{ key = "<leader>k", func = require("navigator.dochighlight").hi_symbol, desc = "hi_symbol" },
 	{
 		key = "<leader>la",
@@ -150,49 +150,22 @@ local keymaps = {
 
 local function setup_navigator(opts)
 	require("navigator").setup({
-		width = 0.75,
-		height = 0.75,
-		preview_height = 0.5,
 		on_attach = M.on_attach,
 		default_mapping = false,
 		keymaps = keymaps,
 		lsp = {
+			code_action = { enable = true, sign = true, sign_priority = 15, virtual_text = false },
+			code_lens_action = { enable = true, sign = true, sign_priority = 16, virtual_text = true },
 			lua_ls = {
 				sumneko_root_path = opts.lua_ls_root,
 				sumneko_binary = opts.lua_ls_root .. "/bin/lua-language-server",
 			},
-			gopls = function()
-				return {
-					on_attach = M.on_attach,
-					cmd = { "gopls", "serve" },
-					flags = {
-						debounce_text_changes = 150,
-					},
-					settings = {
-						gopls = {
-							analyses = {
-								unusedparams = true,
-							},
-							buildFlags = {
-								"-tags=" .. opts.go_build_tags,
-							},
-							staticcheck = true,
-						},
-					},
-					-- Removed because I don't think run_sync is a thing
-					-- on_new_config = function(new_config, new_root_dir)
-					--   local res = run_sync({ "go", "list", "-m" }, {
-					--     cwd = new_root_dir,
-					--   })
-					--   if res.status_code ~= 0 then
-					--     print("go list failed")
-					--     return
-					--   end
-
-					--   new_config.settings.gopls["local"] = res.stdout
-					-- end,
-				}
-			end,
+			gopls = {
+				settings = {
+					buildFlags = { "-tags=" .. opts.go_build_tags },
+					staticcheck = true,
+				},
+			},
 		},
 	})
 end

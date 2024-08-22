@@ -103,7 +103,7 @@ local function keybindings()
     {
       "<leader>gi",
       ":<C-u>GoImpl<cr>",
-      desc = "Go to Implementation",
+      desc = "Go Implement Interface",
       nowait = false,
       remap = false,
     },
