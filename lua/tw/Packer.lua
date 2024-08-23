@@ -4,7 +4,8 @@ local function installNativeLsp(use)
   use("neovim/nvim-lspconfig") -- Collection of configurations for built-in LSP client
   use({ "jose-elias-alvarez/null-ls.nvim", requires = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" } })
   use({
-    "ray-x/navigator.lua",
+    "trevorwhitney/navigator.lua",
+    branch = "code-action-only",
     requires = {
       { "ray-x/guihua.lua",     run = "cd lua/fzy && make" },
       { "neovim/nvim-lspconfig" },
@@ -156,9 +157,9 @@ function Packer.install(use)
       config = function()
         vim.g["VimuxUseNearest"] = 0
       end,
-    })                                                          -- open commands in tmux split
+    })                                                            -- open commands in tmux split
     use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open go commands in tmux split
-    use("christoomey/vim-tmux-navigator")                       -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
+    use("christoomey/vim-tmux-navigator")                         -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
     use("coachshea/vim-textobj-markdown")
     use({ "folke/which-key.nvim", requires = "echasnovski/mini.nvim" })
     use("google/vim-jsonnet")
