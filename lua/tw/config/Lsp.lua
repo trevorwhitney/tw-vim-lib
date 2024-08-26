@@ -110,10 +110,6 @@ local keymaps = {
       vim.lsp.buf.code_action({
         context = {
           diagnostics = vim.lsp.diagnostic.get_line_diagnostics(),
-          -- TODO: I want this for the diagnostic, but not here in the code action call
-          -- only = {
-          -- 	"source.organizeImports",
-          -- },
         },
       })
     end,
@@ -172,14 +168,14 @@ local function setup_navigator(opts)
         delay = 30000, -- 30s
         exclude = {
           "source.doc",
-          "source.assembly"
-        }
+          "source.assembly",
+        },
       },
       code_lens_action = {
         enable = true,
         sign = true,
         sign_priority = 19,
-        virtual_text = true
+        virtual_text = true,
       },
       lua_ls = {
         sumneko_root_path = opts.lua_ls_root,
