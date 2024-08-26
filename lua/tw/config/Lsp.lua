@@ -192,7 +192,7 @@ local function setup_navigator(opts)
 end
 
 function M.setup(lsp_options)
-  vim.lsp.set_log_level("debug")
+  -- vim.lsp.set_log_level("debug")
 
   lsp_options = lsp_options or {}
   options = vim.tbl_extend("force", options, lsp_options)
