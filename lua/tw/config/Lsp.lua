@@ -159,10 +159,14 @@ local function setup_navigator(opts)
     default_mapping = false,
     keymaps = keymaps,
     lsp = {
+      hover = {
+        enable = false,
+      },
+      format_on_save = false,
       code_action = {
         enable = true,
         sign = true,
-        sign_priority = 15,
+        sign_priority = 18,
         virtual_text = true,
         delay = 30000, -- 30s
         only = { "quickfix", "refactor", "source.fixAll", "source.freesymbols", "source.organizeImports" }
@@ -170,7 +174,7 @@ local function setup_navigator(opts)
       code_lens_action = {
         enable = true,
         sign = true,
-        sign_priority = 16,
+        sign_priority = 19,
         virtual_text = true
       },
       lua_ls = {
@@ -190,7 +194,7 @@ end
 function M.setup(lsp_options)
   vim.lsp.set_log_level("debug")
 
-	lsp_options = lsp_options or {}
+  lsp_options = lsp_options or {}
   options = vim.tbl_extend("force", options, lsp_options)
 
   setup_navigator(options)
