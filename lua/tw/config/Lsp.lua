@@ -155,6 +155,7 @@ local keymaps = {
 
 local function setup_navigator(opts)
   require("navigator").setup({
+    debug = false,
     on_attach = M.on_attach,
     default_mapping = false,
     keymaps = keymaps,
@@ -169,7 +170,10 @@ local function setup_navigator(opts)
         sign_priority = 18,
         virtual_text = true,
         delay = 30000, -- 30s
-        only = { "quickfix", "refactor", "source.fixAll", "source.freesymbols", "source.organizeImports" }
+        exclude = {
+          "source.doc",
+          "source.assembly"
+        }
       },
       code_lens_action = {
         enable = true,
