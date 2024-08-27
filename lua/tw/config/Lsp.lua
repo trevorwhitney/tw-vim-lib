@@ -1,7 +1,7 @@
 local M = {}
 
 local lspconfig = require("lspconfig")
-local format = require("tw.config.Conform").format
+local format = require("tw.config.Formatting").format
 local telescope = require("telescope.builtin")
 
 -- Use an on_attach function to only map the following keys
@@ -196,7 +196,7 @@ function M.setup(lsp_options)
   options = vim.tbl_extend("force", options, lsp_options)
 
   setup_navigator(options)
-  require("tw.config.Conform").setup(options.use_eslint_daemon)
+  require("tw.config.Formatting").setup(options.use_eslint_daemon)
   require("tw.languages.go").setupVimGo(options.go_build_tags)
 end
 return M

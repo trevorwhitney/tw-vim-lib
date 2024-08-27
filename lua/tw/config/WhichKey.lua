@@ -2,7 +2,7 @@ local M = {}
 
 local function mapKeys(wk)
   local trouble = require("trouble")
-  local format = require("tw.config.Conform").format
+  local format = require("tw.config.Formatting").format
   local async = require("plenary.async")
 
   local keymap = {

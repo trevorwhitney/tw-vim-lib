@@ -2,10 +2,9 @@ local M = {}
 local conform_format = require("conform").format
 
 local function format(bufnr, options)
-  local options = options or {}
-  options = vim.tbl_deep_extend("force", options, {
+  local opts = options or {}
+  opts = vim.tbl_deep_extend("force", opts, {
     async = true,
-    lsp_format = "prefer",
   })
 
   local ignore_filetypes = {
@@ -20,9 +19,9 @@ local function format(bufnr, options)
   end
   -- only use golines when formatting changed lines
   if buf_ft == "go" then
-    options = vim.tbl_deep_extend(
+    opts = vim.tbl_deep_extend(
       "force",
-      options,
+      opts,
       { formatters = { "golines", "goimports", "gofumpt", "trim_whitespace", "trim_newlines" } }
     )
   end
@@ -48,10 +47,10 @@ local function format(bufnr, options)
     end
   end
   for _, range in pairs(ranges) do
-    local opts = vim.tbl_deep_extend("force", { range = range }, options)
-    -- TODO: still necessary? Or covered by lsp_fallback = prefer
-    -- vim.lsp.buf.format({ range = range })
-    conform_format(opts)
+    vim.lsp.buf.format({ range = range })
+
+    local opt = vim.tbl_deep_extend("force", { range = range }, opts)
+    conform_format(opt)
   end
 end
 local function configure(use_eslint_daemon)
