@@ -4,8 +4,7 @@ local function installNativeLsp(use)
   use("neovim/nvim-lspconfig") -- Collection of configurations for built-in LSP client
   use({ "jose-elias-alvarez/null-ls.nvim", requires = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" } })
   use({
-    "trevorwhitney/navigator.lua",
-    branch = "code-action-only",
+    "ray-x/navigator.lua",
     requires = {
       { "ray-x/guihua.lua",     run = "cd lua/fzy && make" },
       { "neovim/nvim-lspconfig" },
