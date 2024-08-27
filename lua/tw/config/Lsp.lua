@@ -35,7 +35,6 @@ local keymaps = {
   {
     key = "<leader>=",
     func = function()
-      vim.lsp.buf.format()
       format({ lsp_fallback = false })
     end,
     mode = { "n", "v", "x" },
@@ -193,13 +192,11 @@ end
 
 function M.setup(lsp_options)
   -- vim.lsp.set_log_level("debug")
-
-  lsp_options = lsp_options or {}
+	lsp_options = lsp_options or {}
   options = vim.tbl_extend("force", options, lsp_options)
 
   setup_navigator(options)
   require("tw.config.Conform").setup(options.use_eslint_daemon)
   require("tw.languages.go").setupVimGo(options.go_build_tags)
 end
-
 return M
