@@ -46,13 +46,20 @@ local function format(bufnr, options)
       end
     end
   end
-  for _, range in pairs(ranges) do
-    vim.lsp.buf.format({ range = range })
 
-    local opt = vim.tbl_deep_extend("force", { range = range }, opts)
-    conform_format(opt)
+  if next(ranges) then
+    for _, range in pairs(ranges) do
+      vim.lsp.buf.format({ range = range })
+
+      local opt = vim.tbl_deep_extend("force", { range = range }, opts)
+      conform_format(opt)
+    end
+  else
+    vim.lsp.buf.format()
+    conform_format(opts)
   end
 end
+
 local function configure(use_eslint_daemon)
   local set = vim.opt
   set.formatexpr = "v:lua.require'conform'.formatexpr()"
@@ -107,8 +114,8 @@ function M.setup(use_eslint_daemon)
 end
 
 function M.format(options)
+  local opts = options or {}
   local bufnr = vim.api.nvim_get_current_buf()
-  format(bufnr, options)
+  format(bufnr, opts)
 end
-
 return M

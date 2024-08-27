@@ -35,7 +35,7 @@ local keymaps = {
   {
     key = "<leader>=",
     func = function()
-      format({ lsp_fallback = false })
+      format()
     end,
     mode = { "n", "v", "x" },
     desc = "format",
