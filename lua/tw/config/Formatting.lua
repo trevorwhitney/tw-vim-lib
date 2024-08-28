@@ -1,6 +1,6 @@
 local M = {}
 local conform_format = require("conform").format
-
+local ms = require('vim.lsp.protocol').Methods
 local function format(bufnr, options)
   local opts = options or {}
   opts = vim.tbl_deep_extend("force", opts, {
@@ -47,16 +47,28 @@ local function format(bufnr, options)
     end
   end
 
+  local rangeFormattingClients = #vim.lsp.get_clients({
+    id = opts.id,
+    bufnr = bufnr,
+    name = opts.name,
+    method = ms.textDocument_rangeFormatting,
+  })
+
   if next(ranges) then
     for _, range in pairs(ranges) do
-      vim.lsp.buf.format({ range = range })
+      if rangeFormattingClients > 0 then
+        vim.lsp.buf.format({ range = range })
+      end
 
       local opt = vim.tbl_deep_extend("force", { range = range }, opts)
       conform_format(opt)
     end
   else
-    vim.lsp.buf.format()
     conform_format(opts)
+  end
+
+  if rangeFormattingClients <= 0 then
+    vim.lsp.buf.format()
   end
 end
 
@@ -118,4 +130,5 @@ function M.format(options)
   local bufnr = vim.api.nvim_get_current_buf()
   format(bufnr, opts)
 end
+
 return M
