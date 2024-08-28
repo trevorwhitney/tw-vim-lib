@@ -110,21 +110,6 @@ local function installTesting(use)
       { "tpope/vim-dispatch" },
     },
   })
-
-  -- TODO: keep for a bit to see if there's any movement on https://github.com/nvim-neotest/neotest/issues/353
-  -- but it was running the wrong go tests for me using the neotest-vim-test runner
-  -- use({
-  -- 	"nvim-neotest/neotest",
-  -- 	requires = {
-  -- 		"antoinemadec/FixCursorHold.nvim",
-  -- 		"folke/neodev.nvim",
-  -- 		"nvim-lua/plenary.nvim",
-  -- 		"nvim-treesitter/nvim-treesitter",
-
-  -- 		"nvim-neotest/neotest-go",
-  -- 		"nvim-neotest/neotest-vim-test",
-  -- 	},
-  -- })
 end
 
 local function installUI(use)
@@ -259,6 +244,8 @@ function Packer.install(use)
     })
 
     use("dstein64/vim-win")
+
+    use("ii14/neorepl.nvim")
 
     installNativeLsp(use)
     installTelescope(use)

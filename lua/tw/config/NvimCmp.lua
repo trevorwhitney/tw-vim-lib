@@ -104,37 +104,60 @@ local function configure()
 
   local select = cmp.mapping({
     i = function(fallback)
-      if cmp.visible() then
-        local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = true }
+      if cmp.visible() and cmp.get_active_entry() then
+        local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = false }
         cmp.confirm(confirm_opts)
-      elseif jumpable(1) then
-        luasnip.jump(1)
-      elseif has_words_before() then
-        cmp.complete()
+      elseif luasnip.expandable() then
+        luasnip.expand()
       else
         fallback()
       end
     end,
     s = cmp.mapping.confirm({ select = true }),
-    c = cmp.mapping.confirm({ select = true }),
+    c = cmp.mapping.confirm({ behavior = cmp.ConfirmBehavior.Replace, select = true }),
   })
 
   local selectPrevious = cmp.mapping(function(fallback)
     if cmp.visible() then
       cmp.select_prev_item()
+    elseif luasnip.jumpable(-1) then
+      luasnip.jump(-1)
     else
       fallback()
     end
-  end, { "i", "s" })
-
-  local selectNext = cmp.mapping(function(fallback)
+  end, { "i", "s", "c" })
+  local selectNext = function(fallback)
     if cmp.visible() then
-      cmp.select_next_item()
+      if #cmp.get_entries() == 1 then
+        cmp.confirm({ select = true })
+      else
+        cmp.select_next_item()
+      end
+    elseif luasnip.locally_jumpable(1) then
+      luasnip.jump(1)
+    elseif has_words_before() then
+      cmp.complete()
+      if #cmp.get_entries() == 1 then
+        cmp.confirm({ select = true })
+      end
     else
       fallback()
     end
-  end, { "i", "s" })
-
+  end
+  local selectNextCmdline = function()
+    if cmp.visible() then
+      if #cmp.get_entries() == 1 then
+        cmp.confirm({ select = true })
+      else
+        cmp.select_next_item()
+      end
+    else
+      cmp.complete()
+      if #cmp.get_entries() == 1 then
+        cmp.confirm({ select = true })
+      end
+    end
+  end
   cmp.setup({
     snippet = {
       expand = function(args)
@@ -146,31 +169,20 @@ local function configure()
       documentation = cmp.config.window.bordered(),
     },
     mapping = cmp.mapping.preset.insert({
-      ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-      ["<C-B>"] = cmp.mapping.scroll_docs(4),
       ["<C-e>"] = cmp.mapping.abort(),
-      ["<C-Space>"] = cmp.mapping.complete(),
+      ["<C-n>"] = cmp.mapping({
+        i = selectNext,
+        s = selectNext,
+        c = selectNextCmdline,
+      }),
+      ["<Tab>"] = cmp.mapping({
+        i = selectNext,
+        s = selectNext,
+        c = selectNextCmdline,
+      }),
       ["<C-p>"] = selectPrevious,
-      ["<C-n>"] = selectNext,
-
-      -- ["<S-Tab>"] = selectPrevious,
-
-      ["<Tab>"] = selectNext,
       ["<S-Tab>"] = selectPrevious,
-      -- Uncomment to make enter accept the current selection or jumps to the next snippet field
-      -- ["<CR>"] = select,
-      --
-      -- Uncomment to have tab pick next option, rather than selecting
-      -- ["<Tab>"] = cmp.mapping(function(fallback)
-      --   if cmp.visible() then
-      --     cmp.select_next_item()
-      --   elseif has_words_before() then
-      --     cmp.complete()
-      --   else
-      --     fallback()
-      --   end
-      -- end, { "i", "s" }),
-
+      ["<CR>"] = select,
       -- luasnip change previous snippet field
       ["<C-y>"] = cmp.mapping(function(fallback)
         if luasnip.jumpable(-1) then
