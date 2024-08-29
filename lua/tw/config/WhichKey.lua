@@ -85,10 +85,36 @@ local function mapKeys(wk)
     { "[b",          ":bprevious<cr>",                                                        desc = "Previous Buffer",          nowait = true,  remap = false },
     { "]b",          ":bnext<cr>",                                                            desc = "Next Buffer",              nowait = true,  remap = false },
     {
+      "[d",
+      function()
+        if not trouble.is_open() then
+          trouble.toggle({ mode = "diagnostics", filter = { buf = 0 } })
+        end
+
+        trouble.previous({ skip_groups = true, jump = true })
+      end,
+      desc = "Previous Diagnostic",
+      nowait = true,
+      remap = false
+    },
+    {
+      "]d",
+      function()
+        if not trouble.is_open() then
+          trouble.toggle({ mode = "diagnostics", filter = { buf = 0 } })
+        end
+
+        trouble.next({ skip_groups = true, jump = true })
+      end,
+      desc = "Next Diagnostic",
+      nowait = true,
+      remap = false
+    },
+    {
       "[q",
       function()
         if not trouble.is_open() then
-          trouble.toggle()
+          trouble.toggle("quickfix")
         end
 
         trouble.previous({ skip_groups = true, jump = true })
@@ -101,7 +127,7 @@ local function mapKeys(wk)
       "]q",
       function()
         if not trouble.is_open() then
-          trouble.toggle()
+          trouble.toggle("quickfix")
         end
 
         trouble.next({ skip_groups = true, jump = true })
@@ -123,14 +149,22 @@ local function mapKeys(wk)
       nowait = true,
       remap = false
     },
-    { "\\O", "<cmd>OutlineClose<cr>",                     desc = "Close Outline",          nowait = true, remap = false },
-    { "\\S", "<cmd>Telescope git_status<cr>",             desc = "Git Status (Telescope)", nowait = true, remap = false },
-    { "\\b", "<cmd>Telescope git_branches<cr>",           desc = "Branches",               nowait = true, remap = false },
-    { "\\c", "<cmd>DapToggleConsole<cr>",                 desc = "Dap Console",            nowait = true, remap = false },
-    { "\\d", "<cmd>Trouble diagnostics filter.buf=0<cr>", desc = "Document Diagnostics",   nowait = true, remap = false },
-    { "\\j", "<cmd>Telescope jumplist<cr>",               desc = "Jump List",              nowait = true, remap = false },
-    { "\\l", "<cmd>call ToggleLocationList()<cr>",        desc = "Location List",          nowait = true, remap = false },
-    { "\\m", "<cmd>Telescope marks<cr>",                  desc = "Marks",                  nowait = true, remap = false },
+    {
+      "\\d",
+      function()
+        trouble.toggle({ mode = "diagnostics", filter = { buf = 0 } })
+      end,
+      desc = "Document Diagnostics",
+      nowait = true,
+      remap = false
+    },
+    { "\\O", "<cmd>OutlineClose<cr>",              desc = "Close Outline",          nowait = true, remap = false },
+    { "\\S", "<cmd>Telescope git_status<cr>",      desc = "Git Status (Telescope)", nowait = true, remap = false },
+    { "\\b", "<cmd>Telescope git_branches<cr>",    desc = "Branches",               nowait = true, remap = false },
+    { "\\c", "<cmd>DapToggleConsole<cr>",          desc = "Dap Console",            nowait = true, remap = false },
+    { "\\j", "<cmd>Telescope jumplist<cr>",        desc = "Jump List",              nowait = true, remap = false },
+    { "\\l", "<cmd>call ToggleLocationList()<cr>", desc = "Location List",          nowait = true, remap = false },
+    { "\\m", "<cmd>Telescope marks<cr>",           desc = "Marks",                  nowait = true, remap = false },
     {
       "\\o",
       function()
@@ -185,16 +219,6 @@ local function mapKeys(wk)
       remap = false
     },
     { "\\s", "<cmd>lua require('tw.config.Git').toggleGitStatus()<cr>", desc = "Git Status",    nowait = true, remap = false },
-    {
-      "\\t",
-      function()
-        trouble.toggle()
-      end,
-      desc = "Toggle Trouble",
-      nowait = true,
-      remap = false
-    },
-
 
     {
       mode = { "v" },

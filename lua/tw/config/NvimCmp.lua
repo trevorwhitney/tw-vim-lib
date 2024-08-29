@@ -13,7 +13,7 @@ local function configure()
   local select = cmp.mapping({
     i = function(fallback)
       if cmp.visible() and cmp.get_active_entry() then
-        local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = false }
+        local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = true }
         cmp.confirm(confirm_opts)
       elseif luasnip.expandable() then
         luasnip.expand()
