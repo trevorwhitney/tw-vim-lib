@@ -68,10 +68,18 @@ local function format(bufnr, options)
   end
 
   if rangeFormattingClients <= 0 then
-    vim.lsp.buf.format()
+    local formattingClients = #vim.lsp.get_clients({
+      id = opts.id,
+      bufnr = bufnr,
+      name = opts.name,
+      method = ms.textDocument_formatting,
+    })
+
+    if formattingClients > 0 then
+      vim.lsp.buf.format()
+    end
   end
 end
-
 local function configure(use_eslint_daemon)
   local set = vim.opt
   set.formatexpr = "v:lua.require'conform'.formatexpr()"

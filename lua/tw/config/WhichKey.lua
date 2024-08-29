@@ -10,10 +10,13 @@ local function mapKeys(wk)
     {
       "<leader>=",
       function()
-        async.void(function()
-          vim.cmd("update")
-          format({ lsp_fallback = true })
-        end)
+        vim.cmd("update")
+        format({ lsp_fallback = true })
+        -- TODO: async not working
+        -- async.void(function()
+        --   vim.cmd("update")
+        --   format({ lsp_fallback = true })
+        -- end)
       end,
       desc = "Format",
       nowait = false,
