@@ -48,6 +48,7 @@ local function installDap(use)
     config = function()
       require("nvim-dap-virtual-text").setup({
         commented = true,
+        virt_text_pos = "eol",
       })
     end,
   })
