@@ -12,8 +12,8 @@ local function configure()
 
   local select = cmp.mapping({
     i = function(fallback)
-      if cmp.visible() and cmp.get_active_entry() then
-        local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = true }
+      if cmp.visible() and cmp.get_selected_entry() then
+        local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = false }
         cmp.confirm(confirm_opts)
       elseif luasnip.expandable() then
         luasnip.expand()
@@ -51,20 +51,6 @@ local function configure()
       fallback()
     end
   end
-  local selectNextCmdline = function()
-    if cmp.visible() then
-      if #cmp.get_entries() == 1 then
-        cmp.confirm({ select = true })
-      else
-        cmp.select_next_item()
-      end
-    else
-      cmp.complete()
-      if #cmp.get_entries() == 1 then
-        cmp.confirm({ select = true })
-      end
-    end
-  end
   cmp.setup({
     snippet = {
       expand = function(args)
@@ -80,12 +66,10 @@ local function configure()
       ["<C-n>"] = cmp.mapping({
         i = selectNext,
         s = selectNext,
-        c = selectNextCmdline,
       }),
       ["<Tab>"] = cmp.mapping({
         i = selectNext,
         s = selectNext,
-        c = selectNextCmdline,
       }),
       ["<C-p>"] = selectPrevious,
       ["<S-Tab>"] = selectPrevious,
