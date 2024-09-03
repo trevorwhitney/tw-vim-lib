@@ -210,7 +210,7 @@ local function mapKeys(wk)
 
         -- spawn repl and set the context to our buffer
         require('neorepl').new({
-          lang = 'vim',
+          lang = 'lua',
           buffer = buf,
           window = win,
         })

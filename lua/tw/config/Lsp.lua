@@ -162,9 +162,7 @@ local function setup_navigator(opts)
       code_action = {
         enable = true,
         sign = true,
-        sign_priority = 18,
-        virtual_text = true,
-        delay = 30000, -- 30s
+        virtual_text = false,
         exclude = {
           "source.doc",
           "source.assembly",
@@ -173,7 +171,6 @@ local function setup_navigator(opts)
       code_lens_action = {
         enable = true,
         sign = true,
-        sign_priority = 19,
         virtual_text = true,
       },
       lua_ls = {
@@ -192,11 +189,12 @@ end
 
 function M.setup(lsp_options)
   -- vim.lsp.set_log_level("debug")
-	lsp_options = lsp_options or {}
+  lsp_options = lsp_options or {}
   options = vim.tbl_extend("force", options, lsp_options)
 
   setup_navigator(options)
   require("tw.config.Formatting").setup(options.use_eslint_daemon)
   require("tw.languages.go").setupVimGo(options.go_build_tags)
 end
+
 return M
