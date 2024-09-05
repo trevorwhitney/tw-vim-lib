@@ -22,6 +22,14 @@ local function configure()
       end
     end,
     s = cmp.mapping.confirm({ select = true }),
+    c = function(fallback)
+      if cmp.visible() and cmp.get_selected_entry() then
+        local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = false }
+        cmp.confirm(confirm_opts)
+      else
+        fallback()
+      end
+    end,
   })
 
   local selectPrevious = cmp.mapping(function(fallback)
@@ -33,6 +41,7 @@ local function configure()
       fallback()
     end
   end, { "i", "s", "c" })
+
   local selectNext = function(fallback)
     if cmp.visible() then
       if #cmp.get_entries() == 1 then
@@ -51,6 +60,24 @@ local function configure()
       fallback()
     end
   end
+
+  local selectNextCmdLine = function(fallback)
+    if cmp.visible() then
+      if #cmp.get_entries() == 1 then
+        cmp.confirm({ select = true })
+      else
+        cmp.select_next_item()
+      end
+    elseif has_words_before() then
+      cmp.complete()
+      if #cmp.get_entries() == 1 then
+        cmp.confirm({ select = true })
+      end
+    else
+      fallback()
+    end
+  end
+
   cmp.setup({
     snippet = {
       expand = function(args)
@@ -70,6 +97,7 @@ local function configure()
       ["<Tab>"] = cmp.mapping({
         i = selectNext,
         s = selectNext,
+        c = selectNextCmdLine,
       }),
       ["<C-p>"] = selectPrevious,
       ["<S-Tab>"] = selectPrevious,
