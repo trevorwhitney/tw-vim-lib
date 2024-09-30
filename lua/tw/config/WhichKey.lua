@@ -4,6 +4,7 @@ local function mapKeys(wk)
   local trouble = require("trouble")
   local format = require("tw.config.Formatting").format
   local async = require("plenary.async")
+  local telescope = require("telescope")
 
   local keymap = {
     { "<leader>*",  "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args({ default_text = vim.fn.expand('<cword>') })<cr>", desc = "Find Grep (Current Word)", nowait = false, remap = false },
@@ -161,7 +162,7 @@ local function mapKeys(wk)
       nowait = true,
       remap = false
     },
-    { "\\O", "<cmd>OutlineClose<cr>",              desc = "Close Outline",          nowait = true, remap = false },
+    { "\\O", "<cmd>AerialToggle!<cr>",             desc = "Toggle Outline",         nowait = true, remap = false },
     { "\\S", "<cmd>Telescope git_status<cr>",      desc = "Git Status (Telescope)", nowait = true, remap = false },
     { "\\b", "<cmd>Telescope git_branches<cr>",    desc = "Branches",               nowait = true, remap = false },
     { "\\c", "<cmd>DapToggleConsole<cr>",          desc = "Dap Console",            nowait = true, remap = false },
@@ -171,22 +172,11 @@ local function mapKeys(wk)
     {
       "\\o",
       function()
-        local outline = require("outline")
-
-        if outline.is_open() then
-          if outline.has_focus() then
-            outline.close()
-          else
-            outline.follow_cursor()
-          end
-        else
-          outline.open()
-          outline.follow_cursor()
-        end
+        telescope.extensions.aerial.aerial()
       end,
       desc = "Outline",
       nowait = true,
-      remap = false
+      remap = false,
     },
     { "\\p", "<cmd>pclose<cr>",                                         desc = "Close Preview", nowait = true, remap = false },
     {

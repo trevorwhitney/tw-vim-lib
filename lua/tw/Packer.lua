@@ -233,17 +233,25 @@ function Packer.install(use)
     use({ "folke/trouble.nvim", requires = { "nvim-tree/nvim-web-devicons" } })
 
     use({
-      "hedyhli/outline.nvim",
+      "stevearc/aerial.nvim",
       config = function()
-        require("outline").setup({
-          outline_window = {
-            width = 50,
-            relative_width = false,
+        local wk = require("which-key")
+        require("aerial").setup({
+          layout = {
+            max_with = { 50, 0.2 },
           },
-        })
-      end,
-    })
+          on_attach = function(bufnr)
+            local keymap = {
+              -- Jump forwards/backwards with '{' and '}'
+              { "{", "<cmd>AerialPrev<CR>", desc = "Jump to previous symbol", nowait = false, remap = false },
+              { "}", "<cmd>AerialNext<CR>", desc = "Jump to next symbol",     nowait = false, remap = false },
+            }
 
+            wk.add(keymap)
+          end,
+        })
+      end
+    })
     use("dstein64/vim-win")
 
     use("ii14/neorepl.nvim")
