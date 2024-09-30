@@ -15,6 +15,9 @@ local function configure()
       if cmp.visible() and cmp.get_selected_entry() then
         local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = false }
         cmp.confirm(confirm_opts)
+        if luasnip.jumpable(1) then
+          luasnip.jump(1)
+        end
       elseif luasnip.expandable() then
         luasnip.expand()
       else
@@ -32,7 +35,7 @@ local function configure()
     end,
   })
 
-  local selectPrevious = cmp.mapping(function(fallback)
+  local selectPreviousWithSnips = cmp.mapping(function(fallback)
     if cmp.visible() then
       cmp.select_prev_item()
     elseif luasnip.jumpable(-1) then
@@ -42,14 +45,22 @@ local function configure()
     end
   end, { "i", "s", "c" })
 
-  local selectNext = function(fallback)
+  local selectPreviousWithoutSnips = cmp.mapping(function(fallback)
+    if cmp.visible() then
+      cmp.select_prev_item()
+    else
+      fallback()
+    end
+  end, { "i", "s", "c" })
+
+  local selectNextWithSnips = cmp.mapping(function(fallback)
     if cmp.visible() then
       if #cmp.get_entries() == 1 then
         cmp.confirm({ select = true })
       else
         cmp.select_next_item()
       end
-    elseif luasnip.locally_jumpable(1) then
+    elseif luasnip.jumpable(1) then
       luasnip.jump(1)
     elseif has_words_before() then
       cmp.complete()
@@ -59,9 +70,8 @@ local function configure()
     else
       fallback()
     end
-  end
-
-  local selectNextCmdLine = function(fallback)
+  end, { "i", "s", "c" })
+  local selectNextWithoutSnips = cmp.mapping(function(fallback)
     if cmp.visible() then
       if #cmp.get_entries() == 1 then
         cmp.confirm({ select = true })
@@ -76,8 +86,7 @@ local function configure()
     else
       fallback()
     end
-  end
-
+  end, { "i", "s", "c" })
   cmp.setup({
     snippet = {
       expand = function(args)
@@ -90,19 +99,19 @@ local function configure()
     },
     mapping = cmp.mapping.preset.insert({
       ["<C-e>"] = cmp.mapping.abort(),
-      ["<C-n>"] = cmp.mapping({
-        i = selectNext,
-        s = selectNext,
-      }),
-      ["<Tab>"] = cmp.mapping({
-        i = selectNext,
-        s = selectNext,
-        c = selectNextCmdLine,
-      }),
-      ["<C-p>"] = selectPrevious,
-      ["<S-Tab>"] = selectPrevious,
+      ["<C-n>"] = selectNextWithoutSnips,
+      ["<Tab>"] = selectNextWithSnips,
+      ["<C-p>"] = selectPreviousWithoutSnips,
+      ["<S-Tab>"] = selectPreviousWithSnips,
       ["<CR>"] = select,
-      -- luasnip change previous snippet field
+      -- luasnip forward and previous snippet field
+      ["<C-u>"] = cmp.mapping(function(fallback)
+        if luasnip.jumpable(1) then
+          luasnip.jump(1)
+        else
+          fallback()
+        end
+      end, { "i", "s" }),
       ["<C-y>"] = cmp.mapping(function(fallback)
         if luasnip.jumpable(-1) then
           luasnip.jump(-1)
