@@ -74,7 +74,7 @@ local function configure(use_eslint_daemon)
 
   local formatters_by_ft = {
     bash = { "shfmt", "shellcheck" },
-    go = { "goimports", "gofumpt", "golines" },
+    go = { "goimports", "gofmt", "gofumpt", "golines" },
     javascript = { eslint, { "prettierd", "prettier" } },
     json = { { "prettierd", "prettier" }, "fixjson" },
     jsonnet = { "jsonnetfmt" },
