@@ -1,11 +1,10 @@
 local M = {}
 local conform_format = require("conform").format
-local ms = require('vim.lsp.protocol').Methods
 local function format(bufnr, options)
   local opts = options or {}
   opts = vim.tbl_deep_extend("force", opts, {
-    async = true,
-    lsp_format = "last",
+    async = false, -- this needs to stay false, otherwise the ranges clobber each other
+    lsp_format = "first",
   })
 
   local ignore_filetypes = {
@@ -18,14 +17,6 @@ local function format(bufnr, options)
   if vim.tbl_contains(ignore_filetypes, buf_ft) then
     return
   end
-  -- only use golines when formatting changed lines
-  if buf_ft == "go" then
-    opts = vim.tbl_deep_extend(
-      "force",
-      opts,
-      { formatters = { "golines", "goimports", "gofumpt", "trim_whitespace", "trim_newlines" } }
-    )
-  end
 
   local lines = vim.fn.system("git diff --unified=0 " .. vim.fn.bufname(bufnr)):gmatch("[^\n\r]+")
   local ranges = {}
@@ -34,16 +25,25 @@ local function format(bufnr, options)
       local line_nums = line:match("%+.- ")
       if line_nums:find(",") then
         local _, _, first, second = line_nums:find("(%d+),(%d+)")
-        table.insert(ranges, {
-          start = { tonumber(first), 0 },
-          ["end"] = { tonumber(first) + tonumber(second), 0 },
-        })
+        first = tonumber(first)
+        second = tonumber(second)
+        if first and second then
+          local end_line_pos = first + second - 1
+          local end_line = vim.api.nvim_buf_get_lines(0, end_line_pos - 1, end_line_pos, true)[1]
+          table.insert(ranges, {
+            start = { first, 0 },
+            ["end"] = { end_line_pos, end_line:len() - 1 },
+          })
+        end
       else
         local first = tonumber(line_nums:match("%d+"))
-        table.insert(ranges, {
-          start = { first, 0 },
-          ["end"] = { first + 1, 0 },
-        })
+        if first then
+          local end_line = vim.api.nvim_buf_get_lines(0, first, first + 1, true)[1]
+          table.insert(ranges, {
+            start = { first, 0 },
+            ["end"] = { first + 1, end_line:len() - 1 },
+          })
+        end
       end
     end
   end
@@ -53,7 +53,12 @@ local function format(bufnr, options)
       local opt = vim.tbl_deep_extend("force", {
         range = range,
       }, opts)
-      conform_format(opt)
+
+      conform_format(opt, function(err, _)
+        if not err == nil then
+          vim.lsp.buf.format({ range = range })
+        end
+      end)
     end
   end
 end
@@ -69,7 +74,7 @@ local function configure(use_eslint_daemon)
 
   local formatters_by_ft = {
     bash = { "shfmt", "shellcheck" },
-    go = { "goimports", "gofumpt" },
+    go = { "goimports", "gofumpt", "golines" },
     javascript = { eslint, { "prettierd", "prettier" } },
     json = { { "prettierd", "prettier" }, "fixjson" },
     jsonnet = { "jsonnetfmt" },
@@ -84,6 +89,7 @@ local function configure(use_eslint_daemon)
     ["_"] = { "trim_whitespace", "trim_newlines" },
   }
   require("conform").setup({
+    -- log_level = vim.log.levels.DEBUG,
     formatters_by_ft = formatters_by_ft,
     format_on_save = function(bufnr)
       local buf_ft = vim.bo[bufnr].filetype
@@ -104,6 +110,9 @@ local function configure(use_eslint_daemon)
         formatters = formatters,
       }
     end,
+    default_format_opts = {
+      lsp_format = "first",
+    }
   })
 end
 

@@ -35,10 +35,20 @@ local keymaps = {
   {
     key = "<leader>=",
     func = function()
+      vim.cmd("update")
       format()
     end,
-    mode = { "n", "v", "x" },
-    desc = "format",
+    mode = { "n" },
+    desc = "Format",
+  },
+  {
+    key = "<leader>=",
+    func = function()
+      vim.cmd("update")
+      require('conform').format({ async = false, lsp_format = "first" })
+    end,
+    mode = { "v", "x" },
+    desc = "Format",
   },
   {
     key = "gr",

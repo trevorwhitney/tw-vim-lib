@@ -8,21 +8,6 @@ local function mapKeys(wk)
 
   local keymap = {
     { "<leader>*",  "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args({ default_text = vim.fn.expand('<cword>') })<cr>", desc = "Find Grep (Current Word)", nowait = false, remap = false },
-    {
-      "<leader>=",
-      function()
-        vim.cmd("update")
-        format({ lsp_fallback = true })
-        -- TODO: async not working
-        -- async.void(function()
-        --   vim.cmd("update")
-        --   format({ lsp_fallback = true })
-        -- end)
-      end,
-      desc = "Format",
-      nowait = false,
-      remap = false
-    },
     { "<leader>D",  "<cmd>Lspsaga show_line_diagnostics<cr>",                                                                                  desc = "Line Diagnostics",         nowait = false, remap = false },
     { "<leader>F",  "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>",                                            desc = "Find Grep",                nowait = false, remap = false },
     { "<leader>R",  "<cmd>Telescope resume<cr>",                                                                                               desc = "Resume Find",              nowait = false, remap = false },
@@ -216,7 +201,6 @@ local function mapKeys(wk)
     {
       mode = { "v" },
       { "<leader>*",  "\"sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",            desc = "Search Current Selection", nowait = false, remap = false },
-      { "<leader>=",  "<cmd>FormatSelection<cr>",                                                                               desc = "Format",                   nowait = false, remap = false },
       { "<leader>c",  group = "Copilot",                                                                                        nowait = false,                    remap = false },
       { "<leader>cc", "<cmd>CopilotChat<cr>",                                                                                   desc = "Chat",                     nowait = false, remap = false },
       { "<leader>cd", "<cmd>CopilotChatDocs<cr>",                                                                               desc = "Docs",                     nowait = false, remap = false },
@@ -242,18 +226,6 @@ local function mapKeys(wk)
   vim.cmd(
     "command! -nargs=* TelescopeDynamicWorkspaceSymbol call v:lua.require('tw.telescope').dynamic_workspace_symbols(<q-args>)"
   )
-
-  vim.api.nvim_create_user_command("FormatSelection", function(args)
-    local range = nil
-    if args.count ~= -1 then
-      local end_line = vim.api.nvim_buf_get_lines(0, args.line2 - 1, args.line2, true)[1]
-      range = {
-        start = { args.line1, 0 },
-        ["end"] = { args.line2, end_line:len() },
-      }
-    end
-    require("conform").format({ async = true, lsp_fallback = true, range = range })
-  end, { range = true })
 end
 
 local function vimMappings()
