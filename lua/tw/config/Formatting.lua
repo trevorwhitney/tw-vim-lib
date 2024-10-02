@@ -91,25 +91,6 @@ local function configure(use_eslint_daemon)
   require("conform").setup({
     -- log_level = vim.log.levels.DEBUG,
     formatters_by_ft = formatters_by_ft,
-    format_on_save = function(bufnr)
-      local buf_ft = vim.bo[bufnr].filetype
-      local formatters = { "codespell", "trim_whitespace", "trim_newlines" }
-
-      if buf_ft then
-        local formatters_for_ft = formatters_by_ft[buf_ft]
-        if formatters_for_ft ~= nil then
-          for _, v in ipairs(formatters_for_ft) do
-            table.insert(formatters, v)
-          end
-        end
-      end
-
-      return {
-        timeout_ms = 500,
-        lsp_fallback = true,
-        formatters = formatters,
-      }
-    end,
     default_format_opts = {
       lsp_format = "first",
     }
