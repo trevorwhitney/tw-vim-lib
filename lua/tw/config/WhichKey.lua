@@ -218,6 +218,33 @@ local function mapKeys(wk)
       { "<leader>s",  "\"sy:TelescopeDynamicWorkspaceSymbol <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>", desc = "Search Current Symbol",    nowait = false, remap = false },
       { "<leader>z",  ":'<,'>sort<cr>",                                                                                         desc = "sort",                     nowait = false, remap = false },
     },
+    -- Formatting
+    {
+      mode = { "v", "x" },
+      {
+        "<leader>=",
+        function()
+          vim.cmd("update")
+          require('conform').format({ async = false, lsp_format = "first" })
+        end,
+        desc = "Format",
+        nowait = true,
+        remap = false
+      },
+    },
+    {
+      mode = { "n" },
+      {
+        "<leader>=",
+        function()
+          vim.cmd("update")
+          format()
+        end,
+        desc = "Format",
+        nowait = true,
+        remap = false
+      },
+    },
   }
 
   wk.add(keymap)

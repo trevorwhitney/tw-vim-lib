@@ -1,7 +1,5 @@
 local M = {}
 
-local lspconfig = require("lspconfig")
-local format = require("tw.config.Formatting").format
 local telescope = require("telescope.builtin")
 
 -- Use an on_attach function to only map the following keys
@@ -32,24 +30,6 @@ local default_options = {
 local options = vim.tbl_extend("force", {}, default_options)
 
 local keymaps = {
-  {
-    key = "<leader>=",
-    func = function()
-      vim.cmd("update")
-      format()
-    end,
-    mode = { "n" },
-    desc = "Format",
-  },
-  {
-    key = "<leader>=",
-    func = function()
-      vim.cmd("update")
-      require('conform').format({ async = false, lsp_format = "first" })
-    end,
-    mode = { "v", "x" },
-    desc = "Format",
-  },
   {
     key = "gr",
     func = function()
@@ -193,6 +173,17 @@ local function setup_navigator(opts)
           staticcheck = true,
         },
       },
+      -- additional language servers
+      servers = {
+        "dockerls",
+        "eslint",
+        "golangci_lint_ls",
+        "jsonnet_ls",
+        "marksman",
+        "nil_ls",
+        "statix",
+        "tsserver",
+      }
     },
   })
 end
