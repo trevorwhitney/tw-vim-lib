@@ -135,6 +135,7 @@ function Go.debug_relative(args)
     cwd = parent_dir,
   }
 
+  args = args or {}
   if #args > 0 then
     config["args"] = args
   end
