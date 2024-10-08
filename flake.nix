@@ -51,7 +51,6 @@
                 nodeJsPkg;
               withLspSupport = true;
               useEslintDaemon = true;
-              goBuildTags = "foo";
             };
           in
 
@@ -67,6 +66,8 @@
                 gnumake
                 stylua
                 zip
+
+                goPkg
 
                 # NodeJS
                 nodeJsPkg

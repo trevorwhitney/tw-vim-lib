@@ -182,7 +182,8 @@ local function setup_navigator(opts)
         "marksman",
         "nil_ls",
         "statix",
-        "tsserver",
+        "ts_ls",
+        "jdtls",
       }
     },
   })

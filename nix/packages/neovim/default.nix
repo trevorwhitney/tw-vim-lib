@@ -5,7 +5,7 @@
 , neovimUtils
 , withLspSupport ? true
 , nodeJsPkg ? pkgs.nodejs
-, goPkg ? pkgs.go
+, goPkg ? pkgs.go_1_23
 , useEslintDaemon ? true
 , extraPackages ? [ ]
 , goBuildTags ? ""

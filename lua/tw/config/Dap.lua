@@ -152,13 +152,21 @@ local function additionalAdapters()
 end
 
 function M.setup()
+  require("dap-go").setup({
+    delve = {
+      detatched = false,
+      args = {
+        "--log",
+        "--log-output=dap,debugger"
+      }
+    }
+  })
+  -- Uncomment to change log level
+  require("dap").set_log_level("TRACE")
   configureDapUI()
   configureKeyamp()
   configureAutoComplete()
   additionalAdapters()
-
-  -- Uncomment to change log level
-  -- require("dap").set_log_level("DEBUG")
 end
 
 return M

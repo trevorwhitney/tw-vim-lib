@@ -37,9 +37,6 @@ local function installDap(use)
   use({
     "leoluz/nvim-dap-go",
     requires = { "mfussenegger/nvim-dap" },
-    config = function()
-      require("dap-go").setup()
-    end,
   })
 
   use({
