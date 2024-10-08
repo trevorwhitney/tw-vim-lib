@@ -28,15 +28,15 @@
         };
 
         nodeJsPkg = pkgs.nodejs_20;
-        goPkg = pkgs.go_1_21;
+        goPkg = pkgs.go_1_23;
       in
       rec {
         inherit (pkgs) neovim;
 
         defaultPackage = pkgs.neovim {
-            inherit goPkg nodeJsPkg;
-            withLspSupport = true;
-            useEslintDaemon = true;
+          inherit goPkg nodeJsPkg;
+          withLspSupport = true;
+          useEslintDaemon = true;
         };
 
         packages = {
