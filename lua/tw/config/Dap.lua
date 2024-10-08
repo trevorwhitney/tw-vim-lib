@@ -154,7 +154,6 @@ end
 function M.setup()
   require("dap-go").setup({
     delve = {
-      detatched = false,
       args = {
         "--log",
         "--log-output=dap,debugger"
