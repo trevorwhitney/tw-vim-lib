@@ -8,6 +8,7 @@ local default_options = {
 	use_eslint_daemon = true,
 	extra_path = {},
 	go_build_tags = "",
+  dap_configs = {}
 }
 
 local options = vim.tbl_extend("force", {}, default_options)
@@ -50,7 +51,7 @@ function Config.setup(user_options)
 
 	require("tw.config.Appearance").setup()
 	require("tw.config.Copilot").setup()
-	require("tw.config.Dap").setup()
+	require("tw.config.Dap").setup(options.dap_configs)
 	require("tw.config.Git").setup()
 	require("tw.config.NvimCmp").setup()
 	require("tw.config.NvimTree").setup()

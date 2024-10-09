@@ -9,6 +9,7 @@
 , useEslintDaemon ? true
 , extraPackages ? [ ]
 , goBuildTags ? ""
+, dapConfigurations ? {}
 , ...
 }:
 let
@@ -33,6 +34,7 @@ let
 
       ccls # c++ language server
       codespell
+      delve
       gofumpt
       golangci-lint
       golangci-lint-langserver
@@ -118,6 +120,7 @@ let
         "jdtls_home = '${jdtls}',"
         "use_eslint_daemon = ${lib.boolToString useEslintDaemon},"
         "go_build_tags = '${goBuildTags}',"
+        "dap_configs = ${lib.generators.toLua {} dapConfigurations},"
       ] else [
         "lsp_support = false,"
       ]) ++ [

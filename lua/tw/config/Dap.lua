@@ -151,17 +151,20 @@ local function additionalAdapters()
   end
 end
 
-function M.setup()
+function M.setup(dap_configs)
+  print("go dap configs", vim.inspect(dap_configs.go))
   require("dap-go").setup({
+    dap_configurations = dap_configs.go,
     delve = {
       args = {
-        "--log",
-        "--log-output=dap,debugger"
+        -- Uncomment for verbose logging
+        -- "--log",
+        -- "--log-output=dap,debugger"
       }
     }
   })
   -- Uncomment to change log level
-  require("dap").set_log_level("TRACE")
+  -- require("dap").set_log_level("TRACE")
   configureDapUI()
   configureKeyamp()
   configureAutoComplete()
