@@ -33,7 +33,6 @@ let
 
       ccls # c++ language server
       codespell
-      delve
       gofumpt
       golangci-lint
       golangci-lint-langserver
