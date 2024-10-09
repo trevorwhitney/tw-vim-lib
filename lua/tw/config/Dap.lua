@@ -152,7 +152,6 @@ local function additionalAdapters()
 end
 
 function M.setup(dap_configs)
-  print("go dap configs", vim.inspect(dap_configs.go))
   require("dap-go").setup({
     dap_configurations = dap_configs.go,
     delve = {
