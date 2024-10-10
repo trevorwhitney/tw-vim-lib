@@ -173,11 +173,16 @@ local function setup_navigator(opts)
           staticcheck = true,
         },
       },
+      -- golangci_lint_ls = {
+      --   init_options = {
+      --     command = { "golangci-lint", "run", "--build-tags", "integration", "--out-format", "json" },
+      --   }
+      -- },
       -- additional language servers
       servers = {
         "dockerls",
         "eslint",
-        "golangci_lint_ls",
+        -- "golangci_lint_ls",
         "jsonnet_ls",
         "marksman",
         "nil_ls",
