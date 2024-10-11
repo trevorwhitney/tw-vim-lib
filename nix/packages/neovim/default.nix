@@ -44,6 +44,7 @@ let
       jsonnet-language-server
       lua-language-server
       marksman
+      pprof
       prettierd
       pyright
       shellcheck
