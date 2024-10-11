@@ -44,6 +44,7 @@ let
       jsonnet-language-server
       lua-language-server
       marksman
+      pngpaste
       pprof
       prettierd
       pyright

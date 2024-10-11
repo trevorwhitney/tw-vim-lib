@@ -6,11 +6,11 @@ local function configure()
     ["dap-repl"] = false,
   })
 
-  require("CopilotChat").setup({
-    debug = false, -- Enable debugging
-    -- See Configuration section for rest
-    -- https://github.com/CopilotC-Nvim/CopilotChat.nvim/blob/canary/lua/CopilotChat/config.lua
-  })
+  -- require("CopilotChat").setup({
+  --   debug = false, -- Enable debugging
+  --   -- See Configuration section for rest
+  --   -- https://github.com/CopilotC-Nvim/CopilotChat.nvim/blob/canary/lua/CopilotChat/config.lua
+  -- })
 end
 
 local function configureKeymap()

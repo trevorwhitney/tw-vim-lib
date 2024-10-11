@@ -124,6 +124,41 @@ local function installUI(use)
   })
 end
 
+local function installAiTools(use)
+  use("github/copilot.vim")
+  -- use("zbirenbaum/copilot.lua")
+  use({
+    "yetone/avante.nvim",
+    requires = {
+      "nvim-treesitter/nvim-treesitter",
+      "stevearc/dressing.nvim",
+      "nvim-lua/plenary.nvim",
+      "MunifTanjim/nui.nvim",
+      --- The below dependencies are optional,
+      "nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
+      "HakonHarnes/img-clip.nvim",
+      'MeanderingProgrammer/render-markdown.nvim',
+    },
+    run = "make"
+  })
+  -- use({
+  --   "CopilotC-Nvim/CopilotChat.nvim",
+  --   branch = "canary",
+  --   requires = {
+  --     "github/copilot.vim",
+  --   },
+  -- })
+  -- use({
+  --   "dpayne/CodeGPT.nvim",
+  --   requires = {
+  --     "MunifTanjim/nui.nvim",
+  --     "nvim-lua/plenary.nvim",
+  --   },
+  --   config = function()
+  --     require("codegpt.config")
+  --   end,
+  -- })
+end
 function Packer.install(use)
   local packer = require("packer")
   packer.util = require('packer.util')
@@ -185,24 +220,6 @@ function Packer.install(use)
     use("towolf/vim-helm")
     use("rfratto/vim-river")
     use("mfussenegger/nvim-jdtls")
-    use("github/copilot.vim")
-    use({
-      "CopilotC-Nvim/CopilotChat.nvim",
-      branch = "canary",
-      requires = {
-        "github/copilot.vim",
-      },
-    })
-    use({
-      "dpayne/CodeGPT.nvim",
-      requires = {
-        "MunifTanjim/nui.nvim",
-        "nvim-lua/plenary.nvim",
-      },
-      config = function()
-        require("codegpt.config")
-      end,
-    })
 
     use({
       "ThePrimeagen/refactoring.nvim",
@@ -237,7 +254,7 @@ function Packer.install(use)
           layout = {
             max_with = { 50, 0.2 },
           },
-          on_attach = function(bufnr)
+          on_attach = function(_)
             local keymap = {
               -- Jump forwards/backwards with '{' and '}'
               { "{", "<cmd>AerialPrev<CR>", desc = "Jump to previous symbol", nowait = false, remap = false },
@@ -260,6 +277,7 @@ function Packer.install(use)
     installTreesitter(use)
     installTesting(use)
     installUI(use)
+    installAiTools(use)
   end)
 end
 
