@@ -2,7 +2,6 @@ Packer = {}
 
 local function installNativeLsp(use)
   use("neovim/nvim-lspconfig") -- Collection of configurations for built-in LSP client
-  use({ "jose-elias-alvarez/null-ls.nvim", requires = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" } })
   use({
     "ray-x/navigator.lua",
     requires = {
