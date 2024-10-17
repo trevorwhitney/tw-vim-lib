@@ -244,6 +244,16 @@ local function mapKeys(wk)
         nowait = true,
         remap = false
       },
+      {
+        "<leader>+",
+        function()
+          vim.cmd("update")
+          require('conform').format({ async = false, lsp_format = "first" })
+        end,
+        desc = "Format",
+        nowait = true,
+        remap = false
+      },
     },
   }
 

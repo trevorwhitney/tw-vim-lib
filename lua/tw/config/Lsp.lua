@@ -189,6 +189,7 @@ local function setup_navigator(opts)
         "statix",
         "ts_ls",
         "jdtls",
+        "csharp_ls"
       }
     },
   })
