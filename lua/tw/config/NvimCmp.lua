@@ -119,15 +119,6 @@ local function configure()
           fallback()
         end
       end, { "i", "s" }),
-
-      -- Copilot accept
-      ["<C-f>"] = cmp.mapping(function(_)
-        vim.api.nvim_feedkeys(
-          vim.fn["copilot#Accept"](vim.api.nvim_replace_termcodes("<Tab>", true, true, true)),
-          "n",
-          true
-        )
-      end),
     }),
     sources = cmp.config.sources({
       { name = "nvim_lsp" },

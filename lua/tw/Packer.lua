@@ -124,8 +124,7 @@ local function installUI(use)
 end
 
 local function installAiTools(use)
-  use("github/copilot.vim")
-  -- use("zbirenbaum/copilot.lua")
+  use("zbirenbaum/copilot.lua")
   use({
     "yetone/avante.nvim",
     requires = {
