@@ -34,6 +34,9 @@ local function configure()
         temperature = 0,
         max_tokens = 4096,
       },
+      behaviour = {
+        auto_set_keymaps = false,
+      },
       --behaviour = {
       --  auto_suggestions = false, -- Experimental stage
       --  auto_set_highlight_group = true,
@@ -104,8 +107,8 @@ local function configureKeymap()
     { "<leader>c", group = "AI Code Assistant", nowait = true, remap = false },
     {
       mode = { "n", "v" },
-      { "<leader>ca", function() avante.ask() end,  desc = "Avanate ask" },
-      { "<leader>ce", function() avante.edit() end, desc = "Avanate edit" },
+      { "<leader>ca", function() avante.toggle() end, desc = "Avanate ask" },
+      { "<leader>ce", function() avante.edit() end,   desc = "Avanate edit" },
     },
     {
       mode = { "v" },
