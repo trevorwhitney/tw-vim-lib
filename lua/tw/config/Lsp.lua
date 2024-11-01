@@ -74,8 +74,8 @@ local keymaps = {
   },
 
   { mode = "i",    key = "<M-k>",                     func = vim.lsp.buf.signature_help, desc = "signature_help" },
-  { key = "<c-k>", func = vim.lsp.buf.signature_help, desc = "signature_help" },
-  { key = "gD",    func = vim.lsp.buf.declaration,    desc = "declaration" },
+  { key = "<leader>k", func = vim.lsp.buf.hover,       desc = "hover" },
+  { key = "gD",    func = vim.lsp.buf.declaration, desc = "declaration" },
   {
     key = "<leader>g0",
     func = function()
@@ -127,7 +127,7 @@ local keymaps = {
     end,
     desc = "rename",
   },
-  { key = "<leader>k", func = require("navigator.dochighlight").hi_symbol, desc = "hi_symbol" },
+  { key = "<C-k>", func = require("navigator.dochighlight").hi_symbol, desc = "hi_symbol" },
   {
     key = "<leader>la",
     mode = "n",
