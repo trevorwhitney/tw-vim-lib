@@ -16,12 +16,8 @@ end
 
 local function configureSupermaven()
   supermaven.setup({
-    -- disable_keymaps = true,
-    keymaps = {
-      accept_suggestion = "<C-f>",
-      clear_suggestion = "<C-]>",
-      accept_word = "<C-j>",
-    }
+    disable_keymaps = true,
+    disable_inline_completion = true,
   })
 
   lspkind.init({

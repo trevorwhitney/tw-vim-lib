@@ -60,7 +60,7 @@ local function configure()
   local selectNextWithSnips = cmp.mapping(function(fallback)
     if cmp.visible() then
       if #cmp.get_entries() == 1 then
-        cmp.confirm({ select = true })
+        cmp.confirm({ behavior = cmp.ConfirmBehavior.Select, select = true })
       else
         cmp.select_next_item()
       end
