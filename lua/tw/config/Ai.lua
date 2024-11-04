@@ -16,8 +16,14 @@ end
 
 local function configureSupermaven()
   supermaven.setup({
-    disable_keymaps = true,
+    -- disable_keymaps = true,
+    keymaps = {
+      accept_suggestion = "<C-f>",
+      clear_suggestion = "<C-]>",
+      accept_word = "<C-j>",
+    }
   })
+
   lspkind.init({
     symbol_map = {
       Supermaven = "",
