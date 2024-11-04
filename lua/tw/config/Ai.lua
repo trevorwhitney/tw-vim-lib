@@ -1,6 +1,9 @@
 local M = {}
-local copilot = require("copilot")
-local function configure()
+local lspkind = require("lspkind")
+local supermaven = require("supermaven-nvim")
+
+local function configureCopilot()
+  local copilot = require("copilot")
   copilot.setup({
     suggestion = {
       auto_trigger = true,
@@ -11,8 +14,21 @@ local function configure()
   })
 end
 
-local suggestion = require("copilot.suggestion")
-local function configureKeymap()
+local function configureSupermaven()
+  supermaven.setup({
+    disable_keymaps = true,
+  })
+  lspkind.init({
+    symbol_map = {
+      Supermaven = "",
+    },
+  })
+
+  vim.api.nvim_set_hl(0, "CmpItemKindSupermaven", { fg = "#6CC644" })
+end
+
+local function configureCopilotKeymap()
+  local suggestion = require("copilot.suggestion")
   local keymap = {
     { "<C-j>", function() suggestion.next() end,     desc = "Copilot Next",     mode = "i", nowait = false, remap = false },
     { "<C-k>", function() suggestion.previous() end, desc = "Copliot Previous", mode = "i", nowait = false, remap = false },
@@ -25,8 +41,10 @@ local function configureKeymap()
 end
 
 function M.setup()
-  configure()
-  configureKeymap()
+  -- configureCopilot()
+  -- configureCopilotKeymap()
+
+  configureSupermaven()
 end
 
 return M

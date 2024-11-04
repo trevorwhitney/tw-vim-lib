@@ -124,7 +124,13 @@ local function installUI(use)
 end
 
 local function installAiTools(use)
-  use("zbirenbaum/copilot.lua")
+  -- use("zbirenbaum/copilot.lua")
+  use({
+    "supermaven-inc/supermaven-nvim",
+    requires = {
+      "onsails/lspkind.nvim"
+    }
+  })
   use({
     "yetone/avante.nvim",
     requires = {
@@ -139,23 +145,6 @@ local function installAiTools(use)
     },
     run = "make"
   })
-  -- use({
-  --   "CopilotC-Nvim/CopilotChat.nvim",
-  --   branch = "canary",
-  --   requires = {
-  --     "github/copilot.vim",
-  --   },
-  -- })
-  -- use({
-  --   "dpayne/CodeGPT.nvim",
-  --   requires = {
-  --     "MunifTanjim/nui.nvim",
-  --     "nvim-lua/plenary.nvim",
-  --   },
-  --   config = function()
-  --     require("codegpt.config")
-  --   end,
-  -- })
 end
 function Packer.install(use)
   local packer = require("packer")

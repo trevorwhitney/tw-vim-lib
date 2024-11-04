@@ -9,17 +9,21 @@ end
 local function configure()
   local cmp = require("cmp")
   local luasnip = require("luasnip")
-
+  local suggestion = require("supermaven-nvim.completion_preview")
   local select = cmp.mapping({
     i = function(fallback)
       if cmp.visible() and cmp.get_selected_entry() then
-        local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = false }
+        local confirm_opts = { behavior = cmp.ConfirmBehavior.Select, select = false }
         cmp.confirm(confirm_opts)
         if luasnip.jumpable(1) then
           luasnip.jump(1)
         end
       elseif luasnip.expandable() then
         luasnip.expand()
+      elseif luasnip.jumpable(1) then
+        luasnip.jump(1)
+      elseif suggestion.has_suggestion() then
+        suggestion.on_accept_suggestion()
       else
         fallback()
       end
@@ -67,6 +71,8 @@ local function configure()
       if #cmp.get_entries() == 1 then
         cmp.confirm({ select = true })
       end
+    elseif suggestion.has_suggestion() then
+      suggestion.on_accept_suggestion()
     else
       fallback()
     end
@@ -88,6 +94,9 @@ local function configure()
     end
   end, { "i", "s", "c" })
   cmp.setup({
+    experimental = {
+      ghost_text = true,
+    },
     snippet = {
       expand = function(args)
         require("luasnip").lsp_expand(args.body)
@@ -126,6 +135,7 @@ local function configure()
       { name = "path" },
       { name = "luasnip" },
       { name = "treesitter" },
+      { name = "supermaven" },
     }, {
       { name = "buffer" },
     }),
