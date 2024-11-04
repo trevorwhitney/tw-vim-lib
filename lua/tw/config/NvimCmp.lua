@@ -112,7 +112,8 @@ local function configure()
       ["<Tab>"] = selectNextWithSnips,
       ["<C-p>"] = selectPreviousWithoutSnips,
       ["<S-Tab>"] = selectPreviousWithSnips,
-      ["<CR>"] = select,
+      ["<C-f>"] = select,
+
       -- luasnip forward and previous snippet field
       ["<C-u>"] = cmp.mapping(function(fallback)
         if luasnip.jumpable(1) then
