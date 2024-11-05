@@ -17,7 +17,6 @@ end
 local function configureSupermaven()
   supermaven.setup({
     disable_keymaps = true,
-    disable_inline_completion = true,
   })
 
   lspkind.init({
@@ -42,11 +41,25 @@ local function configureCopilotKeymap()
   wk.add(keymap)
 end
 
+local function configureSupermavenKeymap()
+  local completion_preview = require("supermaven-nvim.completion_preview")
+
+  local keymap = {
+    -- { "<C-j>", function() suggestion.next() end,     desc = "Copilot Next",     mode = "i", nowait = false, remap = false },
+    -- { "<C-k>", function() suggestion.previous() end, desc = "Copliot Previous", mode = "i", nowait = false, remap = false },
+    { "<C-f>", completion_preview.on_accept_suggestion,      desc = "Supermaven Accept",     mode = "i", nowait = false, remap = false },
+    { "<C-j>", completion_preview.on_accept_suggestion_word, desc = "Supermave Accept Word", mode = "i", nowait = false, remap = false },
+    { "<C-]>", completion_preview.on_dispose_inlay,          desc = "Supermaven Dismiss",    mode = "i", nowait = false, remap = false },
+  }
+
+  local wk = require("which-key")
+  wk.add(keymap)
+end
 function M.setup()
   -- configureCopilot()
   -- configureCopilotKeymap()
 
   configureSupermaven()
+  configureSupermavenKeymap()
 end
-
 return M

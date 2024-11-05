@@ -112,7 +112,7 @@ local function configure()
       ["<Tab>"] = selectNextWithSnips,
       ["<C-p>"] = selectPreviousWithoutSnips,
       ["<S-Tab>"] = selectPreviousWithSnips,
-      ["<C-f>"] = select,
+      ["<CR>"] = select,
 
       -- luasnip forward and previous snippet field
       ["<C-u>"] = cmp.mapping(function(fallback)
@@ -136,7 +136,7 @@ local function configure()
       { name = "path" },
       { name = "luasnip" },
       { name = "treesitter" },
-      { name = "supermaven" },
+      -- { name = "supermaven" },
     }, {
       { name = "buffer" },
     }),
