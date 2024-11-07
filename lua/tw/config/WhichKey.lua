@@ -13,8 +13,6 @@ local function mapKeys(wk)
     { "<leader>R",  "<cmd>Telescope resume<cr>",                                                                                               desc = "Resume Find",              nowait = false, remap = false },
     { "<leader>\\", "<cmd>NvimTreeToggle<cr>",                                                                                                 desc = "NvimTree",                 nowait = false, remap = false },
     { "<leader>b",  "<cmd>Telescope buffers<cr>",                                                                                              desc = "Find Buffer",              nowait = false, remap = false },
-    { "<leader>c",  group = "Copilot",                                                                                                         nowait = false,                    remap = false },
-    { "<leader>cc", "<cmd>CopilotChat<cr>",                                                                                                    desc = "Chat",                     nowait = false, remap = false },
     { "<leader>f",  "<cmd>Telescope git_files<cr>",                                                                                            desc = "Find File (Git)",          nowait = false, remap = false },
     { "<leader>i",  group = "Config",                                                                                                          nowait = false,                    remap = false },
     {
