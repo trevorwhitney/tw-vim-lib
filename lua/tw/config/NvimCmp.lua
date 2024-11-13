@@ -9,7 +9,6 @@ end
 local function configure()
   local cmp = require("cmp")
   local luasnip = require("luasnip")
-  local suggestion = require("supermaven-nvim.completion_preview")
   local select = cmp.mapping({
     i = function(fallback)
       if cmp.visible() and cmp.get_selected_entry() then
@@ -22,8 +21,6 @@ local function configure()
         luasnip.expand()
       elseif luasnip.jumpable(1) then
         luasnip.jump(1)
-      elseif suggestion.has_suggestion() then
-        suggestion.on_accept_suggestion()
       else
         fallback()
       end
@@ -71,8 +68,6 @@ local function configure()
       if #cmp.get_entries() == 1 then
         cmp.confirm({ select = true })
       end
-    elseif suggestion.has_suggestion() then
-      suggestion.on_accept_suggestion()
     else
       fallback()
     end
