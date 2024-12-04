@@ -1,26 +1,17 @@
 local M = {}
 
-local has_words_before = function()
-  unpack = unpack or table.unpack
-  local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-  return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
-end
-
 local function configure()
   local cmp = require("cmp")
   local luasnip = require("luasnip")
   local select = cmp.mapping({
     i = function(fallback)
-      if cmp.visible() and cmp.get_selected_entry() then
-        local confirm_opts = { behavior = cmp.ConfirmBehavior.Select, select = false }
-        cmp.confirm(confirm_opts)
-        if luasnip.jumpable(1) then
-          luasnip.jump(1)
+      if cmp.visible() then
+        if luasnip.expandable() then
+          luasnip.expand()
+        elseif cmp.get_selected_entry() then
+          local confirm_opts = { behavior = cmp.ConfirmBehavior.Select, select = false }
+          cmp.confirm(confirm_opts)
         end
-      elseif luasnip.expandable() then
-        luasnip.expand()
-      elseif luasnip.jumpable(1) then
-        luasnip.jump(1)
       else
         fallback()
       end
@@ -36,61 +27,33 @@ local function configure()
     end,
   })
 
-  local selectPreviousWithSnips = cmp.mapping(function(fallback)
-    if cmp.visible() then
-      cmp.select_prev_item()
-    elseif luasnip.jumpable(-1) then
-      luasnip.jump(-1)
-    else
-      fallback()
-    end
-  end, { "i", "s", "c" })
-
-  local selectPreviousWithoutSnips = cmp.mapping(function(fallback)
-    if cmp.visible() then
-      cmp.select_prev_item()
-    else
-      fallback()
-    end
-  end, { "i", "s", "c" })
-
-  local selectNextWithSnips = cmp.mapping(function(fallback)
-    if cmp.visible() then
-      if #cmp.get_entries() == 1 then
-        cmp.confirm({ behavior = cmp.ConfirmBehavior.Select, select = true })
+  local function selectPrevious(snips)
+    return cmp.mapping(function(fallback)
+      if cmp.visible() then
+        cmp.select_prev_item()
+      elseif snips and luasnip.locally_jumpable(-1) then
+        luasnip.jump(-1)
       else
+        fallback()
+      end
+    end, { "i", "s", "c" })
+  end
+
+  local function selectNext(snips)
+    return cmp.mapping(function(fallback)
+      if cmp.visible() then
         cmp.select_next_item()
-      end
-    elseif luasnip.jumpable(1) then
-      luasnip.jump(1)
-    elseif has_words_before() then
-      cmp.complete()
-      if #cmp.get_entries() == 1 then
-        cmp.confirm({ select = true })
-      end
-    else
-      fallback()
-    end
-  end, { "i", "s", "c" })
-  local selectNextWithoutSnips = cmp.mapping(function(fallback)
-    if cmp.visible() then
-      if #cmp.get_entries() == 1 then
-        cmp.confirm({ select = true })
+      elseif snips and luasnip.locally_jumpable(1) then
+        luasnip.jump(1)
       else
-        cmp.select_next_item()
+        fallback()
       end
-    elseif has_words_before() then
-      cmp.complete()
-      if #cmp.get_entries() == 1 then
-        cmp.confirm({ select = true })
-      end
-    else
-      fallback()
-    end
-  end, { "i", "s", "c" })
+    end, { "i", "s", "c" })
+  end
   cmp.setup({
     experimental = {
-      ghost_text = true,
+      -- want to reserve ghost test for supermaven
+      ghost_text = false,
     },
     snippet = {
       expand = function(args)
@@ -103,27 +66,11 @@ local function configure()
     },
     mapping = cmp.mapping.preset.insert({
       ["<C-e>"] = cmp.mapping.abort(),
-      ["<C-n>"] = selectNextWithoutSnips,
-      ["<Tab>"] = selectNextWithSnips,
-      ["<C-p>"] = selectPreviousWithoutSnips,
-      ["<S-Tab>"] = selectPreviousWithSnips,
+      ["<C-n>"] = selectNext(false),
+      ["<Tab>"] = selectNext(true),
+      ["<C-p>"] = selectPrevious(false),
+      ["<S-Tab>"] = selectPrevious(true),
       ["<CR>"] = select,
-
-      -- luasnip forward and previous snippet field
-      ["<C-u>"] = cmp.mapping(function(fallback)
-        if luasnip.jumpable(1) then
-          luasnip.jump(1)
-        else
-          fallback()
-        end
-      end, { "i", "s" }),
-      ["<C-y>"] = cmp.mapping(function(fallback)
-        if luasnip.jumpable(-1) then
-          luasnip.jump(-1)
-        else
-          fallback()
-        end
-      end, { "i", "s" }),
     }),
     sources = cmp.config.sources({
       { name = "nvim_lsp" },
