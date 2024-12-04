@@ -179,6 +179,7 @@ local function setup_navigator(opts)
       --   }
       -- },
       -- additional language servers
+      disable_lsp = { "ruff" },
       servers = {
         "dockerls",
         "eslint",
