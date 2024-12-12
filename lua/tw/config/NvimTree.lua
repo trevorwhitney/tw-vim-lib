@@ -83,6 +83,14 @@ function M.setup()
       width = { min = 30, max = 50 },
     },
     sync_root_with_cwd = true,
+    renderer = {
+      highlight_git = "all",
+    },
+    filters = {
+      git_ignored = false,
+    },
   })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFileIgnoredHL", { fg = "#939f91" })
+  vim.api.nvim_set_hl(0, "NvimTreeGitFolderIgnoredHL", { fg = "#939f91" })
 end
 return M
