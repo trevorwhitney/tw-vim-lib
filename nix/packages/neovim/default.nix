@@ -63,7 +63,7 @@ let
       nodePackages.eslint
       nodePackages.eslint_d
       nodePackages.fixjson
-      nodePackages.neovim
+      # nodePackages.neovim
       nodePackages.prettier
       nodePackages.typescript-language-server
       nodePackages.vim-language-server
