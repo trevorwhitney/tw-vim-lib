@@ -254,9 +254,8 @@ function Packer.install(use)
       end
     })
     use("dstein64/vim-win")
-
     use("ii14/neorepl.nvim")
-
+    use("grafana/vim-alloy")
     installNativeLsp(use)
     installTelescope(use)
     installDap(use)
