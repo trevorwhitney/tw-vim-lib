@@ -292,10 +292,10 @@ local function vimMappings()
 
   keymap.set("i", "<C-o>", "<C-x><C-o>", { noremap = true })
 
-  keymap.set("n", "<C-J>", "<C-W><C-J>", { noremap = true })
-  keymap.set("n", "<C-K>", "<C-W><C-K>", { noremap = true })
-  keymap.set("n", "<C-L>", "<C-W><C-L>", { noremap = true })
-  keymap.set("n", "<C-H>", "<C-W><C-H>", { noremap = true })
+  keymap.set("n", "<C-j>", "<C-W><C-J>", { noremap = true })
+  keymap.set("n", "<C-k>", "<C-W><C-K>", { noremap = true })
+  keymap.set("n", "<C-l>", "<C-W><C-L>", { noremap = true })
+  keymap.set("n", "<C-h>", "<C-W><C-H>", { noremap = true })
   keymap.set("n", "<C-w>q", ":window close<cr>", { noremap = true })
 
   -- ====== Readline / RSI =======

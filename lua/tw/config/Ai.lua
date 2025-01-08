@@ -45,10 +45,7 @@ local function configureSupermavenKeymap()
   local completion_preview = require("supermaven-nvim.completion_preview")
 
   local keymap = {
-    -- { "<C-j>", function() suggestion.next() end,     desc = "Copilot Next",     mode = "i", nowait = false, remap = false },
-    -- { "<C-k>", function() suggestion.previous() end, desc = "Copliot Previous", mode = "i", nowait = false, remap = false },
     { "<C-f>", completion_preview.on_accept_suggestion,      desc = "Supermaven Accept",     mode = "i", nowait = false, remap = false },
-    { "<C-j>", completion_preview.on_accept_suggestion_word, desc = "Supermave Accept Word", mode = "i", nowait = false, remap = false },
     { "<C-]>", completion_preview.on_dispose_inlay,          desc = "Supermaven Dismiss",    mode = "i", nowait = false, remap = false },
   }
 

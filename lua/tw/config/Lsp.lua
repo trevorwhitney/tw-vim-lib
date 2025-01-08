@@ -153,6 +153,7 @@ local function setup_navigator(opts)
         enable = true,
         sign = true,
         virtual_text = false,
+        sign_priority = 19,
         exclude = {
           "source.doc",
           "source.assembly",

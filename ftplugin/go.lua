@@ -58,7 +58,7 @@ local function keybindings()
     {
       "<leader>dm",
       function()
-        vim.cmd("write")
+        vim.cmd("update")
         require("tw.languages.go").remote_debug(
           vim.fn.input({ prompt = "Remote Path: " }),
           vim.fn.input({ prompt = "Port: " })
