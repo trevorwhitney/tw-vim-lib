@@ -28,52 +28,52 @@ let
   ];
 
   lspPackages = with pkgs;
-    if withLspSupport then [
-      stylua
-      jdtls
-
-      ccls # c++ language server
-      codespell
-      delve
-      gofumpt
-      golangci-lint
-      golangci-lint-langserver
-      golines
-      gopls
-      gotools
-      grafana-alloy
-      jsonnet-language-server
-      lua-language-server
-      marksman
+  if withLspSupport then (lib.optionals stdenv.isDarwin [
       pngpaste
-      pprof
-      prettierd
-      pyright
-      shellcheck
-      shfmt
-      terraform-ls
-      typescript
-      vale
-      vim-vint
-      vscode-langservers-extracted
-      yamllint
-      yaml-language-server
+  ]) ++ [
+    stylua
+    jdtls
 
-      nodePackages.bash-language-server
-      nodePackages.dockerfile-language-server-nodejs
-      nodePackages.eslint
-      nodePackages.eslint_d
-      nodePackages.fixjson
-      # nodePackages.neovim
-      nodePackages.prettier
-      nodePackages.typescript-language-server
-      nodePackages.vim-language-server
-      nodePackages.vscode-langservers-extracted
-      nodePackages.write-good
+    ccls # c++ language server
+    codespell
+    delve
+    gofumpt
+    golangci-lint
+    golangci-lint-langserver
+    golines
+    gopls
+    gotools
+    grafana-alloy
+    jsonnet-language-server
+    lua-language-server
+    marksman
+    pprof
+    prettierd
+    pyright
+    shellcheck
+    shfmt
+    terraform-ls
+    typescript
+    vale
+    vim-vint
+    vscode-langservers-extracted
+    yamllint
+    yaml-language-server
 
-      lua53Packages.luacheck
-      lua53Packages.jsregexp
-      lua53Packages.tiktoken_core
+    nodePackages.bash-language-server
+    nodePackages.dockerfile-language-server-nodejs
+    nodePackages.eslint
+    nodePackages.eslint_d
+    nodePackages.fixjson
+    nodePackages.prettier
+    nodePackages.typescript-language-server
+    nodePackages.vim-language-server
+    nodePackages.vscode-langservers-extracted
+    nodePackages.write-good
+
+    lua53Packages.luacheck
+    lua53Packages.jsregexp
+    lua53Packages.tiktoken_core
     ] else [ ];
 
   treesitterPackages = with pkgs; [
