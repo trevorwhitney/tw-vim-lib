@@ -127,7 +127,7 @@ local keymaps = {
     end,
     desc = "rename",
   },
-  { key = "<C-k>", func = require("navigator.dochighlight").hi_symbol, desc = "hi_symbol" },
+  -- { key = "<leader>k", func = require("navigator.dochighlight").hi_symbol, desc = "hi_symbol" },
   {
     key = "<leader>la",
     mode = "n",
