@@ -44,6 +44,7 @@ let
     gopls
     gotools
     grafana-alloy
+    helm-ls
     jsonnet-language-server
     lua-language-server
     marksman

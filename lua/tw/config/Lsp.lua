@@ -174,6 +174,11 @@ local function setup_navigator(opts)
           staticcheck = true,
         },
       },
+      ["helm-ls"] = {
+        yamlls = {
+          path = "yaml-language-server",
+        },
+      },
       -- golangci_lint_ls = {
       --   init_options = {
       --     command = { "golangci-lint", "run", "--build-tags", "integration", "--out-format", "json" },
@@ -191,7 +196,8 @@ local function setup_navigator(opts)
         "statix",
         "ts_ls",
         "jdtls",
-        "csharp_ls"
+        "csharp_ls",
+        "helm_ls",
       }
     },
   })

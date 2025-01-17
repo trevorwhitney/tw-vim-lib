@@ -20,7 +20,7 @@ local function configure()
   require('avante_lib').load()
   require('avante').setup({
     provider = "claude",
-    auto_suggestions_provider = "copilot",
+    auto_suggestions_provider = "claude",
     hints = { enabled = false },
     claude = {
       endpoint = "https://api.anthropic.com",
@@ -28,6 +28,12 @@ local function configure()
       temperature = 0,
       max_tokens = 4096,
     },
+    -- gemini = {
+    --   api_key = "your-gemini-api-key-here", -- Replace with your actual API key
+    --   model = "gemini-pro",
+    --   temperature = 0.7,
+    --   max_tokens = 2048,
+    -- },
     behaviour = {
       auto_set_keymaps = false,
     },
