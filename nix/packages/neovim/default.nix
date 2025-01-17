@@ -111,6 +111,7 @@ let
           version = if (self ? rev) then self.rev else "dirty";
           src = self;
           meta.homepage = "https://github.com/trevorwhitney/tw-vim-lib";
+          doCheck = false;
         })
       ];
 
