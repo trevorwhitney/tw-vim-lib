@@ -56,10 +56,12 @@ let
     terraform-ls
     typescript
     vale
+    vim-language-server
     vim-vint
     vscode-langservers-extracted
-    yamllint
+    write-good
     yaml-language-server
+    yamllint
 
     nodePackages.bash-language-server
     nodePackages.dockerfile-language-server-nodejs
@@ -68,9 +70,7 @@ let
     nodePackages.fixjson
     nodePackages.prettier
     nodePackages.typescript-language-server
-    nodePackages.vim-language-server
     nodePackages.vscode-langservers-extracted
-    nodePackages.write-good
 
     lua53Packages.luacheck
     lua53Packages.jsregexp

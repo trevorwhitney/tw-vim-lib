@@ -2,7 +2,8 @@
   description = "Neovim configured just how I like it";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-24.11-darwin";
     flake-utils.url = "github:numtide/flake-utils";
   };
 

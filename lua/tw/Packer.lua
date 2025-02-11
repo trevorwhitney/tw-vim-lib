@@ -133,6 +133,7 @@ local function installAiTools(use)
   })
   use({
     "yetone/avante.nvim",
+    branch = "main",
     requires = {
       "nvim-treesitter/nvim-treesitter",
       "stevearc/dressing.nvim",
