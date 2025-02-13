@@ -174,7 +174,6 @@ function Packer.install(use)
     use({ "mg979/vim-visual-multi", branch = "master" }) -- multi-cursor
     use("pedrohdz/vim-yaml-folds")
     use("tpope/vim-abolish")
-    use("tpope/vim-commentary")
     use({
       "tpope/vim-dispatch",
       config = function()
