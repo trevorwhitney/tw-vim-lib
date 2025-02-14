@@ -53,7 +53,7 @@ function Config.setup(user_options)
 
 	require("tw.config.Appearance").setup()
 	require("tw.config.Ai").setup()
-	require("tw.config.Avante").setup()
+	-- require("tw.config.Avante").setup()
 	require("tw.config.Dap").setup(options.dap_configs)
 	require("tw.config.Git").setup()
 	require("tw.config.NvimCmp").setup()
