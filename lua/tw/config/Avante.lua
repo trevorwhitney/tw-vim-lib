@@ -1,5 +1,26 @@
 local M = {}
 
+local Utils = require("avante.utils")
+local Path = require("plenary.path")
+
+---@param params avante.file_selector.opts.IGetFilepathsParams
+local function get_filepaths(params)
+    local project_root = Utils.get_project_root()
+
+    -- Execute git command and get output
+    local cmd = "git ls-files --others --cached --exclude-standard | grep -v '^vendor/' | grep -v '^.aider'"
+    local output = vim.fn.system(cmd)
+    -- Split output into lines and filter empty lines
+    local files = vim.split(output, '\n')
+
+    return vim.tbl_map(function(path)
+      local rel_path = Path:new(path):make_relative(project_root)
+      local stat = vim.loop.fs_stat(path)
+      if stat and stat.type == "directory" then rel_path = rel_path .. "/" end
+      return rel_path
+    end, files)
+end
+
 local function configure()
   -- Configure markdown rendering
   require('render-markdown').setup({
@@ -27,6 +48,12 @@ local function configure()
       model = "claude-3-5-sonnet-20241022",
       temperature = 0,
       max_tokens = 4096,
+    },
+    file_selector = {
+      provider = "telescope",
+      provider_opts = {
+        get_filepaths = get_filepaths,
+      },
     },
     -- gemini = {
     --   api_key = "your-gemini-api-key-here", -- Replace with your actual API key

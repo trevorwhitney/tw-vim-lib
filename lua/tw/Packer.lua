@@ -131,29 +131,21 @@ local function installAiTools(use)
       "onsails/lspkind.nvim"
     }
   })
-  -- Going to try just using aider for a bit
-  -- use({
-  --   "yetone/avante.nvim",
-  --   branch = "main",
-  --   requires = {
-  --     "nvim-treesitter/nvim-treesitter",
-  --     "stevearc/dressing.nvim",
-  --     "nvim-lua/plenary.nvim",
-  --     "MunifTanjim/nui.nvim",
-  --     --- The below dependencies are optional,
-  --     "nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
-  --     "HakonHarnes/img-clip.nvim",
-  --     'MeanderingProgrammer/render-markdown.nvim',
-  --   },
-  --   run = "make"
-  -- })
-  -- TODO: if we remove avante permanently, we'll need a better place for these
-  use("stevearc/dressing.nvim")
-  use("nvim-lua/plenary.nvim")
-  use("MunifTanjim/nui.nvim")
-  use("nvim-tree/nvim-web-devicons")   -- or echasnovski/mini.icons
-  use("HakonHarnes/img-clip.nvim")
-  use('MeanderingProgrammer/render-markdown.nvim')
+  use({
+    "yetone/avante.nvim",
+    branch = "main",
+    requires = {
+      "nvim-treesitter/nvim-treesitter",
+      "stevearc/dressing.nvim",
+      "nvim-lua/plenary.nvim",
+      "MunifTanjim/nui.nvim",
+      --- The below dependencies are optional,
+      "nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
+      "HakonHarnes/img-clip.nvim",
+      'MeanderingProgrammer/render-markdown.nvim',
+    },
+    run = "make"
+  })
 end
 function Packer.install(use)
   local packer = require("packer")
