@@ -1,23 +1,25 @@
 local M = {}
 
-local Utils = require("avante.utils")
 local Path = require("plenary.path")
 
 ---@param params avante.file_selector.opts.IGetFilepathsParams
 local function get_filepaths(params)
-    local project_root = Utils.get_project_root()
+  local cmd = { "sh", "-c", "git ls-files --others --cached --exclude-standard | grep -v '^vendor/' | grep -v '^.aider'" }
+  local output = vim.system(cmd, { cwd = params.cwd }):wait()
+  if output.code ~= 0 then
+    -- Print vim error line
+    print(output.stderr)
+    return {}
+  end
 
-    -- Execute git command and get output
-    local cmd = "git ls-files --others --cached --exclude-standard | grep -v '^vendor/' | grep -v '^.aider'"
-    local output = vim.fn.system(cmd)
-    -- Split output into lines and filter empty lines
-    local files = vim.split(output, '\n')
+  -- Split output into lines and filter empty lines
+  local files = vim.split(output.stdout, '\n')
 
-    return vim.tbl_map(function(path)
-      local rel_path = Path:new(path):make_relative(project_root)
+  return vim.tbl_map(function(path)
+    local rel_path = Path:new(path):make_relative(params.cwd)
       local stat = vim.loop.fs_stat(path)
-      if stat and stat.type == "directory" then rel_path = rel_path .. "/" end
-      return rel_path
+    if stat and stat.type == "directory" then rel_path = rel_path .. "/" end
+    return rel_path
     end, files)
 end
 
