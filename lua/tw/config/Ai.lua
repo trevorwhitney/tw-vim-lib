@@ -2,18 +2,6 @@ local M = {}
 local lspkind = require("lspkind")
 local supermaven = require("supermaven-nvim")
 
-local function configureCopilot()
-  local copilot = require("copilot")
-  copilot.setup({
-    suggestion = {
-      auto_trigger = true,
-    },
-    filetypes = {
-      ["dap-repl"] = false,
-    },
-  })
-end
-
 local function configureSupermaven()
   supermaven.setup({
     disable_keymaps = true,
@@ -28,19 +16,6 @@ local function configureSupermaven()
   vim.api.nvim_set_hl(0, "CmpItemKindSupermaven", { fg = "#6CC644" })
 end
 
-local function configureCopilotKeymap()
-  local suggestion = require("copilot.suggestion")
-  local keymap = {
-    { "<C-j>", function() suggestion.next() end,     desc = "Copilot Next",     mode = "i", nowait = false, remap = false },
-    { "<C-k>", function() suggestion.previous() end, desc = "Copliot Previous", mode = "i", nowait = false, remap = false },
-    { "<C-f>", function() suggestion.accept() end,   desc = "Copliot Accept",   mode = "i", nowait = false, remap = false },
-    { "<C-g>", function() suggestion.dismiss() end,  desc = "Copliot Dismiss",  mode = "i", nowait = false, remap = false },
-  }
-
-  local wk = require("which-key")
-  wk.add(keymap)
-end
-
 local function configureSupermavenKeymap()
   local completion_preview = require("supermaven-nvim.completion_preview")
 
@@ -52,11 +27,25 @@ local function configureSupermavenKeymap()
   local wk = require("which-key")
   wk.add(keymap)
 end
-function M.setup()
-  -- configureCopilot()
-  -- configureCopilotKeymap()
 
+local function configureAiderKeymap()
+  local keymap = {
+    { "<leader>c", group = "AI Code Assistant", nowait = true, remap = false },
+    {
+      mode = { "n", "v" },
+      { "<leader>ca", function() vim.fn.execute("VimuxRunCommand(\"aider --architect\")") end , desc = "Open Aider" },
+      --TODO: add a keymap `<leader>cq` that will add all the files from the quickfix list to aider
+    },
+  }
+
+  local wk = require("which-key")
+  wk.add(keymap)
+end
+
+function M.setup()
   configureSupermaven()
   configureSupermavenKeymap()
+
+  configureAiderKeymap()
 end
 return M

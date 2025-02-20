@@ -160,7 +160,7 @@ function Packer.install(use)
     use({
       "benmills/vimux",
       config = function()
-        vim.g["VimuxUseNearest"] = 0
+        vim.g["VimuxUseNearest"] = 1
       end,
     })                                                            -- open commands in tmux split
     use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open go commands in tmux split

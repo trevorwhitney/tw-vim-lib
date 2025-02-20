@@ -76,16 +76,7 @@ local function configureKeymap()
     { "<leader>c", group = "AI Code Assistant", nowait = true, remap = false },
     {
       mode = { "n", "v" },
-      { "<leader>ca", function() avante.ask() end, desc = "Avanate ask" },
-    },
-    {
-      mode = { "n" },
-      { "<leader>cr", function() avante.refresh() end, desc = "Avante refresh" },
-      { "<leader>ct", function() avante.toggle() end,  desc = "Avante toggle" },
-    },
-    {
-      mode = { "v" },
-      { "<leader>ce", function() avante.edit() end, desc = "Avanate edit" },
+      { "<leader>cc", function() avante.ask() end, desc = "Avanate ask" },
     },
   }
 

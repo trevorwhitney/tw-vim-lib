@@ -24,7 +24,7 @@ local function keybindings()
       "<leader>dD",
       function()
         local go = require("tw.languages.go")
-        local test_name = go.get_test_name()
+        local test_name = go.get_test_name(true)
 
         vim.cmd("update")
         go.debug(test_name)
@@ -89,6 +89,41 @@ local function keybindings()
       "<leader>ta",
       ":w<cr> :GolangTestCurrentPackage<cr>",
       desc = "Package Tests",
+      nowait = false,
+      remap = false,
+    },
+
+
+    { "<leader>c", group = "AI Code Assistant", nowait = true, remap = false },
+    {
+      "<leader>ct",
+      function()
+        local go = require("tw.languages.go")
+        local package_name = "./" .. vim.fn.expand("%:h")
+
+        local test_name = go.get_test_name(false)
+
+        vim.cmd("update")
+        vim.fn["VimuxSendText"](string.format("/run go test -v -run \'%s\' %s", test_name, package_name))
+        vim.fn["VimuxSendKeys"]("Enter")
+      end,
+      desc = "Aider Test",
+      nowait = false,
+      remap = false,
+    },
+    {
+      "<leader>cT",
+      function()
+        local go = require("tw.languages.go")
+        local package_name = "./" .. vim.fn.expand("%:h")
+
+        local test_name = go.get_test_name(true)
+
+        vim.cmd("update")
+        vim.fn["VimuxSendText"](string.format("/run go test -v -run \'%s\' %s", test_name, package_name))
+        vim.fn["VimuxSendKeys"]("Enter")
+      end,
+      desc = "Aider Test (Prompt for Name)",
       nowait = false,
       remap = false,
     },
