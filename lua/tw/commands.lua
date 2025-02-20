@@ -11,7 +11,7 @@ function M.setup()
 
 	api.nvim_create_user_command("Gpr", "Git pull --rebase", { bang = true, nargs = 0 })
 
-	api.nvim_create_user_command("Gpp", require("tw.config.Git").gpp, { bang = true, nargs = 0 })
+	api.nvim_create_user_command("Gpp", require("tw.git").gpp, { bang = true, nargs = 0 })
 end
 
 return M

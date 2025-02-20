@@ -209,7 +209,7 @@ function M.setup(lsp_options)
   options = vim.tbl_extend("force", options, lsp_options)
 
   setup_navigator(options)
-  require("tw.config.Formatting").setup(options.use_eslint_daemon)
+  require("tw.formatting").setup(options.use_eslint_daemon)
   require("tw.languages.go").setupVimGo(options.go_build_tags)
 end
 

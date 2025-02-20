@@ -117,7 +117,7 @@ let
 
       customRC = builtins.concatStringsSep "\n" (with pkgs; [
         "lua <<EOF"
-        "require('tw.config').setup({"
+        "require('tw').setup({"
       ] ++ (if withLspSupport then [
         "lsp_support = true,"
         "lua_ls_root = '${lua-language-server}',"

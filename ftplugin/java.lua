@@ -1,4 +1,4 @@
-local lsp = require("tw.config.lsp")
+local lsp = require("tw.lsp")
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")

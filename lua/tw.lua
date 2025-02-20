@@ -44,28 +44,28 @@ function Config.setup(user_options)
 	end
 
 	-- Use CapitalCamelCase to avoid collisioins with global lua modules
-	require("tw.Packer").install(require("packer").use)
+	require("tw.packer").install(require("packer").use)
 
-	require("tw.config.VimOptions").setup()
+	require("tw.vim-options").setup()
 
-	require("tw.config.Augroups").setup()
-	require("tw.config.Commands").setup()
+	require("tw.augroups").setup()
+	require("tw.commands").setup()
 
-	require("tw.config.Appearance").setup()
-	require("tw.config.Ai").setup()
-	require("tw.config.Avante").setup()
-	require("tw.config.Dap").setup(options.dap_configs)
-	require("tw.config.Git").setup()
-	require("tw.config.NvimCmp").setup()
-	require("tw.config.NvimTree").setup()
-	require("tw.config.Telescope").setup()
-	require("tw.config.Testing").setup()
-	require("tw.config.Treesitter").setup()
-	require("tw.config.Trouble").setup()
-	require("tw.config.WhichKey").setup()
+	require("tw.appearance").setup()
+	require("tw.ai").setup()
+	require("tw.avante").setup()
+	require("tw.dap").setup(options.dap_configs)
+	require("tw.git").setup()
+	require("tw.nvim-cmp").setup()
+	require("tw.nvim-tree").setup()
+	require("tw.telescope").setup()
+	require("tw.testing").setup()
+	require("tw.treesitter").setup()
+	require("tw.trouble").setup()
+	require("tw.which-key").setup()
 
 	if options.lsp_support then
-		require("tw.config.Lsp").setup({
+		require("tw.lsp").setup({
 			lua_ls_root = options.lua_ls_root,
 			rocks_tree_root = options.rocks_tree_root,
 			use_eslint_daemon = options.use_eslint_daemon,

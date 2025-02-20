@@ -47,7 +47,7 @@ end
 local lua_ls_path = vim.api.nvim_eval('get(s:, "lua_ls_path", "")')
 local rocks_tree_root = vim.api.nvim_eval('get(s:, "rocks_tree_root", "")')
 
-require('tw.config').setup(lua_ls_path, rocks_tree_root)
+require('tw').setup(lua_ls_path, rocks_tree_root)
 EOF
 ```
 
@@ -122,7 +122,7 @@ local function load_plugins()
 	})
 
   require('tw.packer').install(use)
-  require("tw.config").setup()
+  require("tw").setup()
 end
 
 _G.load_config = function()

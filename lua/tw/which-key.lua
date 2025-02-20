@@ -2,7 +2,7 @@ local M = {}
 
 local function mapKeys(wk)
   local trouble = require("trouble")
-  local format = require("tw.config.Formatting").format
+  local format = require("tw.formatting").format
   local async = require("plenary.async")
   local telescope = require("telescope")
 
@@ -18,7 +18,7 @@ local function mapKeys(wk)
     {
       "<leader>ic",
       function()
-        require("tw.config.Appearance").switch_colors()
+        require("tw.appearance").switch_colors()
       end,
       desc = "Reset Colors (to System)",
       nowait = false,
@@ -194,7 +194,7 @@ local function mapKeys(wk)
       nowait = true,
       remap = false
     },
-    { "\\s", "<cmd>lua require('tw.config.Git').toggleGitStatus()<cr>", desc = "Git Status",    nowait = true, remap = false },
+    { "\\s", "<cmd>lua require('tw.git').toggleGitStatus()<cr>", desc = "Git Status",    nowait = true, remap = false },
 
     {
       mode = { "v" },
