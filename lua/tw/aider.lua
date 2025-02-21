@@ -85,6 +85,7 @@ function M.Open(args, window_type)
     M.aider_job_id = vim.fn.termopen(command, { on_exit = OnExit })
     vim.bo[M.aider_buf].bufhidden = "hide"
     vim.bo[M.aider_buf].filetype = "AiderConsole"
+    vim.cmd('startinsert')
   end
 end
 
