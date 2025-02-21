@@ -4,6 +4,16 @@ local M = {}
 local Path = require("plenary.path")
 local Utils = require("avante.utils")
 
+local defaultArgs = {
+  "--architect",
+  "--cache-prompts",
+  "--code-theme", "solarized-light",
+  "--light-mode",
+  "--model", "anthropic/claude-3-5-sonnet-20241022",
+  "--vim",
+  "--watch-files",
+}
+
 M.aider_buf = nil
 M.aider_job_id = nil
 
@@ -64,11 +74,12 @@ local function OnExit(job_id, exit_code, event_type)
 end
 
 function M.Open(args, window_type)
+  args = args or defaultArgs
   window_type = window_type or "vsplit"
   if M.aider_buf and vim.api.nvim_buf_is_valid(M.aider_buf) then
     open_buffer_in_new_window(window_type, M.aider_buf)
   else
-    local command = "aider " .. (args or "")
+    local command = "aider " .. table.concat(args, " ")
     open_window(window_type)
     M.aider_buf = vim.api.nvim_get_current_buf()
     M.aider_job_id = vim.fn.termopen(command, { on_exit = OnExit })
