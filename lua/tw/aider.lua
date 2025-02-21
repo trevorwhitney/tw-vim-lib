@@ -94,8 +94,7 @@ function M.AddQuickfixFiles()
     local absolute_path = Path:new(Utils.get_project_root()):joinpath(filepath):absolute()
     local stat = vim.loop.fs_stat(absolute_path)
 
-    -- AI? will this condition correctly add only files, not directories?
-    if (not stat) or (stat and stat.type ~= "directory") then
+    if stat and stat.type == "file" then
       print("in condition to add")
       local uniform_path = Utils.uniform_path(filepath)
       if not vim.tbl_contains(unique_paths, uniform_path) then
