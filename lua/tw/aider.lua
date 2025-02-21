@@ -155,12 +155,17 @@ local function configureAiderKeymap()
 
   local wk = require("which-key")
   wk.add(keymap)
+end
 
-  vim.api.nvim_set_keymap('t', 'jj', '<C-\\><C-n>', { noremap = true })
-  vim.api.nvim_set_keymap('t', '<Esc>', '<C-\\><C-n>', { noremap = true })
+local function configureTerminalKeymap()
+  local keymap = vim.keymap
+  keymap.set("t", "jj", "<C-\\><C-n>", { noremap = true })
+  keymap.set("t", "<Esc>", "<C-\\><C-n>", { noremap = true })
 end
 
 function M.setup()
   configureAiderKeymap()
+  configureTerminalKeymap()
 end
+
 return M
