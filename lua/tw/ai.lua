@@ -28,24 +28,9 @@ local function configureSupermavenKeymap()
   wk.add(keymap)
 end
 
-local function configureAiderKeymap()
-  local keymap = {
-    { "<leader>c", group = "AI Code Assistant", nowait = true, remap = false },
-    {
-      mode = { "n", "v" },
-      { "<leader>ca", function() vim.fn.execute("VimuxRunCommand(\"aider --architect\")") end , desc = "Open Aider" },
-      --TODO: add a keymap `<leader>cq` that will add all the files from the quickfix list to aider
-    },
-  }
-
-  local wk = require("which-key")
-  wk.add(keymap)
-end
 
 function M.setup()
   configureSupermaven()
   configureSupermavenKeymap()
-
-  configureAiderKeymap()
 end
 return M

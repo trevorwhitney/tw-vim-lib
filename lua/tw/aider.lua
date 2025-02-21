@@ -85,8 +85,6 @@ function M.AddQuickfixFiles()
       :map(function(item) return Utils.relative_path(vim.api.nvim_buf_get_name(item.bufnr)) end)
       :totable()
 
-  print("quickfix files", vim.inspect(quickfix_files))
-
   local unique_paths = {}
   for _, filepath in ipairs(quickfix_files) do
     if not filepath or filepath == "" then return end
@@ -95,18 +93,13 @@ function M.AddQuickfixFiles()
     local stat = vim.loop.fs_stat(absolute_path)
 
     if stat and stat.type == "file" then
-      print("in condition to add")
       local uniform_path = Utils.uniform_path(filepath)
       if not vim.tbl_contains(unique_paths, uniform_path) then
-        print("adding unique path", uniform_path)
         table.insert(unique_paths, uniform_path)
       end
-    else
-      print("outsdie condition to add")
     end
   end
 
-  print("Unique paths:", vim.inspect(unique_paths))
   M.Send({ "/add", table.concat(unique_paths, " ") })
 end
 
@@ -122,6 +115,10 @@ function M.Send(args)
   end
 
   vim.fn.chansend(M.aider_job_id, table.concat(args, " ") .. "\n")
+end
+
+function M.VimTestStrategy(cmd)
+  M.Send({ "/run", cmd })
 end
 
 local function configureAiderKeymap()

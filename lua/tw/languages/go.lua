@@ -82,18 +82,14 @@ local function get_name(path)
   return escaped_regex .. "$"
 end
 
-function Go.get_test_name(prompt, default)
+function Go.get_test_name(default)
   local filename = vim.fn.expand("%")
   if string.find(filename, "_test.go") then
     filename = get_name(filename)
   end
 
   --TODO: instead of a default, we should use telescope to present a list with all options
-  if prompt then
-    return vim.fn.input({ prompt = "[Name] > ", default = default or filename })
-  else
-    return default or filename
-  end
+  return vim.fn.input({ prompt = "[Name] > ", default = default or filename })
 end
 
 function Go.remote_debug(path, port)

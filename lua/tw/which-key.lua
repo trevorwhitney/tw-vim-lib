@@ -3,12 +3,11 @@ local M = {}
 local function mapKeys(wk)
   local trouble = require("trouble")
   local format = require("tw.formatting").format
-  local async = require("plenary.async")
   local telescope = require("telescope")
 
   local keymap = {
     { "<leader>*",  "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args({ default_text = vim.fn.expand('<cword>') })<cr>", desc = "Find Grep (Current Word)", nowait = false, remap = false },
-    { "<leader>D",  "<cmd>Lspsaga show_line_diagnostics<cr>",                                                                                  desc = "Line Diagnostics",         nowait = false, remap = false },
+    { "<leader>D",  vim.diagnostic.open_float,                                                                                                 desc = "Line Diagnostics",         nowait = false, remap = false },
     { "<leader>F",  "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>",                                            desc = "Find Grep",                nowait = false, remap = false },
     { "<leader>R",  "<cmd>Telescope resume<cr>",                                                                                               desc = "Resume Find",              nowait = false, remap = false },
     { "<leader>\\", "<cmd>NvimTreeToggle<cr>",                                                                                                 desc = "NvimTree",                 nowait = false, remap = false },
@@ -46,10 +45,6 @@ local function mapKeys(wk)
       nowait = false,
       remap = false
     },
-    { "<leader>p",   group = "Print",                                                         nowait = false,                    remap = false },
-    { "<leader>pc",  "<cmd>lua require('refactoring').debug.cleanup()<CR>",                   desc = "Cleanup Print Statements", nowait = false, remap = false },
-    { "<leader>pd",  "<cmd>lua require('refactoring').debug.printf({below = false})<CR>",     desc = "Print Debug Line",         nowait = false, remap = false },
-    { "<leader>pv",  "<cmd>lua require('refactoring').debug.print_var()<CR>",                 desc = "Print Var",                nowait = false, remap = false },
     { "<leader>r",   group = "Refactor",                                                      nowait = false,                    remap = false },
     { "<leader>rbf", "<cmd>lua require('refactoring').refactor('Extract Block To File')<CR>", desc = "Extract Block to File",    nowait = false, remap = false },
     { "<leader>rbl", "<cmd>lua require('refactoring').refactor('Extract Block')<CR>",         desc = "Extract Block",            nowait = false, remap = false },
@@ -60,15 +55,20 @@ local function mapKeys(wk)
     { "<leader>t",   group = "Test",                                                          nowait = false,                    remap = false },
     { "<leader>tO",  ":Copen!<cr>",                                                           desc = "Verbose Test Output",      nowait = false, remap = false },
     { "<leader>tf",  ":w<cr> :TestFile<cr>",                                                  desc = "Test File",                nowait = false, remap = false },
-    { "<leader>tl",  ":w<cr> :TestLast<cr>",                                                  desc = "Test Last",                nowait = false, remap = false },
-    { "<leader>to",  ":Copen<cr>",                                                            desc = "Test Output",              nowait = false, remap = false },
+    { "<leader>tF",  ":w<cr> :TestFile -strategy=aider<cr>",                                  desc = "Test File (Aider)",       nowait = false, remap = false },
+    { "<leader>tl",  ":w<cr> :TestLast<cr>",                                                  desc = "Test Last",               nowait = false, remap = false },
+    { "<leader>tL",  ":w<cr> :TestLast -strategy=aider<cr>",                                  desc = "Test Last (Aider)",       nowait = false, remap = false },
+    { "<leader>to",  ":Copen<cr>",                                                            desc = "Test Output",             nowait = false, remap = false },
     { "<leader>tt",  ":w<cr> :TestNearest<cr>",                                               desc = "Test Nearest",             nowait = false, remap = false },
-    { "<leader>tv",  ":TestVisit<cr>",                                                        desc = "Open Last Run Test",       nowait = false, remap = false },
+    { "<leader>tc",  ":w<cr> :TestNearest -strategy=aider<cr>",                               desc = "Test Nearest (Aider)",    nowait = false, remap = false },
+    { "<leader>tv",  ":TestVisit<cr>",                                                        desc = "Open Last Run Test",      nowait = false, remap = false },
     { "<leader>|",   "<cmd>NvimTreeFindFile<cr>",                                             desc = "NvimTree (Current File)",  nowait = false, remap = false },
 
 
     { "[T",          ":tabfirst<cr>",                                                         desc = "First Tab",                nowait = true,  remap = false },
     { "]T",          ":tablast<cr>",                                                          desc = "Last Tab",                 nowait = true,  remap = false },
+    { "]t",          ":tabnext<cr>",                                                          desc = "Next Tab",                nowait = true,  remap = false },
+    { "[t",          ":tabprevious<cr>",                                                      desc = "Previous Tab",            nowait = true,  remap = false },
     { "[b",          ":bprevious<cr>",                                                        desc = "Previous Buffer",          nowait = true,  remap = false },
     { "]b",          ":bnext<cr>",                                                            desc = "Next Buffer",              nowait = true,  remap = false },
     {
@@ -123,8 +123,6 @@ local function mapKeys(wk)
       nowait = true,
       remap = false
     },
-    { "]t", ":tabnext<cr>",     desc = "Next Tab",     nowait = true, remap = false },
-    { "[t", ":tabprevious<cr>", desc = "Previous Tab", nowait = true, remap = false },
 
     { "\\", group = "Windows",  nowait = true,         remap = false },
     {
@@ -148,7 +146,6 @@ local function mapKeys(wk)
     { "\\O", "<cmd>AerialToggle!<cr>",             desc = "Toggle Outline",         nowait = true, remap = false },
     { "\\S", "<cmd>Telescope git_status<cr>",      desc = "Git Status (Telescope)", nowait = true, remap = false },
     { "\\b", "<cmd>Telescope git_branches<cr>",    desc = "Branches",               nowait = true, remap = false },
-    { "\\c", "<cmd>DapToggleConsole<cr>",          desc = "Dap Console",            nowait = true, remap = false },
     { "\\j", "<cmd>Telescope jumplist<cr>",        desc = "Jump List",              nowait = true, remap = false },
     { "\\l", "<cmd>call ToggleLocationList()<cr>", desc = "Location List",          nowait = true, remap = false },
     { "\\m", "<cmd>Telescope marks<cr>",           desc = "Marks",                  nowait = true, remap = false },
@@ -199,15 +196,6 @@ local function mapKeys(wk)
     {
       mode = { "v" },
       { "<leader>*",  "\"sy:TelescopeLiveGrepRaw <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",            desc = "Search Current Selection", nowait = false, remap = false },
-      -- { "<leader>c",  group = "Copilot",                                                                                        nowait = false,                    remap = false },
-      -- { "<leader>cc", "<cmd>CopilotChat<cr>",                                                                                   desc = "Chat",                     nowait = false, remap = false },
-      -- { "<leader>cd", "<cmd>CopilotChatDocs<cr>",                                                                               desc = "Docs",                     nowait = false, remap = false },
-      -- { "<leader>ce", "<cmd>CopilotChatExplain<cr>",                                                                            desc = "Explain",                  nowait = false, remap = false },
-      -- { "<leader>cf", "<cmd>CopilotChatFix<cr>",                                                                                desc = "Fix",                      nowait = false, remap = false },
-      -- { "<leader>co", "<cmd>CopilotChatOptimize<cr>",                                                                           desc = "Optimize",                 nowait = false, remap = false },
-      -- { "<leader>ct", "<cmd>CopilotChatTests<cr>",                                                                              desc = "Tests",                    nowait = false, remap = false },
-      { "<leader>p",  group = "Print",                                                                                          nowait = false,                    remap = false },
-      { "<leader>pv", "<cmd>lua require('refactoring').debug.print_var()<CR>",                                                  desc = "Print Var",                nowait = false, remap = false },
       { "<leader>r",  group = "Refactor",                                                                                       nowait = false,                    remap = false },
       { "<leader>re", "<cmd>lua require('refactoring').refactor('Extract Function')<CR>",                                       desc = "Extract Function",         nowait = false, remap = false },
       { "<leader>rf", "<cmd>lua require('refactoring').refactor('Extract Function To File')<CR>",                               desc = "Extract Function To File", nowait = false, remap = false },
@@ -271,13 +259,18 @@ local function vimMappings()
   cmd.ca("W", "w")
   cmd.ca("WQ", "wq")
   cmd.ca("Wq", "wq")
-
+  cmd.ca("WQA", "wqa")
+  cmd.ca("WQa", "wqa")
+  cmd.ca("Wqa", "wqa")
   local api = vim.api
   api.nvim_create_user_command("Qa", ":qa", { bang = true, nargs = 0 })
   api.nvim_create_user_command("QA", ":qa", { bang = true, nargs = 0 })
   api.nvim_create_user_command("Q", ":q", { bang = true, nargs = 0 })
   api.nvim_create_user_command("Wq", ":wq", { bang = true, nargs = 0 })
   api.nvim_create_user_command("WQ", ":wq", { bang = true, nargs = 0 })
+  api.nvim_create_user_command("WQA", ":wqa", { bang = true, nargs = 0 })
+  api.nvim_create_user_command("WQa", ":wqa", { bang = true, nargs = 0 })
+  api.nvim_create_user_command("Wqa", ":wqa", { bang = true, nargs = 0 })
   api.nvim_create_user_command("W", ":w", { bang = true, nargs = 0 })
 
   local keymap = vim.keymap
