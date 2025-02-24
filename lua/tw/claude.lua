@@ -99,6 +99,20 @@ function M.SendCommand(args)
   end
 end
 
+function M.SendText(args)
+  if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
+    M.Open()
+
+    -- Wait a bit for the Claude chat to initialize
+    vim.defer_fn(function()
+      M.SendText(args)
+    end, 1000)
+    return
+  else
+    vim.fn.chansend(M.claude_job_id, table.concat(args, " "))
+  end
+end
+
 function M.VimTestStrategy(cmd)
   M.SendCommand({ cmd })
 end
@@ -111,6 +125,7 @@ local function configureClaudeKeymap()
     {
       mode = { "n", "v" },
       { "<leader>cl", function() claude.Open() end, desc = "Open Claude" },
+      { "<leader>c*", function() claude.SendText({vim.fn.expand('<cword>')}) end, desc = "Send Current Word to Claude", nowait = false, remap = false },
     },
     {
       mode = { "n" },
