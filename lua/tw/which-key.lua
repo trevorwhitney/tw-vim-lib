@@ -55,12 +55,9 @@ local function mapKeys(wk)
     { "<leader>t",   group = "Test",                                                          nowait = false,                    remap = false },
     { "<leader>tO",  ":Copen!<cr>",                                                           desc = "Verbose Test Output",      nowait = false, remap = false },
     { "<leader>tf",  ":w<cr> :TestFile<cr>",                                                  desc = "Test File",                nowait = false, remap = false },
-    { "<leader>tF",  ":w<cr> :TestFile -strategy=aider<cr>",                                  desc = "Test File (Aider)",       nowait = false, remap = false },
     { "<leader>tl",  ":w<cr> :TestLast<cr>",                                                  desc = "Test Last",               nowait = false, remap = false },
-    { "<leader>tL",  ":w<cr> :TestLast -strategy=aider<cr>",                                  desc = "Test Last (Aider)",       nowait = false, remap = false },
     { "<leader>to",  ":Copen<cr>",                                                            desc = "Test Output",             nowait = false, remap = false },
     { "<leader>tt",  ":w<cr> :TestNearest<cr>",                                               desc = "Test Nearest",             nowait = false, remap = false },
-    { "<leader>tc",  ":w<cr> :TestNearest -strategy=aider<cr>",                               desc = "Test Nearest (Aider)",    nowait = false, remap = false },
     { "<leader>tv",  ":TestVisit<cr>",                                                        desc = "Open Last Run Test",      nowait = false, remap = false },
     { "<leader>|",   "<cmd>NvimTreeFindFile<cr>",                                             desc = "NvimTree (Current File)",  nowait = false, remap = false },
 
