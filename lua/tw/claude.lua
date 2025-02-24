@@ -136,8 +136,6 @@ local function configureClaudeKeymap()
     },
     {
       mode = { "n" },
-      { "<leader>tF", ":w<cr> :TestFile -strategy=claude<cr>",    desc = "Test File (claude)",    nowait = false, remap = false },
-      { "<leader>tL", ":w<cr> :TestLast -strategy=claude<cr>",    desc = "Test Last (claude)",    nowait = false, remap = false },
       { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>", desc = "Test Nearest (claude)", nowait = false, remap = false },
     }
   }

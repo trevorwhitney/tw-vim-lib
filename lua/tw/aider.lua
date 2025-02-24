@@ -152,12 +152,10 @@ local function configureAiderKeymap()
       },
       { "<leader>cq", function() aider.AddQuickfixFiles() end, desc = "Aider Add Quickfix Files" },
     },
-    -- {
-    --   mode = { "n" },
-    --   { "<leader>tF", ":w<cr> :TestFile -strategy=aider<cr>",    desc = "Test File (Aider)",    nowait = false, remap = false },
-    --   { "<leader>tL", ":w<cr> :TestLast -strategy=aider<cr>",    desc = "Test Last (Aider)",    nowait = false, remap = false },
-    --   { "<leader>tc", ":w<cr> :TestNearest -strategy=aider<cr>", desc = "Test Nearest (Aider)", nowait = false, remap = false },
-    -- }
+    {
+      mode = { "n" },
+      { "<leader>ta", ":w<cr> :TestNearest -strategy=aider<cr>", desc = "Test Nearest (Aider)", nowait = false, remap = false },
+    }
   }
 
   local wk = require("which-key")
