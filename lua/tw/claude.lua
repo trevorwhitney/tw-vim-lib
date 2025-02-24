@@ -73,7 +73,13 @@ function M.Open(args, window_type)
     local command = "claude " .. table.concat(args, " ")
     open_window(window_type)
     M.claude_buf = vim.api.nvim_get_current_buf()
-    M.claude_job_id = vim.fn.termopen(command, { on_exit = OnExit })
+    M.claude_job_id = vim.fn.termopen(command, {
+      on_exit = OnExit,
+      -- TODO: make this configurable
+      env = {
+        BUILD_IN_CONTAINER = "false",
+      }
+    })
     vim.bo[M.claude_buf].bufhidden = "hide"
     vim.bo[M.claude_buf].filetype = "ClaudeConsole"
     vim.cmd('startinsert')
@@ -90,6 +96,7 @@ function M.SendCommand(args)
     end, 1000)
     return
   else
+    -- Wait a bit after sending the !, otherwise the text is ignored
     vim.fn.chansend(M.claude_job_id, "!")
     vim.defer_fn(function()
       vim.fn.chansend(M.claude_job_id, table.concat(args, " "))
