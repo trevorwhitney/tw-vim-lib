@@ -25,6 +25,9 @@ let
     nil
     nixpkgs-fmt
     statix
+    (pkgs.callPackage ../claude-code {
+      inherit (pkgs) lib buildNpmPackage fetchzip;
+    })
   ];
 
   lspPackages = with pkgs;
