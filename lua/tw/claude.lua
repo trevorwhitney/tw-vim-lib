@@ -61,45 +61,58 @@ local function OnExit(job_id, exit_code, event_type)
   end)
 end
 
+local get_claude_path = function()
+  local handle = io.popen(table.concat({ "command", "-v", "claude" }, " "))
+  local claude_path = ""
+  if handle then
+    local result = handle:read("*a")
+    if result then
+      claude_path = result:gsub("\n", "")
+    end
+    handle:close()
+  end
+
+  return claude_path
+end
+
+local function start_new_claude_job(args, window_type)
+  local claude_path = get_claude_path()
+  if claude_path == "" then
+    vim.api.nvim_err_writeln("Claude executable not found in PATH")
+    return
+  end
+  -- Disable auto update
+  local configHandle = io.popen(table.concat({ claude_path, "config", "set", "-g", "autoUpdaterStatus", "disabled" }, " "))
+  if configHandle then
+    configHandle:close()
+  end
+
+  -- Launch Claude
+  local cmd_args = ""
+  if args and #args > 0 then
+    cmd_args = table.concat(args, " ")
+  end
+  local command = claude_path .. " " .. cmd_args
+  open_window(window_type)
+  M.claude_buf = vim.api.nvim_get_current_buf()
+  M.claude_job_id = vim.fn.termopen(command, {
+    on_exit = OnExit,
+    -- TODO: make this configurable
+    env = {
+      BUILD_IN_CONTAINER = "false",
+    }
+  })
+  vim.bo[M.claude_buf].bufhidden = "hide"
+  vim.bo[M.claude_buf].filetype = "ClaudeConsole"
+  vim.cmd('startinsert')
+end
 function M.Open(args, window_type)
   args = args or defaultArgs
   window_type = window_type or "vsplit"
   if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) then
     open_buffer_in_new_window(window_type, M.claude_buf)
   else
-    -- Use 'which' to find the path to claude executable
-    local handle = io.popen("which claude")
-    local claude_path = ""
-    if handle then
-      local result = handle:read("*a")
-      if result then
-        claude_path = result:gsub("\n", "")
-      end
-      handle:close()
-    end
-
-    if claude_path == "" then
-      vim.api.nvim_err_writeln("Claude executable not found in PATH")
-      return
-    end
-
-    local cmd_args = ""
-    if args and #args > 0 then
-      cmd_args = table.concat(args, " ")
-    end
-    local command = claude_path .. " " .. cmd_args
-    open_window(window_type)
-    M.claude_buf = vim.api.nvim_get_current_buf()
-    M.claude_job_id = vim.fn.termopen(command, {
-      on_exit = OnExit,
-      -- TODO: make this configurable
-      env = {
-        BUILD_IN_CONTAINER = "false",
-      }
-    })
-    vim.bo[M.claude_buf].bufhidden = "hide"
-    vim.bo[M.claude_buf].filetype = "ClaudeConsole"
-    vim.cmd('startinsert')
+    start_new_claude_job(args, window_type)
   end
 end
 
