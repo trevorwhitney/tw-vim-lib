@@ -157,14 +157,14 @@ function Packer.install(use)
   packer.startup(function()
     use("wbthomason/packer.nvim")
 
-    use({
-      "benmills/vimux",
-      config = function()
-        vim.g["VimuxUseNearest"] = 0
-      end,
-    })                                                            -- open commands in tmux split
+    use({ "benmills/vimux" })                                     -- open commands in tmux split
     use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open go commands in tmux split
-    use("christoomey/vim-tmux-navigator")                         -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
+    use({
+      "christoomey/vim-tmux-navigator",
+      config = function()
+        vim.g["tmux_navigator_no_mappings"] = 1
+      end
+    })    -- C-<h,j,k,l> seamlessly switches between vim and tmux splits
     use("coachshea/vim-textobj-markdown")
     use({ "folke/which-key.nvim", requires = "echasnovski/mini.nvim" })
     use("google/vim-jsonnet")

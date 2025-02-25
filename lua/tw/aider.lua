@@ -162,15 +162,8 @@ local function configureAiderKeymap()
   wk.add(keymap)
 end
 
-local function configureTerminalKeymap()
-  local keymap = vim.keymap
-  keymap.set("t", "jj", "<C-\\><C-n>", { noremap = true })
-  keymap.set("t", "<Esc>", "<C-\\><C-n>", { noremap = true })
-end
-
 function M.setup()
   configureAiderKeymap()
-  configureTerminalKeymap()
 end
 
 return M

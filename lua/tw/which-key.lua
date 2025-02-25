@@ -291,6 +291,20 @@ local function vimMappings()
   -- ====== Readline / RSI =======
   keymap.set("i", "<c-k>", "<c-o>D", { noremap = true })
   keymap.set("c", "<c-k>", "<c-\\>e getcmdpos() == 1 ? '' : getcmdline()[:getcmdpos()-2]<cr>", { noremap = true })
+  -- ====== Terminal =======
+  keymap.set("t", "jj", "<C-\\><C-n>", { noremap = true })
+
+  -- ====== Tmux-Navigator =======
+  -- This is done manually instead of automatically via the plugin to make it work with terminals
+  -- The default mappings are disabled in packer.lua
+  keymap.set("n", "<C-j>", ":<C-U>TmuxNavigateDown<cr>", { noremap = true })
+  keymap.set("n", "<C-k>", ":<C-U>TmuxNavigateUp<cr>", { noremap = true })
+  keymap.set("n", "<C-h>", ":<C-U>TmuxNavigateLeft<cr>", { noremap = true })
+  keymap.set("n", "<C-l>", ":<C-U>TmuxNavigateRight<cr>", { noremap = true })
+  keymap.set("t", "<C-j>", "<C-\\><C-n><C-W><C-J>", { noremap = true })
+  keymap.set("t", "<C-k>", "<C-\\><C-n><C-W><C-k>", { noremap = true })
+  keymap.set("t", "<C-h>", "<C-\\><C-n><C-W><C-h>", { noremap = true })
+  keymap.set("t", "<C-l>", "<C-\\><C-n><C-W><C-l>", { noremap = true })
 end
 
 function M.setup()

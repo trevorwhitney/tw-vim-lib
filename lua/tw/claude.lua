@@ -1,8 +1,5 @@
 local M = {}
 
-local Path = require("plenary.path")
-local Utils = require("avante.utils")
-
 local defaultArgs = {}
 
 M.claude_buf = nil
@@ -70,7 +67,27 @@ function M.Open(args, window_type)
   if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) then
     open_buffer_in_new_window(window_type, M.claude_buf)
   else
-    local command = "claude " .. table.concat(args, " ")
+    -- Use 'which' to find the path to claude executable
+    local handle = io.popen("which claude")
+    local claude_path = ""
+    if handle then
+      local result = handle:read("*a")
+      if result then
+        claude_path = result:gsub("\n", "")
+      end
+      handle:close()
+    end
+
+    if claude_path == "" then
+      vim.api.nvim_err_writeln("Claude executable not found in PATH")
+      return
+    end
+
+    local cmd_args = ""
+    if args and #args > 0 then
+      cmd_args = table.concat(args, " ")
+    end
+    local command = claude_path .. " " .. cmd_args
     open_window(window_type)
     M.claude_buf = vim.api.nvim_get_current_buf()
     M.claude_job_id = vim.fn.termopen(command, {
@@ -100,8 +117,8 @@ function M.SendCommand(args)
     vim.fn.chansend(M.claude_job_id, "!")
     vim.defer_fn(function()
       vim.fn.chansend(M.claude_job_id, table.concat(args, " "))
-      -- TODO: Figure out how to get claude to accept a entery keypress
-      -- vim.fn.chansend(M.claude_job_id,  0x0D)
+      -- TODO: Figure out how to get claude to accept an enter keypress
+      vim.fn.chansend(M.claude_job_id, {""})
     end, 1000)
   end
 end
@@ -144,15 +161,8 @@ local function configureClaudeKeymap()
   wk.add(keymap)
 end
 
-local function configureTerminalKeymap()
-  local keymap = vim.keymap
-  keymap.set("t", "jj", "<C-\\><C-n>", { noremap = true })
-  keymap.set("t", "<Esc>", "<C-\\><C-n>", { noremap = true })
-end
-
 function M.setup()
   configureClaudeKeymap()
-  configureTerminalKeymap()
 end
 
 return M
