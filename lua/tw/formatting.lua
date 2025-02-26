@@ -75,7 +75,8 @@ local function configure(use_eslint_daemon)
 
   local formatters_by_ft = {
     bash = { "shfmt", "shellcheck" },
-    go = { "goimports", "gofmt", "gofumpt", "golines" },
+    -- these are all broken, do they not work with partial ranges?
+    -- go = { "goimports", "gofmt", "gofumpt", "golines" },
     javascript = { eslint, "prettierd" },
     json = { "prettierd", "fixjson" },
     jsonnet = { "jsonnetfmt" },
@@ -98,10 +99,64 @@ local function configure(use_eslint_daemon)
   })
 end
 
+local function mapKeys()
+  local wk = require("which-key")
+  local keymap = {
+    -- Formatting
+    {
+      mode = { "v", "x" },
+      {
+        "<leader>=",
+        function()
+          vim.cmd("update")
+          local bufnr = vim.api.nvim_get_current_buf()
+          local buf_ft = vim.bo[bufnr].filetype
+
+          -- Go formatters are broken, I think because they don't support partial ranges.
+          -- So conditionally run golines for a specifically selected range, otherwise rely on lsp formatting
+          if buf_ft == "go" then
+            require('conform').format({ async = false, lsp_format = "first", formatters = { "golines" } })
+            return
+          end
+
+          require('conform').format({ async = false, lsp_format = "first" })
+        end,
+        desc = "Format",
+        nowait = true,
+        remap = false
+      },
+    },
+    {
+      mode = { "n" },
+      {
+        "<leader>=",
+        function()
+          vim.cmd("update")
+          M.format()
+        end,
+        desc = "Format",
+        nowait = true,
+        remap = false
+      },
+      {
+        "<leader>+",
+        function()
+          vim.cmd("update")
+          require('conform').format({ async = false, lsp_format = "first" })
+        end,
+        desc = "Format",
+        nowait = true,
+        remap = false
+      },
+    },
+  }
+
+  wk.add(keymap)
+end
 function M.setup(use_eslint_daemon)
   configure(use_eslint_daemon)
+  mapKeys()
 end
-
 function M.format(options)
   local opts = options or {}
   local bufnr = vim.api.nvim_get_current_buf()
