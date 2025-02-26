@@ -68,9 +68,9 @@ local function configure(use_eslint_daemon)
   set.formatexpr = "v:lua.require'conform'.formatexpr()"
 
   -- TODO: do something similar for prettierd vs prettier?
-  local eslint = { "eslint" }
+  local eslint = "eslint"
   if use_eslint_daemon then
-    eslint = { "eslint_d" }
+    eslint = "eslint_d"
   end
 
   local formatters_by_ft = {
