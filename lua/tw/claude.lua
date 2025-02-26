@@ -1,5 +1,7 @@
 local M = {}
 
+local Path = require("plenary.path")
+local Utils = require("avante.utils")
 local defaultArgs = {}
 
 M.claude_buf = nil
@@ -106,6 +108,25 @@ local function start_new_claude_job(args, window_type)
   vim.bo[M.claude_buf].filetype = "ClaudeConsole"
   vim.cmd('startinsert')
 end
+
+local function submit()
+  vim.defer_fn(function()
+    vim.fn.chansend(M.claude_job_id, "\r")
+  end, 500)
+end
+
+local function send(args)
+  local text = ""
+  if type(args) == "string" then
+    -- Handle string argument
+    text = args
+  elseif type(args) == "table" and args and #args > 0 then
+    -- Handle table argument
+    text = table.concat(args, " ")
+  end
+  vim.fn.chansend(M.claude_job_id, text)
+end
+
 function M.Open(args, window_type)
   args = args or defaultArgs
   window_type = window_type or "vsplit"
@@ -123,16 +144,14 @@ function M.SendCommand(args)
     -- Wait a bit for the Claude chat to initialize
     vim.defer_fn(function()
       M.SendCommand(args)
-    end, 1000)
+    end, 1500)
     return
   else
     -- Wait a bit after sending the !, otherwise the text is ignored
     vim.fn.chansend(M.claude_job_id, "!")
     vim.defer_fn(function()
-      vim.fn.chansend(M.claude_job_id, table.concat(args, " "))
-      -- TODO: Figure out how to get claude to accept an enter keypress
-      vim.fn.chansend(M.claude_job_id, {""})
-    end, 1000)
+      M.SendText(args)
+    end, 500)
   end
 end
 
@@ -143,15 +162,74 @@ function M.SendText(args)
     -- Wait a bit for the Claude chat to initialize
     vim.defer_fn(function()
       M.SendText(args)
-    end, 1000)
+    end, 1500)
     return
   else
-    vim.fn.chansend(M.claude_job_id, table.concat(args, " "))
+    send(args)
+    submit()
   end
 end
 
 function M.VimTestStrategy(cmd)
   M.SendCommand({ cmd })
+end
+
+local function sendCodeSnippet(args, rel_path)
+  send({
+    "I have questions about the following code snippet in file " .. rel_path .. "\n",
+    "```\n",
+  })
+  send(args)
+  send({ "```\n", })
+  submit()
+end
+
+function M.SendSelection()
+  if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
+    M.Open()
+
+    -- Wait a bit for the Claude chat to initialize
+    vim.defer_fn(function()
+      M.SendSelection()
+    end, 1500)
+    return
+  else
+    -- Get the current selection
+    vim.cmd('normal! "sy')
+
+    -- Get the content of the register x
+    local selection = vim.fn.getreg('s')
+
+
+    local filename = vim.fn.expand("%")
+    local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
+
+    -- Send the prompt
+    sendCodeSnippet(selection, rel_path)
+
+    -- Return to visual mode
+    vim.cmd('normal! gv')
+  end
+end
+
+function M.SendSymbol()
+  if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
+    M.Open()
+
+    -- Wait a bit for the Claude chat to initialize
+    vim.defer_fn(function()
+      M.SendSymbol()
+    end, 1500)
+    return
+  else
+    local filename = vim.fn.expand("%")
+    local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
+    M.SendText({
+      "I have questions about the symbol",
+      vim.fn.expand('<cword>'),
+      "in file" .. rel_path
+    })
+  end
 end
 
 local function configureClaudeKeymap()
@@ -162,11 +240,21 @@ local function configureClaudeKeymap()
     {
       mode = { "n", "v" },
       { "<leader>cl", function() claude.Open() end, desc = "Open Claude" },
-      { "<leader>c*", function() claude.SendText({vim.fn.expand('<cword>')}) end, desc = "Send Current Word to Claude", nowait = false, remap = false },
     },
     {
       mode = { "n" },
       { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>", desc = "Test Nearest (claude)", nowait = false, remap = false },
+      { "<leader>c*", claude.SendSymbol,                          desc = "Send Current Word to Claude", nowait = false, remap = false },
+    },
+    {
+      mode = { "v" },
+      {
+        "<leader>c*",
+        claude.SendSelection,
+        desc = "Send Selection to Claude",
+        nowait = false,
+        remap = false
+      },
     }
   }
 
