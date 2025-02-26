@@ -2,7 +2,9 @@ local M = {}
 
 local Path = require("plenary.path")
 local Utils = require("avante.utils")
-local defaultArgs = {}
+local defaultArgs = {
+  "--cwd", Utils.get_project_root()
+}
 
 M.claude_buf = nil
 M.claude_job_id = nil
@@ -127,6 +129,18 @@ local function send(args)
   vim.fn.chansend(M.claude_job_id, text)
 end
 
+local function confirmOpenAndDo(callback)
+  if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
+    M.Open()
+
+    -- Wait a bit for the Claude chat to initialize
+    vim.defer_fn(function()
+      callback()
+    end, 1500)
+  else
+    callback()
+  end
+end
 function M.Open(args, window_type)
   args = args or defaultArgs
   window_type = window_type or "vsplit"
@@ -138,45 +152,30 @@ function M.Open(args, window_type)
 end
 
 function M.SendCommand(args)
-  if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
-    M.Open()
-
-    -- Wait a bit for the Claude chat to initialize
-    vim.defer_fn(function()
-      M.SendCommand(args)
-    end, 1500)
-    return
-  else
-    -- Wait a bit after sending the !, otherwise the text is ignored
+  confirmOpenAndDo(function()
     vim.fn.chansend(M.claude_job_id, "!")
     vim.defer_fn(function()
-      M.SendText(args)
+      send(args)
+      submit()
     end, 500)
-  end
+  end)
 end
 
 function M.SendText(args)
-  if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
-    M.Open()
-
-    -- Wait a bit for the Claude chat to initialize
-    vim.defer_fn(function()
-      M.SendText(args)
-    end, 1500)
-    return
-  else
+  confirmOpenAndDo(function()
     send(args)
     submit()
-  end
+  end)
 end
-
 function M.VimTestStrategy(cmd)
   M.SendCommand({ cmd })
 end
 
 local function sendCodeSnippet(args, rel_path)
   send({
-    "I have questions about the following code snippet in file " .. rel_path .. "\n",
+    "I have questions about the following code snippet in file",
+    rel_path,
+    "\n",
     "```\n",
   })
   send(args)
@@ -185,66 +184,62 @@ local function sendCodeSnippet(args, rel_path)
 end
 
 function M.SendSelection()
-  if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
-    M.Open()
+  -- Get the current selection
+  vim.cmd('normal! "sy')
 
-    -- Wait a bit for the Claude chat to initialize
-    vim.defer_fn(function()
-      M.SendSelection()
-    end, 1500)
-    return
-  else
-    -- Get the current selection
-    vim.cmd('normal! "sy')
+  -- Get the content of the register x
+  local selection = vim.fn.getreg('s')
 
-    -- Get the content of the register x
-    local selection = vim.fn.getreg('s')
+  -- Get the current file path
+  local filename = vim.fn.expand("%")
+  local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
 
-
-    local filename = vim.fn.expand("%")
-    local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
-
+  confirmOpenAndDo(function()
     -- Send the prompt
     sendCodeSnippet(selection, rel_path)
 
     -- Return to visual mode
     vim.cmd('normal! gv')
-  end
+  end)
 end
 
 function M.SendSymbol()
-  if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
-    M.Open()
-
-    -- Wait a bit for the Claude chat to initialize
-    vim.defer_fn(function()
-      M.SendSymbol()
-    end, 1500)
-    return
-  else
-    local filename = vim.fn.expand("%")
-    local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
+  local filename = vim.fn.expand("%")
+  local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
+  confirmOpenAndDo(function()
     M.SendText({
       "I have questions about the symbol",
       vim.fn.expand('<cword>'),
-      "in file" .. rel_path
+      "in file",
+      rel_path
     })
-  end
+  end)
+end
+
+function M.SendFile()
+  local filename = vim.fn.expand("%")
+  local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
+  confirmOpenAndDo(function()
+    M.SendText({
+      "I have questions about the file",
+      rel_path
+    })
+  end)
 end
 
 local function configureClaudeKeymap()
   local claude = require("tw.claude")
-
   local keymap = {
     { "<leader>c", group = "AI Code Assitant", nowait = true, remap = false },
     {
       mode = { "n", "v" },
-      { "<leader>cl", function() claude.Open() end, desc = "Open Claude" },
+      { "<leader>cl", claude.Open, desc = "Open Claude" },
     },
     {
       mode = { "n" },
       { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>", desc = "Test Nearest (claude)", nowait = false, remap = false },
       { "<leader>c*", claude.SendSymbol,                          desc = "Send Current Word to Claude", nowait = false, remap = false },
+      { "<leader>cf", claude.SendFile,                            desc = "Send File to Claude",         nowait = false, remap = false },
     },
     {
       mode = { "v" },
