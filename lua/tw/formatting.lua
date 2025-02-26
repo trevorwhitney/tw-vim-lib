@@ -67,6 +67,7 @@ local function configure(use_eslint_daemon)
   local set = vim.opt
   set.formatexpr = "v:lua.require'conform'.formatexpr()"
 
+  -- TODO: do something similar for prettierd vs prettier?
   local eslint = { "eslint" }
   if use_eslint_daemon then
     eslint = { "eslint_d" }
@@ -75,14 +76,14 @@ local function configure(use_eslint_daemon)
   local formatters_by_ft = {
     bash = { "shfmt", "shellcheck" },
     go = { "goimports", "gofmt", "gofumpt", "golines" },
-    javascript = { eslint, { "prettierd", "prettier" } },
-    json = { { "prettierd", "prettier" }, "fixjson" },
+    javascript = { eslint, "prettierd" },
+    json = { "prettierd", "fixjson" },
     jsonnet = { "jsonnetfmt" },
-    markdown = { { "prettierd", "prettier" }, "markdownlint" },
+    markdown = { "prettierd", "markdownlint" },
     nix = { "nixpkgs_fmt" },
     sh = { "shfmt", "shellcheck" },
     terraform = { "terraform_fmt" },
-    typescript = { eslint, { "prettierd", "prettier" } },
+    typescript = { eslint, "prettierd" },
     -- prefer lua lsp formatting
     -- lua = { "stylua" },
 
@@ -93,7 +94,7 @@ local function configure(use_eslint_daemon)
     formatters_by_ft = formatters_by_ft,
     default_format_opts = {
       lsp_format = "first",
-    }
+    },
   })
 end
 
