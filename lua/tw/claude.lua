@@ -10,7 +10,7 @@ M.claude_buf = nil
 M.claude_job_id = nil
 
 local function open_vsplit_window()
-  vim.api.nvim_command("vnew")
+  vim.api.nvim_command("vert botright new")
 end
 
 local function open_hsplit_window()
@@ -41,7 +41,7 @@ end
 
 local function open_buffer_in_new_window(window_type, claude_buf)
   if window_type == "vsplit" then
-    vim.api.nvim_command("vsplit | buffer " .. claude_buf)
+    vim.api.nvim_command("vert botright split | buffer " .. claude_buf)
   elseif window_type == "hsplit" then
     vim.api.nvim_command("split | buffer " .. claude_buf)
   else
@@ -129,18 +129,38 @@ local function send(args)
   vim.fn.chansend(M.claude_job_id, text)
 end
 
-local function confirmOpenAndDo(callback)
+local function confirmOpenAndDo(callback, args, window_type)
+  args = args or defaultArgs
+  window_type = window_type or "vsplit"
   if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
-    M.Open()
+    -- Buffer doesn't exist, open it
+    M.Open(args, window_type)
 
     -- Wait a bit for the Claude chat to initialize
     vim.defer_fn(function()
       callback()
     end, 1500)
   else
+    -- Buffer exists, make sure it's visible
+    local windows = vim.api.nvim_list_wins()
+    local is_visible = false
+
+    for _, win in ipairs(windows) do
+      if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.claude_buf then
+        -- Buffer is visible, hide it by closing the window
+        is_visible = true
+        break
+      end
+    end
+
+    -- If buffer exists but is not visible, show it in a vsplit
+    if not is_visible then
+      open_buffer_in_new_window(window_type, M.claude_buf)
+    end
     callback()
   end
 end
+
 function M.Open(args, window_type)
   args = args or defaultArgs
   window_type = window_type or "vsplit"
@@ -148,6 +168,34 @@ function M.Open(args, window_type)
     open_buffer_in_new_window(window_type, M.claude_buf)
   else
     start_new_claude_job(args, window_type)
+  end
+end
+
+function M.Toggle(args, window_type)
+  args = args or defaultArgs
+  window_type = window_type or "vsplit"
+  -- If Claude buffer exists and is valid
+  if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) then
+    -- Check if buffer is visible in any window
+    local windows = vim.api.nvim_list_wins()
+    local is_visible = false
+
+    for _, win in ipairs(windows) do
+      if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.claude_buf then
+        -- Buffer is visible, hide it by closing the window
+        vim.api.nvim_win_close(win, false)
+        is_visible = true
+        break
+      end
+    end
+
+    -- If buffer exists but is not visible, show it in hsplit
+    if not is_visible then
+      open_buffer_in_new_window(window_type, M.claude_buf)
+    end
+  else
+    -- Buffer doesn't exist, create it
+    M.Open(args, window_type)
   end
 end
 
@@ -206,10 +254,12 @@ end
 function M.SendSymbol()
   local filename = vim.fn.expand("%")
   local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
+  local word = vim.fn.expand('<cword>')
+
   confirmOpenAndDo(function()
     M.SendText({
       "I have questions about the symbol",
-      vim.fn.expand('<cword>'),
+      word,
       "in file",
       rel_path
     })
@@ -233,7 +283,7 @@ local function configureClaudeKeymap()
     { "<leader>c", group = "AI Code Assitant", nowait = true, remap = false },
     {
       mode = { "n", "v" },
-      { "<leader>cl", claude.Open, desc = "Open Claude" },
+      { "<leader>cl", claude.Toggle, desc = "Toggle Claude" },
     },
     {
       mode = { "n" },
