@@ -2,31 +2,48 @@
   description = "Neovim configured just how I like it";
 
   inputs = {
-    # nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-24.11-darwin";
     flake-utils.url = "github:numtide/flake-utils";
+
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
   outputs =
     { self
     , flake-utils
     , nixpkgs
-    }:
-    let
-      nix = import ./nix {
-        inherit self;
-      };
-    in
-    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-darwin" ]
+    , nixpkgs-unstable
+    }: flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-darwin" ]
       (system:
       let
-        pkgs = import nixpkgs {
+        unstable = import nixpkgs-unstable {
           inherit system;
-          inherit (nix) overlays;
           config = {
             allowUnfree = true;
           };
         };
+
+        pkgs =
+          let
+            base = import nixpkgs
+              {
+                inherit system;
+                config = {
+                  allowUnfree = true;
+                };
+              };
+          in
+          base // rec {
+            inherit (unstable) claude-code;
+            callPackage = base.callPackage;
+            jdtls = callPackage ./nix/packages/jdtls { };
+            neovim = attrs: import ./nix/packages/neovim
+              ({
+                inherit self jdtls;
+                inherit (base) lib fetchFromGitHub vimUtils neovimUtils;
+                pkgs = base // { inherit jdtls claude-code; };
+              } // attrs);
+          };
 
         nodeJsPkg = pkgs.nodejs_20;
         goPkg = pkgs.go_1_23;
@@ -90,7 +107,5 @@
                 )
               ]);
             };
-      }) // {
-      inherit (nix) overlay;
-    };
+      });
 }

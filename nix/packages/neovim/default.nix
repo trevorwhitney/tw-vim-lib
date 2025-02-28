@@ -25,8 +25,10 @@ let
     nil
     nixpkgs-fmt
     statix
-    (pkgs.callPackage ../claude-code {
-      inherit (pkgs) lib buildNpmPackage fetchzip;
+
+    claude-code
+    (pkgs.callPackage ../change-background {
+      inherit pkgs;
     })
   ];
 

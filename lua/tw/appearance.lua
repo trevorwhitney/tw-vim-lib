@@ -29,11 +29,14 @@ local function change_colors()
 
 		if match then
 			vim.opt.background = "dark"
+      vim.system({ "change-background", "dark" })
 		else
 			vim.opt.background = "light"
+      vim.system({ "change-background", "light" })
 		end
 	else
 		vim.opt.background = os.getenv("BACKGROUND") or "light"
+    -- TODO: call change-background on non macOS systems
 	end
 
 	vim.cmd("colorscheme everforest")
@@ -45,6 +48,46 @@ local function change_colors()
 	-- require("solarized").set()
 end
 
+local function map_keys()
+  local wk = require("which-key")
+  local keymap = {
+    {
+      "<leader>ic",
+      function()
+        M.switch_colors()
+      end,
+      desc = "Reset Colors (to System)",
+      nowait = false,
+      remap = false
+    },
+    {
+      "<leader>id",
+      function()
+        vim.opt.background = "dark"
+        vim.system({ "change-background", "dark" })
+        vim.cmd("colorscheme everforest")
+        require("lualine").setup({ options = { theme = "everforest" } })
+      end,
+      desc = "Dark Mode",
+      nowait = false,
+      remap = false
+    },
+    {
+      "<leader>il",
+      function()
+        vim.opt.background = "light"
+        vim.system({ "change-background", "light" })
+        vim.cmd("colorscheme everforest")
+        require("lualine").setup({ options = { theme = "everforest" } })
+      end,
+      desc = "Light Mode",
+      nowait = false,
+      remap = false
+    },
+  }
+  wk.add(keymap)
+end
+
 function M.setup()
 	vim.opt.termguicolors = true
 
@@ -52,8 +95,8 @@ function M.setup()
 	setup_everforest()
 
 	change_colors()
-
-	api.nvim_create_autocmd("Signal", { pattern = "SIGUSR1", callback = change_colors })
+  map_keys()
+  api.nvim_create_autocmd("Signal", { pattern = "SIGUSR1", callback = change_colors })
 end
 
 function M.switch_colors()

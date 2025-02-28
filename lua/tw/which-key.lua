@@ -13,37 +13,6 @@ local function mapKeys(wk)
     { "<leader>b",  "<cmd>Telescope buffers<cr>",                                                                                              desc = "Find Buffer",              nowait = false, remap = false },
     { "<leader>f",  "<cmd>Telescope git_files<cr>",                                                                                            desc = "Find File (Git)",          nowait = false, remap = false },
     { "<leader>i",  group = "Config",                                                                                                          nowait = false,                    remap = false },
-    {
-      "<leader>ic",
-      function()
-        require("tw.appearance").switch_colors()
-      end,
-      desc = "Reset Colors (to System)",
-      nowait = false,
-      remap = false
-    },
-    {
-      "<leader>id",
-      function()
-        vim.opt.background = "dark"
-        vim.cmd("colorscheme everforest")
-        require("lualine").setup({ options = { theme = "everforest" } })
-      end,
-      desc = "Dark Mode",
-      nowait = false,
-      remap = false
-    },
-    {
-      "<leader>il",
-      function()
-        vim.opt.background = "light"
-        vim.cmd("colorscheme everforest")
-        require("lualine").setup({ options = { theme = "everforest" } })
-      end,
-      desc = "Light Mode",
-      nowait = false,
-      remap = false
-    },
     { "<leader>r",   group = "Refactor",                                                      nowait = false,                    remap = false },
     { "<leader>rbf", "<cmd>lua require('refactoring').refactor('Extract Block To File')<CR>", desc = "Extract Block to File",    nowait = false, remap = false },
     { "<leader>rbl", "<cmd>lua require('refactoring').refactor('Extract Block')<CR>",         desc = "Extract Block",            nowait = false, remap = false },
