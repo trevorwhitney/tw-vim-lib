@@ -170,8 +170,10 @@ local function setup_navigator(opts)
       },
       gopls = {
         settings = {
-          buildFlags = { "-tags=" .. opts.go_build_tags },
-          staticcheck = true,
+          gopls = {
+            buildFlags = { "-tags", opts.go_build_tags },
+            staticcheck = true,
+          }
         },
       },
       ["helm-ls"] = {
