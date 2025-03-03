@@ -9,6 +9,14 @@ local defaultArgs = {
 M.claude_buf = nil
 M.claude_job_id = nil
 
+-- Find the plugin installation path
+local function get_plugin_root()
+  local source = debug.getinfo(1, "S").source
+  local file_path = string.sub(source, 2)  -- Remove the '@' prefix
+  local plugin_root = string.match(file_path, "(.-)/lua/tw/claude%.lua$")
+  return plugin_root
+end
+
 local function open_vsplit_window()
   vim.api.nvim_command("vert botright new")
 end
@@ -277,6 +285,25 @@ function M.SendFile()
   end)
 end
 
+function M.PairProgramming()
+  local plugin_root = get_plugin_root()
+  local prompt_path = plugin_root .. "/prompts/pair-programming.md"
+  
+  -- Read the pair programming prompt file
+  local file = io.open(prompt_path, "r")
+  if not file then
+    vim.api.nvim_err_writeln("Could not find pair programming prompt file: " .. prompt_path)
+    return
+  end
+  
+  local content = file:read("*all")
+  file:close()
+  
+  confirmOpenAndDo(function()
+    M.SendText(content)
+  end)
+end
+
 local function configureClaudeKeymap()
   local claude = require("tw.claude")
   local keymap = {
@@ -290,6 +317,7 @@ local function configureClaudeKeymap()
       { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>", desc = "Test Nearest (claude)", nowait = false, remap = false },
       { "<leader>c*", claude.SendSymbol,                          desc = "Send Current Word to Claude", nowait = false, remap = false },
       { "<leader>cf", claude.SendFile,                            desc = "Send File to Claude",         nowait = false, remap = false },
+      { "<leader>cp", claude.PairProgramming,                     desc = "Start Pair Programming",      nowait = false, remap = false },
     },
     {
       mode = { "v" },
