@@ -43,8 +43,8 @@ let
     codespell
     delve
     gofumpt
-    golangci-lint
-    golangci-lint-langserver
+    # golangci-lint
+    # golangci-lint-langserver
     golines
     gopls
     gotools
