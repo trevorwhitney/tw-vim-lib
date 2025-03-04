@@ -191,7 +191,7 @@ local function setup_navigator(opts)
       servers = {
         "dockerls",
         "eslint",
-        "golangci_lint_ls",
+        -- "golangci_lint_ls",
         "jsonnet_ls",
         "marksman",
         "nil_ls",
