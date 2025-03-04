@@ -81,3 +81,11 @@ We will only proceed to implementation after:
 * Implement the minimum code necessary to make the test pass
 * Avoid premature optimization or over-engineering
 * Focus on the simplest solution that satisfies the test
+
+## Reafactoring Guidance:
+
+* Practice Red-Green-Refactor
+    * Red: Write failing test
+    * Green: Implement code to make the test pass
+    * Refactor: Improve code design, readability, and maintainability
+* We should only refactor when our test is passing, that way we can be confident our code continues to work as intended
