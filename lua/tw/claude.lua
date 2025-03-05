@@ -335,8 +335,36 @@ local function configureClaudeKeymap()
   wk.add(keymap)
 end
 
+function M.cleanup()
+  if M.claude_job_id and vim.fn.jobwait({ M.claude_job_id }, 0)[1] == -1 then
+    vim.fn.jobstop(M.claude_job_id)
+    M.claude_job_id = nil
+  end
+end
 function M.setup()
   configureClaudeKeymap()
+  local group = vim.api.nvim_create_augroup("Claude", { clear = true })
+
+  -- Add cleanup for ClaudeConsole buffer
+  -- Ensure cleanup on Neovim exit
+  vim.api.nvim_create_autocmd({"VimLeavePre", "QuitPre"}, {
+    callback = function()
+      M.cleanup()
+    end,
+    group = group,
+  })
+
+  -- Set nowrap for Claude buffer windows, which makes code changes look better
+  vim.api.nvim_create_autocmd("BufWinEnter", {
+    callback = function(args)
+      -- Check if this is the Claude buffer
+      if M.claude_buf and args.buf == M.claude_buf then
+        -- Set nowrap for the window displaying this buffer
+        vim.wo[0].wrap = false
+      end
+    end,
+    group = group,
+  })
 end
 
 return M

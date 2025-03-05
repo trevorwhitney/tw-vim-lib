@@ -5,7 +5,7 @@ local Path = require("plenary.path")
 ---@param params avante.file_selector.opts.IGetFilepathsParams
 local function get_filepaths(params)
   local cmd = { "sh", "-c", "git ls-files --others --cached --exclude-standard | grep -v '^vendor/' | grep -v '^.aider'" }
-  local output = vim.system(cmd, { cwd = params.cwd }):wait()
+  local output = vim.system(cmd, { cwd = params.cwd, timeout = 5000 }):wait()
   if output.code ~= 0 then
     -- Print vim error line
     print(output.stderr)
