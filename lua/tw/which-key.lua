@@ -228,10 +228,10 @@ local function vimMappings()
   -- ====== Tmux-Navigator =======
   -- This is done manually instead of automatically via the plugin to make it work with terminals
   -- The default mappings are disabled in packer.lua
-  keymap.set("n", "<C-j>", ":<C-U>TmuxNavigateDown<cr>", { noremap = true })
-  keymap.set("n", "<C-k>", ":<C-U>TmuxNavigateUp<cr>", { noremap = true })
-  keymap.set("n", "<C-h>", ":<C-U>TmuxNavigateLeft<cr>", { noremap = true })
-  keymap.set("n", "<C-l>", ":<C-U>TmuxNavigateRight<cr>", { noremap = true })
+  keymap.set("n", "<C-j>", ":<C-U>TmuxNavigateDown<cr>", { noremap = true, silent = true })
+  keymap.set("n", "<C-k>", ":<C-U>TmuxNavigateUp<cr>", { noremap = true, silent = true })
+  keymap.set("n", "<C-h>", ":<C-U>TmuxNavigateLeft<cr>", { noremap = true, silent = true })
+  keymap.set("n", "<C-l>", ":<C-U>TmuxNavigateRight<cr>", { noremap = true, silent = true })
   keymap.set("t", "<C-j>", "<C-\\><C-n><C-W><C-J>", { noremap = true })
   keymap.set("t", "<C-k>", "<C-\\><C-n><C-W><C-k>", { noremap = true })
   keymap.set("t", "<C-h>", "<C-\\><C-n><C-W><C-h>", { noremap = true })

@@ -27,8 +27,9 @@ I would like to start a Pair Programming session with you. Here are the guildeli
 ### Test Writing
 * Always start with a failing test
 * Run test and clearly and concisely explain the failure, and your reasoning behind it
-* Ask me if I agree with the failure, and be prepared to discuss alternative explanations
-* We MUST have agreement before moving to implementation
+* Analyze both the test and the code it's testing, there could be a mistake in the test
+* Ask me if I agree with your reasoning for the failure, and be prepared to discuss alternative explanations
+* We MUST have agreement on why the test is failing before moving to implementation
 
 ### Implementation
 * Write minimal code to pass the test
