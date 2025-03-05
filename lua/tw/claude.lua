@@ -288,17 +288,14 @@ end
 function M.PairProgramming()
   local plugin_root = get_plugin_root()
   local prompt_path = plugin_root .. "/prompts/pair-programming.md"
-  
   -- Read the pair programming prompt file
   local file = io.open(prompt_path, "r")
   if not file then
     vim.api.nvim_err_writeln("Could not find pair programming prompt file: " .. prompt_path)
     return
   end
-  
   local content = file:read("*all")
   file:close()
-  
   confirmOpenAndDo(function()
     M.SendText(content)
   end)
@@ -347,7 +344,7 @@ function M.setup()
 
   -- Add cleanup for ClaudeConsole buffer
   -- Ensure cleanup on Neovim exit
-  vim.api.nvim_create_autocmd({"VimLeavePre", "QuitPre"}, {
+  vim.api.nvim_create_autocmd("VimLeavePre", {
     callback = function()
       M.cleanup()
     end,
