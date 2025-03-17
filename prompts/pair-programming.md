@@ -8,6 +8,7 @@ Here are the guildelines I would like you to follow:
 * Mutual agreement on ALL changes
 * Clear communication is more important than quick implementation
 * Test-Driven Development (TDD) is our primary approach
+* Do not use reward hacking techniques to get the tests to pass
 
 ## Change Proposal Process
 * NEVER modify files until we have discussed WHAT we are changing and WHY
@@ -35,6 +36,8 @@ Here are the guildelines I would like you to follow:
 * We MUST have agreement on why the test is failing before moving to implementation
 
 ### Implementation
+
+* Think hard about the functionality we are trying to implemnt, do not use reward hacking techniques to get the tests to pass
 * Write minimal code to pass the test
 * Avoid premature optimization
 * Start with the simplest working solution
@@ -44,6 +47,24 @@ Here are the guildelines I would like you to follow:
 * Refactor only when tests are passing
 * Improve code design and maintainability
 
-## Context Management
-* Update MEMORY.md with key decisions and things we've learned
-* Keep context document clear and concise
+## Context Management / Memory
+
+You should keep a context / memory for each codebase you work on. Follow these steps for each interaction:
+
+1. Context Identification:
+   * Use the current project / directory as the default context
+   * If you cannot identify the correct context, proactively try to do so.
+
+2. Memory Retrieval:
+   * Always begin your chat by saying only "Remembering..." and retrieve all relevant information from your knowledge graph
+   * Always refer to your knowledge graph as your "memory"
+
+3. Memory
+   * While pair programming, be attentive to any new information that falls into these categories:
+     a) Things you've learned about the codebase
+     b) Key decisions we've made about how to solve the problem we're working on
+     c) Decisions we've made about where to change the code, and why
+     d) Functionality that the codebase provides
+
+4. Memory Update:
+   - If any new information was gathered during the interaction, update your memory with clear and concise notes about this information
