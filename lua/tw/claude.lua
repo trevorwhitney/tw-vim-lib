@@ -87,6 +87,34 @@ local get_claude_path = function()
   return claude_path
 end
 
+local function claudeCommand(args)
+  local claude_path = get_claude_path()
+  if claude_path == "" then
+    vim.api.nvim_err_writeln("Claude executable not found in PATH")
+    return
+  end
+
+  -- Convert string to single-element table
+  if type(args) == "string" then
+    args = { args }
+  elseif type(args) ~= "table" then
+    args = {} -- Handle nil or other types
+  end
+
+  -- Create the base command table
+  local command = {
+    'CLAUDE_CONFIG_DIR="${XDG_CONFIG_HOME}/claude"',
+    claude_path
+  }
+
+  -- Properly append all args to the command table
+  for _, arg in ipairs(args) do
+    table.insert(command, arg)
+  end
+
+  return table.concat(command, " ")
+end
+
 local get_npx_path = function()
   local handle = io.popen(table.concat({ "command", "-v", "npx" }, " "))
   local npx_path = ""
@@ -102,18 +130,12 @@ local get_npx_path = function()
 end
 
 local function start_new_claude_job(args, window_type)
-  local claude_path = get_claude_path()
-  if claude_path == "" then
-    vim.api.nvim_err_writeln("Claude executable not found in PATH")
-    return
-  end
-
   -- Launch Claude
   local cmd_args = ""
   if args and #args > 0 then
     cmd_args = table.concat(args, " ")
   end
-  local command = claude_path .. " " .. cmd_args
+  local command = claudeCommand(cmd_args)
   open_window(window_type)
   M.claude_buf = vim.api.nvim_get_current_buf()
   M.claude_job_id = vim.fn.termopen(command, {
@@ -310,7 +332,7 @@ function M.PairProgramming()
   end)
 end
 
-local function install_mcps(claude_path)
+local function install_mcps()
   local npx_path = get_npx_path()
   if npx_path == "" then
     vim.api.nvim_err_writeln("npx executable not found in PATH")
@@ -318,7 +340,8 @@ local function install_mcps(claude_path)
   end
 
   -- Install server-memory asynchronously
-  local memory_cmd = claude_path .. " mcp add memory -- " .. npx_path .. " -y @modelcontextprotocol/server-memory"
+  local memory_cmd = claudeCommand(
+    { "mcp", "add", "memory", "--", npx_path, "-y", "@modelcontextprotocol/server-memory" })
   vim.fn.jobstart(memory_cmd, {
     on_exit = function(_, code)
       if code ~= 0 then
@@ -330,7 +353,8 @@ local function install_mcps(claude_path)
   })
 
   -- Install sequential-thinking asynchronously
-  local sequential_cmd = claude_path .. " mcp add sequential-thinking -- " .. npx_path .. " -y @modelcontextprotocol/server-sequential-thinking"
+  local sequential_cmd = claudeCommand(
+    { "mcp", "add", "sequential-thinking", "--", npx_path, "-y", "@modelcontextprotocol/server-sequential-thinking" })
   vim.fn.jobstart(sequential_cmd, {
     on_exit = function(_, code)
       if code ~= 0 then
@@ -343,25 +367,7 @@ local function install_mcps(claude_path)
 end
 
 local function configureClaude()
-  local claude_path = get_claude_path()
-  if claude_path == "" then
-    vim.api.nvim_err_writeln("Claude executable not found in PATH")
-    return
-  end
-
-  -- Disable auto update asynchronously
-  local config_cmd = claude_path .. " config set -g autoUpdaterStatus disabled"
-  vim.fn.jobstart(config_cmd, {
-    on_exit = function(_, code)
-      if code ~= 0 then
-        vim.schedule(function()
-          vim.api.nvim_err_writeln("Failed to configure Claude: exit code " .. code)
-        end)
-      end
-    end
-  })
-
-  install_mcps(claude_path)
+  install_mcps()
 end
 
 local function configureClaudeKeymap()
