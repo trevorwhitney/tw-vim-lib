@@ -34,7 +34,7 @@
               };
           in
           base // rec {
-            inherit (unstable) claude-code;
+            inherit (unstable) claude-code delve go_1_24;
             callPackage = base.callPackage;
             jdtls = callPackage ./nix/packages/jdtls { };
             neovim = attrs: import ./nix/packages/neovim
@@ -46,7 +46,8 @@
           };
 
         nodeJsPkg = pkgs.nodejs_20;
-        goPkg = pkgs.go_1_23;
+        goPkg = pkgs.go_1_24;
+        delvePkg = pkgs.delve;
       in
       rec {
         inherit (pkgs) neovim;
@@ -66,6 +67,7 @@
             neovim = pkgs.neovim {
               inherit
                 goPkg
+                delvePkg
                 nodeJsPkg;
               withLspSupport = true;
               useEslintDaemon = true;

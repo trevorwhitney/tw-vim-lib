@@ -6,6 +6,7 @@
 , withLspSupport ? true
 , nodeJsPkg ? pkgs.nodejs
 , goPkg ? pkgs.go_1_23
+, delvePkg ? pkgs.delve
 , useEslintDaemon ? true
 , extraPackages ? [ ]
 , goBuildTags ? ""
@@ -16,6 +17,7 @@ let
   basePackages = with pkgs; [
     nodeJsPkg
     goPkg
+    delvePkg
 
     gcc
     gnumake
@@ -41,7 +43,6 @@ let
 
     ccls # c++ language server
     codespell
-    delve
     gofumpt
     # golangci-lint
     # golangci-lint-langserver
