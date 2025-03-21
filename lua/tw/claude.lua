@@ -147,7 +147,11 @@ local function start_new_claude_job(args, window_type)
   })
   vim.bo[M.claude_buf].bufhidden = "hide"
   vim.bo[M.claude_buf].filetype = "ClaudeConsole"
-  vim.cmd('startinsert')
+
+  vim.defer_fn(function()
+    M.PairProgramming()
+    vim.cmd('startinsert')
+  end, 1500)
 end
 
 local function submit()
@@ -339,27 +343,17 @@ local function install_mcps()
     return
   end
 
-  -- Install server-memory asynchronously
   local memory_cmd = claudeCommand(
     { "mcp", "add", "memory", "--", npx_path, "-y", "@modelcontextprotocol/server-memory" })
-  vim.fn.jobstart(memory_cmd, {
-    on_exit = function(_, code)
-      if code ~= 0 then
-        vim.schedule(function()
-          vim.api.nvim_err_writeln("Failed to install memory MCP: exit code " .. code)
-        end)
-      end
-    end
-  })
-
-  -- Install sequential-thinking asynchronously
   local sequential_cmd = claudeCommand(
     { "mcp", "add", "sequential-thinking", "--", npx_path, "-y", "@modelcontextprotocol/server-sequential-thinking" })
-  vim.fn.jobstart(sequential_cmd, {
+  local install_cmds = { memory_cmd, "&&", sequential_cmd }
+
+  vim.fn.jobstart(table.concat(install_cmds, " "), {
     on_exit = function(_, code)
       if code ~= 0 then
         vim.schedule(function()
-          vim.api.nvim_err_writeln("Failed to install sequential-thinking MCP: exit code " .. code)
+          vim.api.nvim_err_writeln("Failed to install MCPs: exit code " .. code)
         end)
       end
     end
@@ -383,7 +377,6 @@ local function configureClaudeKeymap()
       { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>", desc = "Test Nearest (claude)", nowait = false, remap = false },
       { "<leader>c*", claude.SendSymbol,                          desc = "Send Current Word to Claude", nowait = false, remap = false },
       { "<leader>cf", claude.SendFile,                            desc = "Send File to Claude",         nowait = false, remap = false },
-      { "<leader>cp", claude.PairProgramming,                     desc = "Start Pair Programming",      nowait = false, remap = false },
     },
     {
       mode = { "v" },
