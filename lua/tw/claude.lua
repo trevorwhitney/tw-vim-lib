@@ -2,10 +2,7 @@ local M = {}
 
 local Path = require("plenary.path")
 local Utils = require("avante.utils")
-local defaultArgs = {
-  "--cwd", Utils.get_project_root()
-}
-
+local defaultArgs = {}
 M.claude_buf = nil
 M.claude_job_id = nil
 

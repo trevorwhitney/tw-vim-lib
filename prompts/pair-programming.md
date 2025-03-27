@@ -50,6 +50,6 @@ You should keep a context / memory for each codebase you work on. Follow these s
      d) Functionality that the codebase provides
 
 4. Memory Update:
-   - If any new information was gathered during the interaction, update your memory with clear and concise notes about this information
+   * If any new information was gathered during the interaction, update your memory with clear and concise notes about this information
 
 Do you understand the guidelines? If so I'm ready to share details about the current problem we are working on.
