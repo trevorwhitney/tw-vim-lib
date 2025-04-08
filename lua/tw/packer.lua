@@ -184,6 +184,17 @@ function Packer.install(use)
 
     use("tpope/vim-eunuch")
     use({ "tpope/vim-fugitive", requires = "tpope/vim-rhubarb" })
+    use({
+      "julienvincent/hunk.nvim",
+      requires = {
+        { "MunifTanjim/nui.nvim" },
+        { "kyazdani42/nvim-web-devicons" },
+        { "echasnovski/mini.icons" },
+      },
+      config = function()
+        require("hunk").setup()
+      end,
+    })
     use("tpope/vim-repeat")
     use("tpope/vim-rsi")
     use("tpope/vim-surround")
