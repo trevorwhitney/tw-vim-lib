@@ -89,6 +89,9 @@ function M.setup()
     filters = {
       git_ignored = false,
     },
+    git = {
+      timeout = 1000,
+    }
   })
   vim.api.nvim_set_hl(0, "NvimTreeGitFileIgnoredHL", { fg = "#939f91" })
   vim.api.nvim_set_hl(0, "NvimTreeGitFolderIgnoredHL", { fg = "#939f91" })
