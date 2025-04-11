@@ -24,6 +24,9 @@ local function configureSupermavenKeymap()
     { "<C-]>", completion_preview.on_dispose_inlay,          desc = "Supermaven Dismiss",    mode = "i", nowait = false, remap = false },
   }
 
+  -- remove default <C-f> mapping so I don't scroll down the page
+  -- when the supermaven completions aren't ready yet
+  vim.keymap.del("i", "<C-f>")
   local wk = require("which-key")
   wk.add(keymap)
 end

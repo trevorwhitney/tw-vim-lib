@@ -67,10 +67,11 @@ local function configure()
     mapping = cmp.mapping.preset.insert({
       ["<C-e>"] = cmp.mapping.abort(),
       ["<C-n>"] = selectNext(false),
-      ["<Tab>"] = selectNext(true),
+      -- ["<Tab>"] = selectNext(true),
+      ["<Tab>"] = select,
       ["<C-p>"] = selectPrevious(false),
-      ["<S-Tab>"] = selectPrevious(true),
-      ["<CR>"] = select,
+      -- ["<S-Tab>"] = selectPrevious(true),
+      -- ["<CR>"] = select,
     }),
     sources = cmp.config.sources({
       { name = "nvim_lsp" },
