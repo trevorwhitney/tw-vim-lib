@@ -26,7 +26,7 @@ local function configureSupermavenKeymap()
 
   -- remove default <C-f> mapping so I don't scroll down the page
   -- when the supermaven completions aren't ready yet
-  vim.keymap.del("i", "<C-f>")
+  vim.keymap.set("i", "<C-f>", "<Nop>", {remap = true})
   local wk = require("which-key")
   wk.add(keymap)
 end
