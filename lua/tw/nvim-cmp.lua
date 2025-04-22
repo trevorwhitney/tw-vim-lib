@@ -36,7 +36,7 @@ local function configure()
       else
         fallback()
       end
-    end, { "i", "s", "c" })
+    end, { "i", "s" })
   end
 
   local function selectNext(snips)
@@ -48,7 +48,7 @@ local function configure()
       else
         fallback()
       end
-    end, { "i", "s", "c" })
+    end, { "i", "s" })
   end
   cmp.setup({
     experimental = {
@@ -66,10 +66,10 @@ local function configure()
     },
     mapping = cmp.mapping.preset.insert({
       ["<C-e>"] = cmp.mapping.abort(),
-      ["<C-n>"] = selectNext(false),
+      ["<C-n>"] = selectNext(true),
       -- ["<Tab>"] = selectNext(true),
       ["<Tab>"] = select,
-      ["<C-p>"] = selectPrevious(false),
+      ["<C-p>"] = selectPrevious(true),
       -- ["<S-Tab>"] = selectPrevious(true),
       -- ["<CR>"] = select,
     }),

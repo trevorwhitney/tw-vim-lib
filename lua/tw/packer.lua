@@ -158,8 +158,6 @@ function Packer.install(use)
   packer.startup(function()
     use("wbthomason/packer.nvim")
 
-    use({ "benmills/vimux" })                                     -- open commands in tmux split
-    use({ "benmills/vimux-golang", requires = "benmills/vimux" }) -- open go commands in tmux split
     use({
       "christoomey/vim-tmux-navigator",
       config = function()
