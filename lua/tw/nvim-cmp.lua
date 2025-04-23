@@ -8,9 +8,12 @@ local function configure()
       if cmp.visible() then
         if luasnip.expandable() then
           luasnip.expand()
-        elseif cmp.get_selected_entry() then
-          local confirm_opts = { behavior = cmp.ConfirmBehavior.Select, select = false }
-          cmp.confirm(confirm_opts)
+        else
+          local entry = cmp.get_selected_entry()
+          if not entry then
+            cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+          end
+          cmp.confirm()
         end
       else
         fallback()
@@ -18,9 +21,12 @@ local function configure()
     end,
     s = cmp.mapping.confirm({ select = true }),
     c = function(fallback)
-      if cmp.visible() and cmp.get_selected_entry() then
-        local confirm_opts = { behavior = cmp.ConfirmBehavior.Insert, select = false }
-        cmp.confirm(confirm_opts)
+      if cmp.visible() then
+        local entry = cmp.get_selected_entry()
+        if not entry then
+          cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+        end
+        cmp.confirm()
       else
         fallback()
       end
@@ -67,11 +73,8 @@ local function configure()
     mapping = cmp.mapping.preset.insert({
       ["<C-e>"] = cmp.mapping.abort(),
       ["<C-n>"] = selectNext(true),
-      -- ["<Tab>"] = selectNext(true),
       ["<Tab>"] = select,
       ["<C-p>"] = selectPrevious(true),
-      -- ["<S-Tab>"] = selectPrevious(true),
-      -- ["<CR>"] = select,
     }),
     sources = cmp.config.sources({
       { name = "nvim_lsp" },
@@ -79,7 +82,6 @@ local function configure()
       { name = "path" },
       { name = "luasnip" },
       { name = "treesitter" },
-      -- { name = "supermaven" },
     }, {
       { name = "buffer" },
     }),
