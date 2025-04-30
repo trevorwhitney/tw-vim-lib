@@ -101,6 +101,11 @@ local function setOptions()
 		["Find Under"] = "<C-d>", -- replace C-n
 		["Find Subword Under"] = "<C-d>", -- replace visual C-n
 	}
+  vim.filetype.add({
+    extension = {
+      mnd = "mermaid",
+    },
+  })
 end
 
 function M.setup()
