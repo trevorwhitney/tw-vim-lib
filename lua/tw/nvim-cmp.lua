@@ -9,11 +9,11 @@ local function configure()
         if luasnip.expandable() then
           luasnip.expand()
         else
-          local entry = cmp.get_selected_entry()
-          if not entry then
-            cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+          if cmp.get_active_entry() then
+            cmp.confirm({ behavior = cmp.ConfirmBehavior.Replace, select = false })
+          else
+            fallback()
           end
-          cmp.confirm()
         end
       else
         fallback()
@@ -22,17 +22,16 @@ local function configure()
     s = cmp.mapping.confirm({ select = true }),
     c = function(fallback)
       if cmp.visible() then
-        local entry = cmp.get_selected_entry()
-        if not entry then
-          cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+        if cmp.get_active_entry() then
+          cmp.confirm({ behavior = cmp.ConfirmBehavior.Replace, select = false })
+        else
+          fallback()
         end
-        cmp.confirm()
       else
         fallback()
       end
     end,
   })
-
   local function selectPrevious(snips)
     return cmp.mapping(function(fallback)
       if cmp.visible() then
@@ -44,7 +43,6 @@ local function configure()
       end
     end, { "i", "s" })
   end
-
   local function selectNext(snips)
     return cmp.mapping(function(fallback)
       if cmp.visible() then
@@ -56,6 +54,36 @@ local function configure()
       end
     end, { "i", "s" })
   end
+  -- selectOnlyOrNext will select the only entry if there is only one entry, otherwise it will select the next entry
+  local selectOnlyOrNext = cmp.mapping({
+    i = function(fallback)
+      if cmp.visible() then
+        if #cmp.get_entries() == 1 then
+          cmp.confirm({ select = true })
+        else
+          cmp.select_next_item()
+        end
+      elseif luasnip.locally_jumpable(1) then
+        luasnip.jump(1)
+      else
+        fallback()
+      end
+    end,
+    c = function(_)
+      if cmp.visible() then
+        if #cmp.get_entries() == 1 then
+          cmp.confirm({ select = true })
+        else
+          cmp.select_next_item()
+        end
+      else
+        cmp.complete()
+        if #cmp.get_entries() == 1 then
+          cmp.confirm({ select = true })
+        end
+      end
+    end
+  })
   cmp.setup({
     experimental = {
       -- want to reserve ghost test for supermaven
@@ -73,8 +101,10 @@ local function configure()
     mapping = cmp.mapping.preset.insert({
       ["<C-e>"] = cmp.mapping.abort(),
       ["<C-n>"] = selectNext(true),
-      ["<Tab>"] = select,
+      ["<Tab>"] = selectOnlyOrNext,
+      ["<CR>"] = select,
       ["<C-p>"] = selectPrevious(true),
+      ["<S-Tab>"] = selectPrevious(true),
     }),
     sources = cmp.config.sources({
       { name = "nvim_lsp" },
