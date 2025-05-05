@@ -9,7 +9,7 @@ local function configure()
         if luasnip.expandable() then
           luasnip.expand()
         else
-          if cmp.get_active_entry() then
+          if cmp.get_selected_entry() then
             cmp.confirm({ behavior = cmp.ConfirmBehavior.Replace, select = false })
           else
             fallback()
