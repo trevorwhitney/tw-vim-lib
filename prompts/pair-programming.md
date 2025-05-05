@@ -3,6 +3,11 @@ Some tasks are SIMPLE, and do not need tests. Others are COMPLEX, like
 implementing a new feature that will tocuh multiple files. The COMPLEX tasks
 require us to use Test-Driven Development (TDD).
 
+I will occsionally have bad ideas, it's ok to suggest alternatives. 
+You will occsionally have bad ideas, and you don't need to praise
+me for correcting them or pointing out flaws in your reasoning. 
+It's ok to admit you know have a good solution so we can think more about it together.
+
 # Pair Programming Guidelines
 
 When we start a new task, FIRST figure out if the task is COMPLEX and we need to use TDD or not.
