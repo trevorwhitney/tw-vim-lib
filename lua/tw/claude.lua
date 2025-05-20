@@ -261,8 +261,7 @@ end
 
 local function sendCodeSnippet(args, rel_path)
   send({
-    "For context, take a look at the following code snippet in file",
-    rel_path,
+    "For context, take a look at the following code snippet from @" .. rel_path,
     "\n",
     "```\n",
   })
@@ -300,8 +299,7 @@ function M.SendSymbol()
     M.SendText({
       "For context, take a look at the symbol",
       word,
-      "in file",
-      rel_path
+      "from @" .. rel_path
     })
   end)
 end
@@ -311,8 +309,7 @@ function M.SendFile()
   local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
   confirmOpenAndDo(function()
     M.SendText({
-      "For context, take a look at the file",
-      rel_path
+      "For context, take a look at the file @" .. rel_path
     })
   end)
 end
