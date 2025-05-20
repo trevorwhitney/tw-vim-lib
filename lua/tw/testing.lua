@@ -2,7 +2,6 @@ local M = {}
 
 local function configre_vim_test()
   vim.g["test#custom_strategies"] = { 
-    aider = require("tw.aider").VimTestStrategy,
     claude = require("tw.claude").VimTestStrategy,
   }
   vim.g["test#strategy"] = "dispatch"

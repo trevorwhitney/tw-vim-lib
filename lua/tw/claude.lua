@@ -1,11 +1,13 @@
 local M = {}
 
 local Path = require("plenary.path")
-local Utils = require("avante.utils")
 local defaultArgs = {}
+--- Timer for checking file changes
+--- @type userdata|nil
+local refresh_timer = nil
 M.claude_buf = nil
 M.claude_job_id = nil
-
+M.saved_updatetime = nil
 -- Find the plugin installation path
 local function get_plugin_root()
   local source = debug.getinfo(1, "S").source
@@ -261,13 +263,46 @@ end
 
 local function sendCodeSnippet(args, rel_path)
   send({
-    "For context, take a look at the following code snippet from @" .. rel_path,
+    "For context, take a look at the following code snippet from @" .. rel_path .. " ",
     "\n",
     "```\n",
   })
   send(args)
   send({ "```\n", })
   submit()
+end
+
+-- adapted from https://github.com/greggh/claude-code.nvim/blob/main/lua/claude-code/git.lua
+local function get_git_root()
+  -- Check if we're in a git repository
+  local handle = io.popen('git rev-parse --is-inside-work-tree 2>/dev/null')
+  if not handle then
+    return nil
+  end
+
+  local result = handle:read('*a')
+  handle:close()
+
+  -- Strip trailing whitespace and newlines for reliable matching
+  result = result:gsub('[\n\r%s]*$', '')
+
+  if result == 'true' then
+    -- Get the git root path
+    local root_handle = io.popen('git rev-parse --show-toplevel 2>/dev/null')
+    if not root_handle then
+      return nil
+    end
+
+    local git_root = root_handle:read('*a')
+    root_handle:close()
+
+    -- Remove trailing whitespace and newlines
+    git_root = git_root:gsub('[\n\r%s]*$', '')
+
+    return git_root
+  end
+
+  return nil
 end
 
 function M.SendSelection()
@@ -279,7 +314,7 @@ function M.SendSelection()
 
   -- Get the current file path
   local filename = vim.fn.expand("%")
-  local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
+  local rel_path = Path:new(filename):make_relative(get_git_root())
 
   confirmOpenAndDo(function()
     -- Send the prompt
@@ -292,24 +327,24 @@ end
 
 function M.SendSymbol()
   local filename = vim.fn.expand("%")
-  local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
+  local rel_path = Path:new(filename):make_relative(get_git_root())
   local word = vim.fn.expand('<cword>')
 
   confirmOpenAndDo(function()
     M.SendText({
       "For context, take a look at the symbol",
       word,
-      "from @" .. rel_path
+      "from @" .. rel_path .. " "
     })
   end)
 end
 
 function M.SendFile()
   local filename = vim.fn.expand("%")
-  local rel_path = Path:new(filename):make_relative(Utils.get_project_root())
+  local rel_path = Path:new(filename):make_relative(get_git_root())
   confirmOpenAndDo(function()
     M.SendText({
-      "For context, take a look at the file @" .. rel_path
+      "For context, take a look at the file @" .. rel_path .. " "
     })
   end)
 end
@@ -393,12 +428,109 @@ function M.cleanup()
     vim.fn.jobstop(M.claude_job_id)
     M.claude_job_id = nil
   end
+  if refresh_timer then
+    refresh_timer:stop()
+    refresh_timer:close()
+    refresh_timer = nil
+  end
 end
+
+-- adapted from https://github.com/greggh/claude-code.nvim/blob/main/lua/claude-code/file_refresh.lua
+local function file_refresh()
+  local augroup = vim.api.nvim_create_augroup('ClaudeCodeFileRefresh', { clear = true })
+
+  -- Create an autocommand that checks for file changes more frequently
+  vim.api.nvim_create_autocmd({
+    'CursorHold',
+    'CursorHoldI',
+    'FocusGained',
+    'BufEnter',
+    'InsertLeave',
+    'TextChanged',
+    'TermLeave',
+    'TermEnter',
+    'BufWinEnter',
+  }, {
+    group = augroup,
+    pattern = '*',
+    callback = function()
+      if vim.fn.filereadable(vim.fn.expand '%') == 1 then
+        vim.cmd 'checktime'
+      end
+    end,
+    desc = 'Check for file changes on disk',
+  })
+
+  -- Clean up any existing timer
+  if refresh_timer then
+    refresh_timer:stop()
+    refresh_timer:close()
+    refresh_timer = nil
+  end
+
+  -- Create a timer to check for file changes periodically
+  refresh_timer = vim.loop.new_timer()
+  if refresh_timer then
+    refresh_timer:start(
+      0,
+      1000, -- milliseconds
+      vim.schedule_wrap(function()
+        -- Only check time if there's an active Claude Code terminal
+        local bufnr = M.claude_buf
+        if bufnr and vim.api.nvim_buf_is_valid(bufnr) and #vim.fn.win_findbuf(bufnr) > 0 then
+          vim.cmd 'silent! checktime'
+        end
+      end)
+    )
+  end
+
+  -- Create an autocommand that notifies when a file has been changed externally
+  vim.api.nvim_create_autocmd('FileChangedShellPost', {
+    group = augroup,
+    pattern = '*',
+    callback = function()
+      vim.notify('File changed on disk. Buffer reloaded.', vim.log.levels.INFO)
+    end,
+    desc = 'Notify when a file is changed externally',
+  })
+
+  -- Set a shorter updatetime while Claude Code is open
+  M.saved_updatetime = vim.o.updatetime
+
+  -- When Claude Code opens, set a shorter updatetime
+  vim.api.nvim_create_autocmd('TermOpen', {
+    group = augroup,
+    pattern = '*',
+    callback = function()
+      local buf = vim.api.nvim_get_current_buf()
+      local buf_name = vim.api.nvim_buf_get_name(buf)
+      if buf_name:match('claude%-code$') then
+        M.saved_updatetime = vim.o.updatetime
+        vim.o.updatetime = 100
+      end
+    end,
+    desc = 'Set shorter updatetime when Claude Code is open',
+  })
+
+  -- When Claude Code closes, restore normal updatetime
+  vim.api.nvim_create_autocmd('TermClose', {
+    group = augroup,
+    pattern = '*',
+    callback = function()
+      local buf_name = vim.api.nvim_buf_get_name(0)
+      if buf_name:match('claude%-code$') then
+        vim.o.updatetime = M.saved_updatetime
+      end
+    end,
+    desc = 'Restore normal updatetime when Claude Code is closed',
+  })
+end
+
 function M.setup()
   configureClaude()
   configureClaudeKeymap()
+  file_refresh()
   local group = vim.api.nvim_create_augroup("Claude", { clear = true })
-
   -- Add cleanup for ClaudeConsole buffer
   -- Ensure cleanup on Neovim exit
   vim.api.nvim_create_autocmd("VimLeavePre", {

@@ -132,21 +132,10 @@ local function installAiTools(use)
       "onsails/lspkind.nvim"
     }
   })
-  use({
-    "yetone/avante.nvim",
-    branch = "main",
-    requires = {
-      "nvim-treesitter/nvim-treesitter",
-      "stevearc/dressing.nvim",
-      "nvim-lua/plenary.nvim",
-      "MunifTanjim/nui.nvim",
-      --- The below dependencies are optional,
-      "nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
-      "HakonHarnes/img-clip.nvim",
-      'MeanderingProgrammer/render-markdown.nvim',
-    },
-    run = "make"
-  })
+
+  -- taken from avante dependencies
+  use({ 'MeanderingProgrammer/render-markdown.nvim' })
+  use({ 'HakonHarnes/img-clip.nvim' })
 end
 function Packer.install(use)
   local packer = require("packer")
