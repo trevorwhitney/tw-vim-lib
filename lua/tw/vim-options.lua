@@ -2,6 +2,17 @@ local M = {}
 
 local function setOptions()
 	local set = vim.opt
+  -- Setup autocommand to copy yanked text to system clipboard
+  -- Custom clipboard handling - yanks go to system clipboard, deletes stay local
+  local autocmd = vim.api.nvim_create_autocmd
+  autocmd("TextYankPost", {
+    callback = function()
+      if vim.v.event.operator == "y" then
+        vim.fn.setreg("*", vim.fn.getreg('"'))
+      end
+    end,
+    desc = "Copy yanked text to system clipboard",
+  })
 
 	set.autoindent = true
 	set.autoread = true
@@ -52,7 +63,6 @@ local function setOptions()
 
 	-- Open diffs vertically
 	set.diffopt = "vertical"
-	set.clipboard = "unnamedplus"
 
 	-- folding
 	set.foldmethod = "expr" -- fold based on treesitter

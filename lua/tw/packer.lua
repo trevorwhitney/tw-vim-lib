@@ -132,7 +132,6 @@ local function installAiTools(use)
       "onsails/lspkind.nvim"
     }
   })
-
   -- taken from avante dependencies
   use({ 'MeanderingProgrammer/render-markdown.nvim' })
   use({ 'HakonHarnes/img-clip.nvim' })
@@ -185,7 +184,10 @@ function Packer.install(use)
     }) -- automatically insert closing brackets
     use({
       "kyazdani42/nvim-tree.lua",
-      requires = "kyazdani42/nvim-web-devicons",
+      requires = {
+        "kyazdani42/nvim-web-devicons",
+        'stevearc/dressing.nvim"',
+      },
     })
     use({
       "nvim-lualine/lualine.nvim",
