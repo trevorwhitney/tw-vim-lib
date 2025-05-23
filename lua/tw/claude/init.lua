@@ -8,11 +8,12 @@ local refresh_timer = nil
 M.claude_buf = nil
 M.claude_job_id = nil
 M.saved_updatetime = nil
+
 -- Find the plugin installation path
 local function get_plugin_root()
   local source = debug.getinfo(1, "S").source
   local file_path = string.sub(source, 2)  -- Remove the '@' prefix
-  local plugin_root = string.match(file_path, "(.-)/lua/tw/claude%.lua$")
+  local plugin_root = string.match(file_path, "(.-)/lua/tw/claude/init%.lua$")
   return plugin_root
 end
 
