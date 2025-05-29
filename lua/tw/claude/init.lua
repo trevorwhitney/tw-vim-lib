@@ -149,7 +149,8 @@ local function start_new_claude_job(args, window_type)
   vim.bo[M.claude_buf].filetype = "ClaudeConsole"
 
   vim.defer_fn(function()
-    M.PairProgramming()
+    -- M.PairProgramming()
+    M.StartClaude()
     vim.cmd('startinsert')
   end, 1500)
 end
@@ -181,7 +182,7 @@ local function confirmOpenAndDo(callback, args, window_type)
 
     -- Wait a bit for the Claude chat to initialize
     vim.defer_fn(function()
-      callback()
+      if callback then callback() end
     end, 1500)
   else
     -- Buffer exists, make sure it's visible
@@ -200,7 +201,7 @@ local function confirmOpenAndDo(callback, args, window_type)
     if not is_visible then
       open_buffer_in_new_window(window_type, M.claude_buf)
     end
-    callback()
+    if callback then callback() end
   end
 end
 
@@ -264,12 +265,13 @@ end
 
 local function sendCodeSnippet(args, rel_path)
   send({
-    "For context, take a look at the following code snippet from @" .. rel_path .. " ",
-    "\n",
+    "For context, take a look at the following code snippet from @" .. rel_path .. "\n",
     "```\n",
   })
   send(args)
-  send({ "```\n", })
+  send({
+    "```\n",
+    "I would like to ask some question about this code snippet. Please load it but don't make any suggestions yet, just let me know when you're ready for my questions." })
   submit()
 end
 
@@ -335,7 +337,8 @@ function M.SendSymbol()
     M.SendText({
       "For context, take a look at the symbol",
       word,
-      "from @" .. rel_path .. " "
+      "from @" .. rel_path .. "\n",
+      "I would like to ask some question about this symbol. Please load it but don't make any suggestions yet, just let me know when you're ready for my questions."
     })
   end)
 end
@@ -345,7 +348,8 @@ function M.SendFile()
   local rel_path = Path:new(filename):make_relative(get_git_root())
   confirmOpenAndDo(function()
     M.SendText({
-      "For context, take a look at the file @" .. rel_path .. " "
+      "For context, take a look at the file @" .. rel_path .. "\n",
+      "I would like to ask some question about this file. Please load it but don't make any suggestions yet, just let me know when you're ready for my questions."
     })
   end)
 end
@@ -365,7 +369,9 @@ function M.PairProgramming()
     M.SendText(content)
   end)
 end
-
+function M.StartClaude()
+  confirmOpenAndDo(nil)
+end
 local function install_mcps()
   local npx_path = get_npx_path()
   if npx_path == "" then
