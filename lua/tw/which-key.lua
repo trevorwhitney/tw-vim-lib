@@ -1,9 +1,6 @@
 local M = {}
 
 local function mapKeys(wk)
-  local trouble = require("trouble")
-  local telescope = require("telescope")
-
   local keymap = {
     { "<leader>*",  "<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args({ default_text = vim.fn.expand('<cword>') })<cr>", desc = "Find Grep (Current Word)", nowait = false, remap = false },
     { "<leader>D",  vim.diagnostic.open_float,                                                                                                 desc = "Line Diagnostics",         nowait = false, remap = false },
@@ -39,11 +36,17 @@ local function mapKeys(wk)
     {
       "[d",
       function()
+        local trouble = require("trouble")
         if not trouble.is_open() then
           trouble.toggle({ mode = "diagnostics", filter = { buf = 0 } })
+          -- Small delay to ensure trouble is fully initialized
+          vim.defer_fn(function()
+            local t = require("trouble")
+            t.prev({ skip_groups = true, jump = true })
+          end, 100)
+        else
+          trouble.prev({ skip_groups = true, jump = true })
         end
-
-        trouble.previous({ skip_groups = true, jump = true })
       end,
       desc = "Previous Diagnostic",
       nowait = true,
@@ -52,11 +55,17 @@ local function mapKeys(wk)
     {
       "]d",
       function()
+        local trouble = require("trouble")
         if not trouble.is_open() then
           trouble.toggle({ mode = "diagnostics", filter = { buf = 0 } })
+          -- Small delay to ensure trouble is fully initialized
+          vim.defer_fn(function()
+            local t = require("trouble")
+            t.next({ skip_groups = true, jump = true })
+          end, 100)
+        else
+          trouble.next({ skip_groups = true, jump = true })
         end
-
-        trouble.next({ skip_groups = true, jump = true })
       end,
       desc = "Next Diagnostic",
       nowait = true,
@@ -65,11 +74,17 @@ local function mapKeys(wk)
     {
       "[q",
       function()
+        local trouble = require("trouble")
         if not trouble.is_open() then
           trouble.toggle("quickfix")
+          -- Small delay to ensure trouble is fully initialized
+          vim.defer_fn(function()
+            local t = require("trouble")
+            t.prev({ skip_groups = true, jump = true })
+          end, 100)
+        else
+          trouble.prev({ skip_groups = true, jump = true })
         end
-
-        trouble.previous({ skip_groups = true, jump = true })
       end,
       desc = "Previous Quickfix",
       nowait = true,
@@ -78,11 +93,17 @@ local function mapKeys(wk)
     {
       "]q",
       function()
+        local trouble = require("trouble")
         if not trouble.is_open() then
           trouble.toggle("quickfix")
+          -- Small delay to ensure trouble is fully initialized
+          vim.defer_fn(function()
+            local t = require("trouble")
+            t.next({ skip_groups = true, jump = true })
+          end, 100)
+        else
+          trouble.next({ skip_groups = true, jump = true })
         end
-
-        trouble.next({ skip_groups = true, jump = true })
       end,
       desc = "Next Quickfix",
       nowait = true,
@@ -93,6 +114,7 @@ local function mapKeys(wk)
     {
       "\\D",
       function()
+        local trouble = require("trouble")
         trouble.toggle("diagnostics")
       end,
       desc = "Workspace Diagnostics",
@@ -102,6 +124,7 @@ local function mapKeys(wk)
     {
       "\\d",
       function()
+        local trouble = require("trouble")
         trouble.toggle({ mode = "diagnostics", filter = { buf = 0 } })
       end,
       desc = "Document Diagnostics",
@@ -117,6 +140,7 @@ local function mapKeys(wk)
     {
       "\\o",
       function()
+        local telescope = require("telescope")
         telescope.extensions.aerial.aerial()
       end,
       desc = "Outline",
@@ -127,6 +151,7 @@ local function mapKeys(wk)
     {
       "\\q",
       function()
+        local trouble = require("trouble")
         trouble.toggle("quickfix")
       end,
       desc = "Quickfix",
