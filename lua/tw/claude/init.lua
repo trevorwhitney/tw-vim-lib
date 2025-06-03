@@ -534,7 +534,8 @@ local function file_refresh()
 end
 
 function M.setup()
-  configureClaude()
+  -- Currently this only installs the MCPs, which we're going to try and disable for a bit given claude code's advancements
+  --configureClaude()
   configureClaudeKeymap()
   file_refresh()
   local group = vim.api.nvim_create_augroup("Claude", { clear = true })
