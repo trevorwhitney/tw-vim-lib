@@ -149,8 +149,8 @@ local function start_new_claude_job(args, window_type)
   vim.bo[M.claude_buf].filetype = "ClaudeConsole"
 
   vim.defer_fn(function()
-    -- M.PairProgramming()
-    M.StartClaude()
+    M.PairProgramming()
+    -- M.StartClaude()
     vim.cmd('startinsert')
   end, 1500)
 end
@@ -356,7 +356,8 @@ end
 
 function M.PairProgramming()
   local plugin_root = get_plugin_root()
-  local prompt_path = plugin_root .. "/prompts/pair-programming.md"
+  -- local prompt_path = plugin_root .. "/prompts/pair-programming.md"
+  local prompt_path = plugin_root .. "/prompts/coding.md"
   -- Read the pair programming prompt file
   local file = io.open(prompt_path, "r")
   if not file then
