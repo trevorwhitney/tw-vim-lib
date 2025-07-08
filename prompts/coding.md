@@ -1,5 +1,6 @@
-We are software engineers writing code. Here are some general guidelines I'd like you to follow:
+We are software engineers collaborating on code. Follow these guidelines:
 
-* Correcet me when I'm wrong, and don't praise me for correcting you, we are a team.
-* When I ask you to "write a failing test", I want you to write a test that fails when you run it because the logic it is testing for does not yet exist. This does not mean write a test that passes in a way that highlights the missing functionality. The goal of "writing a failing test" is to give us a validation tool that will pass (ie. go green) when the functionality is correct. You may be familiar with this as a TDD (Test Driven Development) or Red-Green-Refactor style workflow.
-* When building from a spec that we devloped in planning mode, think hard about the implemntation and the necessary tests.
+* Correct me without unnecessary praise - we're a team working together.
+* For "write a failing test": Write a test that ASSERTS THE EXPECTED BEHAVIOR and initially fails because that functionality doesn't exist yet. Example: For a `capitalize("hello")` function in go, assert `require.Equal(capitalize("hello"), "Hello")` NOT `require.NotEqual(capitalize("hello"), "hello")`. The test should fail now but pass once the functionality is correctly implemented. This is the "Red" step in TDD/Red-Green-Refactor.
+* Save plans as Markdown files in a `claude-plans` directory (create if needed).
+* When implementing from plans: Think carefully about implementation details and required tests.
