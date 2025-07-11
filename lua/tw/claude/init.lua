@@ -1,7 +1,33 @@
 local M = {}
 
 local Path = require("plenary.path")
-local defaultArgs = {}
+local allowed_tools = {
+  "Bash(awk:*)",
+  "Bash(chmod:*)",
+  "Bash(find:*)",
+  "Bash(git branch:*)",
+  "Bash(git checkout:*)",
+  "Bash(git cherry-pick:*)",
+  "Bash(git fetch:*)",
+  "Bash(git log:*)",
+  "Bash(git rev-parse:*)",
+  "Bash(git status:*)",
+  "Bash(go build:*)",
+  "Bash(go run:*)",
+  "Bash(go test:*)",
+  "Bash(go vet:*)",
+  "Bash(gofmt:*)",
+  "Bash(grep:*)",
+  "Bash(ls:*)",
+  "Bash(make:*)",
+  "Bash(mkdir:*)",
+  "Bash(rg:*)",
+  "Bash(sed:*)",
+}
+
+local default_args = {
+  '--allowedTools="' .. table.concat(allowed_tools, ",") .. '"',
+}
 --- Timer for checking file changes
 --- @type userdata|nil
 local refresh_timer = nil
@@ -115,20 +141,6 @@ local function claudeCommand(args)
   return table.concat(command, " ")
 end
 
-local get_npx_path = function()
-  local handle = io.popen(table.concat({ "command", "-v", "npx" }, " "))
-  local npx_path = ""
-  if handle then
-    local result = handle:read("*a")
-    if result then
-      npx_path = result:gsub("\n", "")
-    end
-    handle:close()
-  end
-
-  return npx_path
-end
-
 local function start_new_claude_job(args, window_type)
   -- Launch Claude
   local cmd_args = ""
@@ -152,7 +164,7 @@ local function start_new_claude_job(args, window_type)
     M.PairProgramming()
     -- M.StartClaude()
     vim.cmd('startinsert')
-  end, 1500)
+  end, 1750)
 end
 
 local function submit()
@@ -174,7 +186,7 @@ local function send(args)
 end
 
 local function confirmOpenAndDo(callback, args, window_type)
-  args = args or defaultArgs
+  args = args or default_args
   window_type = window_type or "vsplit"
   if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
     -- Buffer doesn't exist, open it
@@ -206,7 +218,7 @@ local function confirmOpenAndDo(callback, args, window_type)
 end
 
 function M.Open(args, window_type)
-  args = args or defaultArgs
+  args = args or default_args
   window_type = window_type or "vsplit"
   if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) then
     open_buffer_in_new_window(window_type, M.claude_buf)
@@ -216,7 +228,7 @@ function M.Open(args, window_type)
 end
 
 function M.Toggle(args, window_type)
-  args = args or defaultArgs
+  args = args or default_args
   window_type = window_type or "vsplit"
   -- If Claude buffer exists and is valid
   if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) then
@@ -373,33 +385,6 @@ end
 function M.StartClaude()
   confirmOpenAndDo(nil)
 end
-local function install_mcps()
-  local npx_path = get_npx_path()
-  if npx_path == "" then
-    vim.api.nvim_err_writeln("npx executable not found in PATH")
-    return
-  end
-
-  local memory_cmd = claudeCommand(
-    { "mcp", "add", "memory", "--", npx_path, "-y", "@modelcontextprotocol/server-memory" })
-  local sequential_cmd = claudeCommand(
-    { "mcp", "add", "sequential-thinking", "--", npx_path, "-y", "@modelcontextprotocol/server-sequential-thinking" })
-  local install_cmds = { memory_cmd, "&&", sequential_cmd }
-
-  vim.fn.jobstart(table.concat(install_cmds, " "), {
-    on_exit = function(_, code)
-      if code ~= 0 then
-        vim.schedule(function()
-          vim.api.nvim_err_writeln("Failed to install MCPs: exit code " .. code)
-        end)
-      end
-    end
-  })
-end
-
-local function configureClaude()
-  install_mcps()
-end
 
 local function configureClaudeKeymap()
   local claude = require("tw.claude")
@@ -535,8 +520,6 @@ local function file_refresh()
 end
 
 function M.setup()
-  -- Currently this only installs the MCPs, which we're going to try and disable for a bit given claude code's advancements
-  --configureClaude()
   configureClaudeKeymap()
   file_refresh()
   local group = vim.api.nvim_create_augroup("Claude", { clear = true })
