@@ -5,7 +5,9 @@ local allowed_tools = {
   "Bash(awk:*)",
   "Bash(chmod:*)",
   "Bash(find:*)",
+  "Bash(for i in:*)",
   "Bash(git branch:*)",
+  "Bash(git config:*)",
   "Bash(git checkout:*)",
   "Bash(git cherry-pick:*)",
   "Bash(git fetch:*)",
@@ -13,6 +15,7 @@ local allowed_tools = {
   "Bash(git rev-parse:*)",
   "Bash(git status:*)",
   "Bash(go build:*)",
+  "Bash(go get:*)",
   "Bash(go run:*)",
   "Bash(go test:*)",
   "Bash(go vet:*)",
@@ -23,6 +26,7 @@ local allowed_tools = {
   "Bash(mkdir:*)",
   "Bash(rg:*)",
   "Bash(sed:*)",
+  "Bash(for i in:*)",
 }
 
 local default_args = {
