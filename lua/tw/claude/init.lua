@@ -386,6 +386,22 @@ function M.PairProgramming()
     M.SendText(content)
   end)
 end
+function M.TDDPlan()
+  local plugin_root = get_plugin_root()
+  -- local prompt_path = plugin_root .. "/prompts/pair-programming.md"
+  local prompt_path = plugin_root .. "/prompts/tdd-plan.md"
+  -- Read the pair programming prompt file
+  local file = io.open(prompt_path, "r")
+  if not file then
+    vim.api.nvim_err_writeln("Could not find tdd plan prompt file: " .. prompt_path)
+    return
+  end
+  local content = file:read("*all")
+  file:close()
+  confirmOpenAndDo(function()
+    M.SendText(content)
+  end)
+end
 function M.StartClaude()
   confirmOpenAndDo(nil)
 end
@@ -403,6 +419,7 @@ local function configureClaudeKeymap()
       { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>", desc = "Test Nearest (claude)", nowait = false, remap = false },
       { "<leader>c*", claude.SendSymbol,                          desc = "Send Current Word to Claude", nowait = false, remap = false },
       { "<leader>cf", claude.SendFile,                            desc = "Send File to Claude",         nowait = false, remap = false },
+      { "<leader>ct", claude.TDDPlan,                             desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
     },
     {
       mode = { "v" },
