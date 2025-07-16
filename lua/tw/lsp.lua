@@ -139,6 +139,7 @@ local keymaps = {
 }
 
 local function setup_navigator(opts)
+  print("go build tags: " .. vim.inspect(opts.go_build_tags))
   require("navigator").setup({
     debug = false,
     on_attach = M.on_attach,
@@ -169,11 +170,17 @@ local function setup_navigator(opts)
         sumneko_binary = opts.lua_ls_root .. "/bin/lua-language-server",
       },
       gopls = {
+        gopls = {
+          buildFlags = { "-tags", opts.go_build_tags },
+          staticcheck = true,
+        },
         settings = {
           gopls = {
             buildFlags = { "-tags", opts.go_build_tags },
             staticcheck = true,
-          }
+          },
+          buildFlags = { "-tags", opts.go_build_tags },
+          staticcheck = true,
         },
       },
       ["helm-ls"] = {
