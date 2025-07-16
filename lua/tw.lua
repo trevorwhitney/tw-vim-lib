@@ -17,8 +17,6 @@ function Config.setup(user_options)
 	user_options = user_options or {}
 	options = vim.tbl_extend("force", options, user_options)
 
-  print("options: " .. vim.inspect(options))
-
 	vim.g.mapleader = " "
 
 	local fn = vim.fn

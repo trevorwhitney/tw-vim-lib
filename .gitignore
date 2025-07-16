@@ -1,5 +1,6 @@
 !.envrc
 .direnv
 result
+.aider*
 
 **/.claude/settings.local.json

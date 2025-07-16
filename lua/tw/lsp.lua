@@ -139,7 +139,6 @@ local keymaps = {
 }
 
 local function setup_navigator(opts)
-  print("go build tags: " .. vim.inspect(opts.go_build_tags))
   require("navigator").setup({
     debug = false,
     on_attach = M.on_attach,
@@ -165,36 +164,8 @@ local function setup_navigator(opts)
         sign = true,
         virtual_text = true,
       },
-      lua_ls = {
-        sumneko_root_path = opts.lua_ls_root,
-        sumneko_binary = opts.lua_ls_root .. "/bin/lua-language-server",
-      },
-      gopls = {
-        gopls = {
-          buildFlags = { "-tags", opts.go_build_tags },
-          staticcheck = true,
-        },
-        settings = {
-          gopls = {
-            buildFlags = { "-tags", opts.go_build_tags },
-            staticcheck = true,
-          },
-          buildFlags = { "-tags", opts.go_build_tags },
-          staticcheck = true,
-        },
-      },
-      ["helm-ls"] = {
-        yamlls = {
-          path = "yaml-language-server",
-        },
-      },
-      -- golangci_lint_ls = {
-      --   init_options = {
-      --     command = { "golangci-lint", "run", "--build-tags", "integration", "--out-format", "json" },
-      --   }
-      -- },
       -- additional language servers
-      disable_lsp = { "ruff" },
+      disable_lsp = { "ruff", "gopls", "lua_ls" }, -- defer to lspconfig for advancded configs
       servers = {
         "dockerls",
         "eslint",
@@ -212,14 +183,70 @@ local function setup_navigator(opts)
   })
 end
 
+-- directly call lspconfig setup for advanced configs
+local function setup_lspconfig(opts)
+  local lspconfig = require("lspconfig")
+  lspconfig.gopls.setup({
+    on_attach = M.on_attach,
+    settings = {
+      gopls = {
+        analyses = {
+          unreachable = false,
+          unusedparams = true
+        },
+        codelenses = {
+          gc_details = true,
+          generate = true,
+          test = true,
+          tidy = true
+        },
+        buildFlags = { "-tags", opts.go_build_tags },
+        completeUnimported = true,
+        diagnosticsDelay = "500ms",
+        gofumpt = false,
+        matcher = "fuzzy",
+        semanticTokens = false,
+        staticcheck = true,
+        symbolMatcher = "fuzzy",
+        usePlaceholders = true,
+      }
+    },
+  })
+
+  lspconfig.lua_ls.setup({
+    -- sumneko_root_path = opts.lua_ls_root,
+    -- sumneko_binary = opts.lua_ls_root .. "/bin/lua-language-server",
+    on_attach = M.on_attach,
+    cmd = { opts.lua_ls_root .. "/bin/lua-language-server" },
+    settings = {
+      Lua = {
+        -- runtime = {
+        --   version = 'LuaJIT',
+        --   path = vim.split(package.path, ';'),
+        -- },
+        diagnostics = {
+          globals = { 'vim' },
+        },
+        -- workspace = {
+        --   library = vim.api.nvim_get_runtime_file("", true),
+        --   checkThirdParty = false,
+        -- },
+        telemetry = { enable = false },
+      }
+    }
+  })
+end
 function M.setup(lsp_options)
   vim.lsp.set_log_level(vim.log.levels.ERROR)
   lsp_options = lsp_options or {}
   options = vim.tbl_extend("force", options, lsp_options)
 
   setup_navigator(options)
+  setup_lspconfig(options)
   require("tw.formatting").setup(options.use_eslint_daemon)
-  require("tw.languages.go").setupVimGo(options.go_build_tags)
+  local go = require("tw.languages.go")
+  go.setup_build_tags(options.go_build_tags)
+  go.setup_vim_go(options.go_build_tags)
 end
 
 return M

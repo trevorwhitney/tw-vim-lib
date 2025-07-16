@@ -120,6 +120,10 @@ let
           src = self;
           meta.homepage = "https://github.com/trevorwhitney/tw-vim-lib";
           doCheck = false;
+          postInstall = ''
+            # find and remove broken symlinks
+            find $out -xtype l -exec echo "Removing broken symlink: {}" \; -delete
+          '';
         })
       ];
 

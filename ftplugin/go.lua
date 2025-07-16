@@ -6,6 +6,14 @@ local function settings()
   set.shiftwidth = 2
 end
 
+local function get_build_tags_flag()
+  local tags = vim.g.go_build_tags
+  if tags and tags ~= "" then
+    return "-tags " .. tags .. " "
+  end
+  return ""
+end
+
 local function keybindings()
   local keymap = {
     { "<leader>d", group = "Debug", nowait = false, remap = false },
@@ -77,9 +85,10 @@ local function keybindings()
         local package_name = "./" .. vim.fn.expand("%:h")
 
         local test_name = go.get_test_name()
+        local cmd = string.format("Dispatch go test -v %s-run '%s' %s ", get_build_tags_flag(), test_name, package_name)
 
         vim.cmd("update")
-        vim.fn.execute(string.format("Dispatch go test -v -run '%s' %s ", test_name, package_name))
+        vim.fn.execute(cmd)
       end,
       desc = "Test (Prompt for Name)",
       nowait = false,
@@ -89,9 +98,10 @@ local function keybindings()
       "<leader>tp",
       function()
         local package_name = "./" .. vim.fn.expand("%:h")
+        local cmd = string.format("Dispatch go test -v %s%s ", get_build_tags_flag(), package_name)
 
         vim.cmd("update")
-        vim.fn.execute(string.format("Dispatch go test -v %s ", package_name))
+        vim.fn.execute(cmd)
       end,
       desc = "Package Tests",
       nowait = false,
@@ -106,9 +116,10 @@ local function keybindings()
         local package_name = "./" .. vim.fn.expand("%:h")
 
         local test_name = go.get_test_name()
+        local cmd = string.format("go test -v %s-run \'%s\' %s", get_build_tags_flag(), test_name, package_name)
 
         vim.cmd("update")
-        claude.SendCommand(string.format("go test -v -run \'%s\' %s", test_name, package_name))
+        claude.SendCommand(cmd)
       end,
       desc = "Claude Test (Prompt for Name)",
       nowait = false,

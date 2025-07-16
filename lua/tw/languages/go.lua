@@ -169,10 +169,13 @@ function Go.debug_go_test(test_name)
   dap.run(config)
 end
 
-function Go.setupVimGo(go_build_tags)
+function Go.setup_build_tags(go_build_tags)
+  vim.g["go_build_tags"] = go_build_tags
+end
+
+function Go.setup_vim_go(go_build_tags)
   vim.g["go_code_completion_enabled"] = 0
   vim.g["go_def_mapping_enabled"] = 0
-  vim.g["go_build_tags"] = go_build_tags
   vim.g["go_textobj_enabled"] = 0
   vim.g["go_gopls_enabled"] = 0
 end
