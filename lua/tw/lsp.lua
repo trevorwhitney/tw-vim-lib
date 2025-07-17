@@ -168,7 +168,7 @@ local function setup_navigator(opts)
       disable_lsp = { "ruff", "gopls", "lua_ls" }, -- defer to lspconfig for advancded configs
       servers = {
         "dockerls",
-        "eslint",
+        -- "eslint",
         -- "golangci_lint_ls",
         "jsonnet_ls",
         "marksman",
