@@ -27,6 +27,9 @@ local allowed_tools = {
   "Bash(rg:*)",
   "Bash(sed:*)",
   "Bash(for i in:*)",
+  "WebFetch(domain:github.com)",
+  "WebFetch(domain:google.com)",
+  "WebFetch(domain:stackoverflow.com)",
 }
 
 local default_args = {
