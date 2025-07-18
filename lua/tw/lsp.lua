@@ -25,6 +25,7 @@ local default_options = {
   lua_ls_root = vim.api.nvim_eval('get(s:, "lua_ls_path", "")'),
   rocks_tree_root = vim.api.nvim_eval('get(s:, "rocks_tree_root", "")'),
   use_eslint_daemon = true,
+  eslintrc_path = nil, -- will default to project root detection
   go_build_tags = "",
 }
 local options = vim.tbl_extend("force", {}, default_options)
@@ -168,7 +169,7 @@ local function setup_navigator(opts)
       disable_lsp = { "ruff", "gopls", "lua_ls" }, -- defer to lspconfig for advancded configs
       servers = {
         "dockerls",
-        -- "eslint",
+        "eslint",
         -- "golangci_lint_ls",
         "jsonnet_ls",
         "marksman",
@@ -236,6 +237,7 @@ local function setup_lspconfig(opts)
     }
   })
 end
+
 function M.setup(lsp_options)
   vim.lsp.set_log_level(vim.log.levels.ERROR)
   lsp_options = lsp_options or {}

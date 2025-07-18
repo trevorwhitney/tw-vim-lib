@@ -29,6 +29,8 @@ local allowed_tools = {
   "Bash(for i in:*)",
   "WebFetch(domain:github.com)",
   "WebFetch(domain:google.com)",
+  "WebFetch(domain:localhost)",
+  "WebFetch(domain:raw.githubusercontent.com)",
   "WebFetch(domain:stackoverflow.com)",
 }
 
