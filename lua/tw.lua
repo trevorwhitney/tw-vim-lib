@@ -43,9 +43,7 @@ function Config.setup(user_options)
 		vim.g.jdtls_home = options.jdtls_home
 	end
 
-	-- Use CapitalCamelCase to avoid collisioins with global lua modules
-	require("tw.packer").install(require("packer").use)
-
+  require("tw.plugins").install(require("packer").use)
 	require("tw.vim-options").setup()
 
 	require("tw.augroups").setup()
