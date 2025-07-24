@@ -3,8 +3,9 @@ local M = {}
 local claude = require("tw.claude.claude")
 local mcps = require("tw.claude.mcps")
 local Path = require("plenary.path")
+local terminal = require("tw.claude.terminal")
 local allowed_tools = require("tw.claude.allowed-tools")
-
+local util = require("tw.claude.util")
 local default_args = {
   '--allowedTools="' .. table.concat(allowed_tools, ",") .. '"',
 }
@@ -18,50 +19,12 @@ M.saved_updatetime = nil
 -- Find the plugin installation path
 local function get_plugin_root()
   local source = debug.getinfo(1, "S").source
-  local file_path = string.sub(source, 2)  -- Remove the '@' prefix
+  local file_path = string.sub(source, 2) -- Remove the '@' prefix
   local plugin_root = string.match(file_path, "(.-)/lua/tw/claude/init%.lua$")
   return plugin_root
 end
 
-local function open_vsplit_window()
-  vim.api.nvim_command("vert botright new")
-end
 
-local function open_hsplit_window()
-  vim.api.nvim_command("new")
-end
-
-local function open_editor_relative_window()
-  local buf = vim.api.nvim_create_buf(false, true)
-  local width = vim.api.nvim_get_option("columns")
-  local height = vim.api.nvim_get_option("lines")
-  local win = vim.api.nvim_open_win(
-    buf,
-    true,
-    { relative = "editor", width = width - 10, height = height - 10, row = 2, col = 2 }
-  )
-  vim.api.nvim_set_current_win(win)
-end
-
-local function open_window(window_type)
-  if window_type == "vsplit" then
-    open_vsplit_window()
-  elseif window_type == "hsplit" then
-    open_hsplit_window()
-  else
-    open_editor_relative_window()
-  end
-end
-
-local function open_buffer_in_new_window(window_type, claude_buf)
-  if window_type == "vsplit" then
-    vim.api.nvim_command("vert botright split | buffer " .. claude_buf)
-  elseif window_type == "hsplit" then
-    vim.api.nvim_command("split | buffer " .. claude_buf)
-  else
-    vim.api.nvim_command("buffer " .. claude_buf)
-  end
-end
 
 local function OnExit(job_id, exit_code, event_type)
   vim.schedule(function()
@@ -87,7 +50,7 @@ local function start_new_claude_job(args, window_type)
     cmd_args = table.concat(args, " ")
   end
   local command = claude.command(cmd_args)
-  open_window(window_type)
+  terminal.open_window(window_type)
   M.claude_buf = vim.api.nvim_get_current_buf()
   M.claude_job_id = vim.fn.termopen(command, {
     on_exit = OnExit,
@@ -150,7 +113,7 @@ local function confirmOpenAndDo(callback, args, window_type)
 
     -- If buffer exists but is not visible, show it in a vsplit
     if not is_visible then
-      open_buffer_in_new_window(window_type, M.claude_buf)
+      terminal.open_buffer_in_new_window(window_type, M.claude_buf)
     end
     if callback then callback() end
   end
@@ -160,7 +123,7 @@ function M.Open(args, window_type)
   args = args or default_args
   window_type = window_type or "vsplit"
   if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) then
-    open_buffer_in_new_window(window_type, M.claude_buf)
+    terminal.open_buffer_in_new_window(window_type, M.claude_buf)
   else
     start_new_claude_job(args, window_type)
   end
@@ -186,7 +149,7 @@ function M.Toggle(args, window_type)
 
     -- If buffer exists but is not visible, show it in hsplit
     if not is_visible then
-      open_buffer_in_new_window(window_type, M.claude_buf)
+      terminal.open_buffer_in_new_window(window_type, M.claude_buf)
     end
   else
     -- Buffer doesn't exist, create it
@@ -222,41 +185,8 @@ local function sendCodeSnippet(args, rel_path)
   send(args)
   send({
     "```\n",
-    "I would like to ask some question about this code snippet. Please load it but don't make any suggestions yet, just let me know when you're ready for my questions." })
+    "Please load the file, making sure to caputre and understand the use of the code snippet, then wait for my instructions." })
   submit()
-end
-
--- adapted from https://github.com/greggh/claude-code.nvim/blob/main/lua/claude-code/git.lua
-local function get_git_root()
-  -- Check if we're in a git repository
-  local handle = io.popen('git rev-parse --is-inside-work-tree 2>/dev/null')
-  if not handle then
-    return nil
-  end
-
-  local result = handle:read('*a')
-  handle:close()
-
-  -- Strip trailing whitespace and newlines for reliable matching
-  result = result:gsub('[\n\r%s]*$', '')
-
-  if result == 'true' then
-    -- Get the git root path
-    local root_handle = io.popen('git rev-parse --show-toplevel 2>/dev/null')
-    if not root_handle then
-      return nil
-    end
-
-    local git_root = root_handle:read('*a')
-    root_handle:close()
-
-    -- Remove trailing whitespace and newlines
-    git_root = git_root:gsub('[\n\r%s]*$', '')
-
-    return git_root
-  end
-
-  return nil
 end
 
 function M.SendSelection()
@@ -268,8 +198,7 @@ function M.SendSelection()
 
   -- Get the current file path
   local filename = vim.fn.expand("%")
-  local rel_path = Path:new(filename):make_relative(get_git_root())
-
+  local rel_path = Path:new(filename):make_relative(util.get_git_root())
   confirmOpenAndDo(function()
     -- Send the prompt
     sendCodeSnippet(selection, rel_path)
@@ -281,26 +210,42 @@ end
 
 function M.SendSymbol()
   local filename = vim.fn.expand("%")
-  local rel_path = Path:new(filename):make_relative(get_git_root())
+  local rel_path = Path:new(filename):make_relative(util.get_git_root())
   local word = vim.fn.expand('<cword>')
-
   confirmOpenAndDo(function()
     M.SendText({
       "For context, take a look at the symbol",
       word,
       "from @" .. rel_path .. "\n",
-      "I would like to ask some question about this symbol. Please load it but don't make any suggestions yet, just let me know when you're ready for my questions."
+      "Please load the file, making sure to caputre and understand the use of the symbol, then wait for my instructions."
     })
   end)
 end
 
 function M.SendFile()
   local filename = vim.fn.expand("%")
-  local rel_path = Path:new(filename):make_relative(get_git_root())
+  local rel_path = Path:new(filename):make_relative(util.get_git_root())
   confirmOpenAndDo(function()
     M.SendText({
       "For context, take a look at the file @" .. rel_path .. "\n",
-      "I would like to ask some question about this file. Please load it but don't make any suggestions yet, just let me know when you're ready for my questions."
+      "Please load the file then wait for my instructions."
+    })
+  end)
+end
+
+function M.SendOpenBuffers()
+  local files = util.get_buffer_files()
+
+  if #files == 0 then
+    vim.notify("No file buffers found to pass to Claude", vim.log.levels.WARN)
+    return
+  end
+
+  confirmOpenAndDo(function()
+    M.SendText({
+      "For context, please load the following files:\n",
+      table.concat(files, " ") .. "\n",
+      "Load the files then wait for my instructions."
     })
   end)
 end
@@ -342,25 +287,25 @@ function M.StartClaude()
 end
 
 local function configureClaudeKeymap()
-  local claude = require("tw.claude")
   local keymap = {
     { "<leader>c", group = "AI Code Assitant", nowait = true, remap = false },
     {
       mode = { "n", "v" },
-      { "<leader>cl", claude.Toggle, desc = "Toggle Claude" },
+      { "<leader>cl", function() require('tw.claude').Toggle() end, desc = "Toggle Claude" },
     },
     {
       mode = { "n" },
       { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>", desc = "Test Nearest (claude)", nowait = false, remap = false },
-      { "<leader>c*", claude.SendSymbol,                          desc = "Send Current Word to Claude", nowait = false, remap = false },
-      { "<leader>cf", claude.SendFile,                            desc = "Send File to Claude",         nowait = false, remap = false },
-      { "<leader>ct", claude.TDDPlan,                             desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
+      { "<leader>c*", function() require('tw.claude').SendSymbol() end, desc = "Send Current Word to Claude", nowait = false, remap = false },
+      { "<leader>cf", function() require('tw.claude').SendFile() end,   desc = "Send File to Claude",         nowait = false, remap = false },
+      { "<leader>ct", function() require('tw.claude').TDDPlan() end,    desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
+      { "<leader>cb", function() require('tw.claude').SendOpenBuffers() end,    desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
     },
     {
       mode = { "v" },
       {
         "<leader>c*",
-        claude.SendSelection,
+        function() require('tw.claude').SendSelection() end,
         desc = "Send Selection to Claude",
         nowait = false,
         remap = false

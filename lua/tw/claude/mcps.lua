@@ -62,10 +62,6 @@ function M.install_zen_mcp(openAiKey)
       }
     }]], openAiKey)
 
-  -- Main logs:
-  -- /Users/twhitney/.cache/uv/archive-v0/okbeyOfClIzZtDG-GPiC8/lib/python3.12/site-packa ges/logs/mcp_server.log
-  -- /Users/twhitney/.cache/uv/archive-v0/okbeyOfClIzZtDG-GPiC8/lib/python3.12/site-packa ges/logs/mcp_activity.log
-
   local rmCommand = claude.command({ "mcp", "remove", "zen" })
   local command = claude.command({ "mcp", "add-json", "zen" }) .. " '" .. json_config .. "'"
   local github_cmd = table.concat({ rmCommand, command }, " || true &&")
