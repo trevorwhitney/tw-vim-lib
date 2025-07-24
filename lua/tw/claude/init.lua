@@ -3,41 +3,7 @@ local M = {}
 local claude = require("tw.claude.claude")
 local mcps = require("tw.claude.mcps")
 local Path = require("plenary.path")
-local allowed_tools = {
-  "Bash(awk:*)",
-  "Bash(chmod:*)",
-  "Bash(find:*)",
-  "Bash(for i in:*)",
-  "Bash(git add:*)",
-  "Bash(git branch:*)",
-  "Bash(git checkout:*)",
-  "Bash(git cherry-pick:*)",
-  "Bash(git commit:*)",
-  "Bash(git config:*)",
-  "Bash(git fetch:*)",
-  "Bash(git log:*)",
-  "Bash(git pull:*)",
-  "Bash(git rev-parse:*)",
-  "Bash(git status:*)",
-  "Bash(go build:*)",
-  "Bash(go get:*)",
-  "Bash(go run:*)",
-  "Bash(go test:*)",
-  "Bash(go vet:*)",
-  "Bash(gofmt:*)",
-  "Bash(grep:*)",
-  "Bash(ls:*)",
-  "Bash(make:*)",
-  "Bash(mkdir:*)",
-  "Bash(rg:*)",
-  "Bash(sed:*)",
-  "Bash(for i in:*)",
-  "WebFetch(domain:github.com)",
-  "WebFetch(domain:google.com)",
-  "WebFetch(domain:localhost)",
-  "WebFetch(domain:raw.githubusercontent.com)",
-  "WebFetch(domain:stackoverflow.com)",
-}
+local allowed_tools = require("tw.claude.allowed-tools")
 
 local default_args = {
   '--allowedTools="' .. table.concat(allowed_tools, ",") .. '"',
