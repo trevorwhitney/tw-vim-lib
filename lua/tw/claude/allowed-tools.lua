@@ -1,6 +1,9 @@
 return {
   "Bash(awk:*)",
   "Bash(chmod:*)",
+  "Bash(curl:*)",
+  "Bash(docker:*)",
+  "Bash(docker-compose:*)",
   "Bash(env:*)",
   "Bash(find:*)",
   "Bash(for i in:*)",
