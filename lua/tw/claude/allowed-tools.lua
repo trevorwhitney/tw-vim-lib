@@ -29,6 +29,7 @@ return {
   "Bash(ls:*)",
   "Bash(make:*)",
   "Bash(mkdir:*)",
+  "Bash(nix:*)",
   "Bash(npm install:*)",
   "Bash(npm run:*)",
   "Bash(npm test:*)",
