@@ -67,9 +67,19 @@ local function configureGitsigns()
 end
 
 local function configureDiffview()
+  local actions = require("diffview.actions")
   require("diffview").setup({
     keymaps = {
       disable_defaults = true,
+      view = {
+        { "n", "[x", actions.prev_conflict, { desc = "In the merge-tool: jump to the previous conflict" } },
+        { "n", "]x", actions.next_conflict, { desc = "In the merge-tool: jump to the next conflict" } },
+      },
+      file_panel = {
+        { "n", "[x", actions.prev_conflict,      { desc = "Go to the previous conflict" } },
+        { "n", "]x", actions.next_conflict,      { desc = "Go to the next conflict" } },
+        { "n", "g?", actions.help("file_panel"), { desc = "Open the help panel" } },
+      }
     },
   })
 end
