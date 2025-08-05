@@ -170,6 +170,7 @@ function Packer.install(use)
 
     use("tpope/vim-eunuch")
     use({ "tpope/vim-fugitive", requires = "tpope/vim-rhubarb" })
+    use("sindrets/diffview.nvim")
     use("tpope/vim-repeat")
     use("tpope/vim-rsi")
     use("tpope/vim-surround")
