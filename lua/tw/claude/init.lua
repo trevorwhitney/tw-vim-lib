@@ -63,7 +63,7 @@ local function start_new_claude_job(args, window_type)
   vim.bo[M.claude_buf].filetype = "ClaudeConsole"
 
   vim.defer_fn(function()
-    M.PairProgramming()
+    M.SendPrompt("coding.md")
     -- M.StartClaude()
     vim.cmd('startinsert')
   end, 1750)
@@ -250,30 +250,13 @@ function M.SendOpenBuffers()
   end)
 end
 
-function M.PairProgramming()
+function M.SendPrompt(filename)
   local plugin_root = get_plugin_root()
-  -- local prompt_path = plugin_root .. "/prompts/pair-programming.md"
-  local prompt_path = plugin_root .. "/prompts/coding.md"
-  -- Read the pair programming prompt file
+  local prompt_path = plugin_root .. "/prompts/" .. filename
+  -- Read the prompt file
   local file = io.open(prompt_path, "r")
   if not file then
-    vim.api.nvim_err_writeln("Could not find pair programming prompt file: " .. prompt_path)
-    return
-  end
-  local content = file:read("*all")
-  file:close()
-  confirmOpenAndDo(function()
-    M.SendText(content)
-  end)
-end
-function M.TDDPlan()
-  local plugin_root = get_plugin_root()
-  -- local prompt_path = plugin_root .. "/prompts/pair-programming.md"
-  local prompt_path = plugin_root .. "/prompts/tdd-plan.md"
-  -- Read the pair programming prompt file
-  local file = io.open(prompt_path, "r")
-  if not file then
-    vim.api.nvim_err_writeln("Could not find tdd plan prompt file: " .. prompt_path)
+    vim.api.nvim_err_writeln("Could not find prompt file: " .. prompt_path)
     return
   end
   local content = file:read("*all")
@@ -295,11 +278,12 @@ local function configureClaudeKeymap()
     },
     {
       mode = { "n" },
-      { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>", desc = "Test Nearest (claude)", nowait = false, remap = false },
-      { "<leader>c*", function() require('tw.claude').SendSymbol() end, desc = "Send Current Word to Claude", nowait = false, remap = false },
-      { "<leader>cf", function() require('tw.claude').SendFile() end,   desc = "Send File to Claude",         nowait = false, remap = false },
-      { "<leader>ct", function() require('tw.claude').TDDPlan() end,    desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
-      { "<leader>cb", function() require('tw.claude').SendOpenBuffers() end,    desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
+      { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>",                       desc = "Test Nearest (claude)",       nowait = false, remap = false },
+      { "<leader>c*", function() require('tw.claude').SendSymbol() end,                 desc = "Send Current Word to Claude", nowait = false, remap = false },
+      { "<leader>cf", function() require('tw.claude').SendFile() end,                   desc = "Send File to Claude",         nowait = false, remap = false },
+      { "<leader>ct", function() require('tw.claude').SendPrompt("tdd-plan.md") end,    desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
+      { "<leader>cm", function() require('tw.claude').SendPrompt("commit-plan.md") end, desc = "Commit Staged with Claude",   nowait = false, remap = false },
+      { "<leader>cb", function() require('tw.claude').SendOpenBuffers() end,            desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
     },
     {
       mode = { "v" },
