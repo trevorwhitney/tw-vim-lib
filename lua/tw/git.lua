@@ -1,6 +1,6 @@
 local M = {}
 
-local function setup()
+local function configureGitsigns()
   require("gitsigns").setup({
     current_line_blame = true,
     -- highlight numbers instead of using the sign column
@@ -66,8 +66,17 @@ local function setup()
   })
 end
 
+local function configureDiffview()
+  require("diffview").setup({
+    keymaps = {
+      disable_defaults = true,
+    },
+  })
+end
+
 function M.setup()
-  setup()
+  configureGitsigns()
+  configureDiffview()
 end
 
 function M.gpp()
