@@ -282,7 +282,7 @@ local function configureClaudeKeymap()
       { "<leader>c*", function() require('tw.claude').SendSymbol() end,                 desc = "Send Current Word to Claude", nowait = false, remap = false },
       { "<leader>cf", function() require('tw.claude').SendFile() end,                   desc = "Send File to Claude",         nowait = false, remap = false },
       { "<leader>ct", function() require('tw.claude').SendPrompt("tdd-plan.md") end,    desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
-      { "<leader>cm", function() require('tw.claude').SendPrompt("commit-plan.md") end, desc = "Commit Staged with Claude",   nowait = false, remap = false },
+      { "<leader>cm", function() require('tw.claude').SendPrompt("commit-staged.md") end, desc = "Commit Staged with Claude",   nowait = false, remap = false },
       { "<leader>cb", function() require('tw.claude').SendOpenBuffers() end,            desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
     },
     {
