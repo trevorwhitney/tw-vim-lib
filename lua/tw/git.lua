@@ -74,6 +74,7 @@ local function configureDiffview()
       view = {
         { "n", "[x", actions.prev_conflict, { desc = "In the merge-tool: jump to the previous conflict" } },
         { "n", "]x", actions.next_conflict, { desc = "In the merge-tool: jump to the next conflict" } },
+        { "n", "<leader>b", actions.toggle_files,  { desc = "Toggle the file panel." } },
       },
       file_panel = {
         { "n", "-",  actions.toggle_stage_entry, { desc = "Stage / unstage the selected entry" } },
@@ -81,6 +82,7 @@ local function configureDiffview()
         { "n", "[x", actions.prev_conflict,      { desc = "Go to the previous conflict" } },
         { "n", "]x", actions.next_conflict,      { desc = "Go to the next conflict" } },
         { "n", "g?", actions.help("file_panel"), { desc = "Open the help panel" } },
+        { "n", "<leader>b", actions.toggle_files,       { desc = "Toggle the file panel" } },
       }
     },
   })
