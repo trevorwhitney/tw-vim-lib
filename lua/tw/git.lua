@@ -92,7 +92,6 @@ function M.setup()
   configureGitsigns()
   configureDiffview()
 end
-
 function M.gpp()
   vim.cmd("Git pull --rebase")
   vim.cmd("Git push")
@@ -103,10 +102,26 @@ function M.diffSplit(commit)
 end
 
 function M.toggleGitStatus()
+  local diffview = require("diffview")
+  local diffview_lib = require("diffview.lib")
+
+  -- Check if diffview is open
+  local has_diffview = next(diffview_lib.views) ~= nil
+
+  -- Check if fugitive buffer is open
   local fugitiveBuf = vim.fn.bufnr("fugitive://")
-  if fugitiveBuf >= 0 and vim.fn.bufwinnr(fugitiveBuf) >= 0 then
+  local has_fugitive = fugitiveBuf >= 0 and vim.fn.bufwinnr(fugitiveBuf) >= 0
+
+  if has_diffview then
+    -- Close diffview (this will close the tab and any fugitive in it)
+    vim.cmd("DiffviewClose")
+  elseif has_fugitive then
+    -- Close standalone fugitive buffer
     vim.cmd("bunload " .. fugitiveBuf)
   else
+    -- Open combined interface
+    diffview.open()
+    diffview.emit("toggle_files")
     vim.cmd("Git")
   end
 end
