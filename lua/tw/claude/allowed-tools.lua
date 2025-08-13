@@ -19,6 +19,7 @@ return {
   "Bash(git rev-parse:*)",
   "Bash(git status:*)",
   "Bash(go build:*)",
+  "Bash(go doc:*)",
   "Bash(go get:*)",
   "Bash(go run:*)",
   "Bash(go test:*)",

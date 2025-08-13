@@ -243,8 +243,8 @@ function M.toggleGitStatus()
   else
     -- Open combined interface
     diffview.open()
-    diffview.emit("toggle_files")
-    vim.cmd("Git")
+    -- diffview.emit("toggle_files")
+    -- vim.cmd("Git")
   end
 end
 
