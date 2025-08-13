@@ -15,3 +15,7 @@ Please include reminders that, when executing the plan:
 	* After implementation, the test should be re-run and pass.
 
 The final result should be a structured, behavior-first execution plan that implements the original plan one behavior at a time, using the full TDD cycle.
+The execution of the plan should proceed one test at a time, pausing after the test fails correctly so I can review the test before any implementation is written.
+If I am satisfied with the test, I will ask you to continue with implemention. The implementation stage should not motify the test at all.
+If implementation cannot continue without a test modification, pause and explain why, at which point I will modify the test, or instruct you how to continue.
+Pause again after the implementions is complete so I can review it before moving on to the next test/implementation cycle.
