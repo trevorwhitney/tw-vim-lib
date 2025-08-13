@@ -42,6 +42,11 @@ local function OnExit(job_id, exit_code, event_type)
   end)
 end
 
+local function submit()
+  vim.defer_fn(function()
+    vim.fn.chansend(M.claude_job_id, "\r")
+  end, 500)
+end
 
 local function start_new_claude_job(args, window_type)
   -- Launch Claude
@@ -64,15 +69,10 @@ local function start_new_claude_job(args, window_type)
 
   vim.defer_fn(function()
     M.SendPrompt("coding.md")
+    submit()
     -- M.StartClaude()
     vim.cmd('startinsert')
   end, 1750)
-end
-
-local function submit()
-  vim.defer_fn(function()
-    vim.fn.chansend(M.claude_job_id, "\r")
-  end, 500)
 end
 
 local function send(args)
@@ -162,7 +162,7 @@ function M.SendCommand(args)
     vim.fn.chansend(M.claude_job_id, "!")
     vim.defer_fn(function()
       send(args)
-      submit()
+      -- submit()
     end, 500)
   end)
 end
@@ -170,7 +170,7 @@ end
 function M.SendText(args)
   confirmOpenAndDo(function()
     send(args)
-    submit()
+    -- submit()
   end)
 end
 function M.VimTestStrategy(cmd)
@@ -186,7 +186,7 @@ local function sendCodeSnippet(args, rel_path)
   send({
     "```\n",
     "Please load the file, making sure to caputre and understand the use of the code snippet, then wait for my instructions." })
-  submit()
+  -- submit()
 end
 
 function M.SendSelection()
