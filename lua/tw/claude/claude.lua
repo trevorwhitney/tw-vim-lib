@@ -1,6 +1,5 @@
 local M = {}
 
-
 local get_claude_path = function()
   local handle = io.popen(table.concat({ "command", "-v", "claude" }, " "))
   local claude_path = ""
@@ -42,5 +41,6 @@ function M.command(args)
 
   return table.concat(command, " ")
 end
+
 
 return M
