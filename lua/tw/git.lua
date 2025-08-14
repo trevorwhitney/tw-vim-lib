@@ -213,6 +213,11 @@ end
 function M.setup()
   configureGitsigns()
   configureDiffview()
+  
+  -- Make :Git always open in a full-width split at the bottom
+  vim.cmd([[
+    cnoreabbrev <expr> Git (getcmdtype() == ':' && getcmdline() =~ '^Git$') ? 'botright Git' : 'Git'
+  ]])
 end
 function M.gpp()
   vim.cmd("Git pull --rebase")
