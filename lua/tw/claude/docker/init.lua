@@ -1,5 +1,61 @@
 local M = {}
 
+-- Detect if we're in a git worktree and return worktree info
+function M.detect_worktree()
+  local git_path = vim.fn.getcwd() .. "/.git"
+
+  -- Check if .git is a file (worktree indicator)
+  if vim.fn.filereadable(git_path) == 1 then
+    local file = io.open(git_path, "r")
+    if file then
+      local content = file:read("*a")
+      file:close()
+
+      -- Parse gitdir line
+      local gitdir = content:match("gitdir:%s*(.+)")
+      if gitdir then
+        -- Trim whitespace
+        gitdir = gitdir:gsub("^%s+", ""):gsub("%s+$", "")
+
+        -- Get the main repository path (parent of .git/worktrees)
+        -- gitdir format: /path/to/repo/.git/worktrees/worktree-name
+        local main_repo = gitdir:match("(.+)/%.git/worktrees/[^/]+$")
+
+        if main_repo then
+          -- Resolve to absolute path
+          main_repo = vim.fn.fnamemodify(main_repo, ":p")
+
+          return {
+            worktree_dir = vim.fn.getcwd(),
+            gitdir = gitdir,
+            main_repo = main_repo,
+            -- Extract relative path from main repo for container
+            container_gitdir = gitdir:gsub("^" .. vim.pesc(main_repo), "/git-root/")
+          }
+        end
+      end
+    end
+  end
+
+  return nil
+end
+
+-- Create a temporary .git file with corrected paths for container
+function M.create_worktree_git_file(worktree_info)
+  -- Create temp file with corrected gitdir path
+  local temp_dir = vim.fn.tempname()
+  vim.fn.mkdir(temp_dir, "p")
+  local temp_git_file = temp_dir .. "/git"
+
+  local file = io.open(temp_git_file, "w")
+  if file then
+    file:write("gitdir: " .. worktree_info.container_gitdir .. "\n")
+    file:close()
+    return temp_git_file
+  end
+
+  return nil
+end
 -- Get the plugin root directory
 local function get_plugin_root()
   local source = debug.getinfo(1, "S").source
@@ -42,6 +98,15 @@ function M.get_start_container_command(container_name, context_dirs)
     network_flag = "--network host"
   end
 
+  -- Check if we're in a git worktree
+  local worktree_info = M.detect_worktree()
+  local worktree_git_file = nil
+
+  if worktree_info then
+    -- Create temporary .git file with corrected paths
+    worktree_git_file = M.create_worktree_git_file(worktree_info)
+  end
+
   -- Build the docker command for persistent container
   local docker_cmd = {
     "docker", "run", "-d", "--name", container_name,
@@ -73,6 +138,17 @@ function M.get_start_container_command(container_name, context_dirs)
     table.insert(docker_cmd, source_path .. ":/context/" .. mount_name)
   end
 
+  -- Add worktree-specific mounts if needed
+  if worktree_info and worktree_git_file then
+    -- Mount the main git repository
+    table.insert(docker_cmd, "-v")
+    table.insert(docker_cmd, worktree_info.main_repo .. ":/git-root")
+
+    -- Mount the corrected .git file over the workspace .git
+    table.insert(docker_cmd, "-v")
+    table.insert(docker_cmd, worktree_git_file .. ":/workspace/.git:ro")
+  end
+
   -- Add the rest of the arguments
   local remaining_args = {
     "-v", vim.fn.getcwd() .. ":/workspace",
@@ -84,7 +160,6 @@ function M.get_start_container_command(container_name, context_dirs)
     "-e", "GITHUB_PERSONAL_ACCESS_TOKEN=" .. (vim.env.GITHUB_PERSONAL_ACCESS_TOKEN or ""),
     "-e", "GH_TOKEN=" .. (vim.env.GH_TOKEN or ""),
     "-e", "OPENAI_API_KEY=" .. (vim.env.OPENAI_API_KEY or ""),
-    "-e", "TERM=dumb" .. (vim.env.TERM or "xterm-256color"),
     "-e", "COLORTERM=" .. (vim.env.COLORTERM or "truecolor"),
     "-e", "FORCE_COLOR=1",
     "-e", "CLAUDE_INBOX_URL=" .. (vim.env.CLAUDE_INBOX_URL or "http://host.docker.internal:43111/events"),
