@@ -43,7 +43,7 @@ fi
 
 # Allow common development ports (customize as needed)
 # This allows outbound connections to these ports on any IP
-ALLOWED_PORTS=(1234 3000 3001 4000 4200 5000 5173 5174 8000 8080 8081 8888 9000 9090)
+ALLOWED_PORTS=(80 443 1234 3000 3001 3100 4000 4200 5000 5173 5174 8000 8080 8081 8888 9000 9090 43111)
 for port in "${ALLOWED_PORTS[@]}"; do
     iptables -A OUTPUT -p tcp --dport $port -j ACCEPT
     echo "Allowed outbound connections to port $port"

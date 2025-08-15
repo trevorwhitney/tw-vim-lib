@@ -84,9 +84,10 @@ function M.get_start_container_command(container_name, context_dirs)
     "-e", "GITHUB_PERSONAL_ACCESS_TOKEN=" .. (vim.env.GITHUB_PERSONAL_ACCESS_TOKEN or ""),
     "-e", "GH_TOKEN=" .. (vim.env.GH_TOKEN or ""),
     "-e", "OPENAI_API_KEY=" .. (vim.env.OPENAI_API_KEY or ""),
-    "-e", "TERM=" .. (vim.env.TERM or "xterm-256color"),
+    "-e", "TERM=dumb" .. (vim.env.TERM or "xterm-256color"),
     "-e", "COLORTERM=" .. (vim.env.COLORTERM or "truecolor"),
     "-e", "FORCE_COLOR=1",
+    "-e", "CLAUDE_INBOX_URL=" .. (vim.env.CLAUDE_INBOX_URL or "http://host.docker.internal:43111/events"),
     "tw-claude-code:latest",
     "tail", "-f", "/dev/null"
   }
@@ -117,7 +118,7 @@ function M.attach_to_container(container_name, args)
     args = " " .. args
   end
 
-  local cmd = 'docker exec -it ' .. container_name .. ' /bin/bash -c "claude --dangerously-skip-permissions --continue' ..
+  local cmd = 'docker exec -it ' .. container_name .. ' /bin/bash -c "claude --dangerously-skip-permissions' ..
       args .. '"'
   return cmd
 end

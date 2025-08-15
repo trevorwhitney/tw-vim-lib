@@ -312,14 +312,13 @@ end
 
 local function sendCodeSnippet(args, rel_path)
   send({
-    "For context, take a look at the following code snippet from @" .. rel_path .. "\n",
+    "take a look at the following code snippet from @" .. rel_path .. "\n",
     "```\n",
   })
   send(args)
   send({
     "```\n",
-    "Please load the file, making sure to caputre and understand the use of the code snippet, then wait for my instructions." })
-  -- submit()
+  })
 end
 
 function M.SendSelection()
@@ -347,10 +346,9 @@ function M.SendSymbol()
   local word = vim.fn.expand('<cword>')
   confirmOpenAndDo(function()
     M.SendText({
-      "For context, take a look at the symbol",
+      " take a look at the symbol",
       word,
-      "from @" .. rel_path .. "\n",
-      "Please load the file, making sure to caputre and understand the use of the symbol, then wait for my instructions."
+      "from @" .. rel_path .. " ",
     })
   end)
 end
@@ -360,8 +358,7 @@ function M.SendFile()
   local rel_path = Path:new(filename):make_relative(util.get_git_root())
   confirmOpenAndDo(function()
     M.SendText({
-      "For context, take a look at the file @" .. rel_path .. "\n",
-      "Please load the file then wait for my instructions."
+      " take a look at the file @" .. rel_path .. " "
     })
   end)
 end
@@ -379,7 +376,7 @@ function M.SendOpenBuffers()
       "For context, please load the following files:\n",
       table.concat(files, " ") .. "\n",
       "Load the files then wait for my instructions."
-    })
+    }, true)
   end)
 end
 
@@ -758,6 +755,16 @@ function M.setup(opts)
     vim.fn.system(cmd)
     if vim.v.shell_error == 0 then
       log.info("Docker image built successfully (manual)", true)
+      -- Stop current container
+      if M.docker_mode and M.container_started then
+        close_claude_buffer() -- Clean up Claude buffer before restart
+        docker.stop_container(M.container_name)
+        M.container_started = false
+        log.info("Stopped existing container")
+      end
+
+      -- Start new container
+      M.start_container_async()
     else
       log.error("Failed to build Docker image (manual)", true)
     end

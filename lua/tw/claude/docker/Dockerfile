@@ -42,6 +42,10 @@ RUN echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudo
 COPY init-firewall.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/init-firewall.sh
 
+# Copy Claude hooks
+COPY hooks /opt/claude-hooks/
+RUN chmod +x /opt/claude-hooks/*.sh
+
 # Set up directories
 RUN mkdir -p /home/node/.claude /home/node/.mcp /home/node/.local/bin /commandhistory
 RUN chown -R node:node /home/node /commandhistory
