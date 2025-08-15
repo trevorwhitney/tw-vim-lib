@@ -70,7 +70,7 @@ function M.get_start_container_command(container_name, context_dirs)
       mount_name = dir_name .. "_" .. string.sub(hash, 1, 8)
     end
     table.insert(docker_cmd, "-v")
-    table.insert(docker_cmd, source_path .. ":/context/" .. mount_name .. ":ro")
+    table.insert(docker_cmd, source_path .. ":/context/" .. mount_name)
   end
 
   -- Add the rest of the arguments
