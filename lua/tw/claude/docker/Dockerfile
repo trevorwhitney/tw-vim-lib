@@ -2,33 +2,100 @@ FROM node:20
 
 # Install base dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    zsh \
-    sudo \
-    iptables \
-    ipset \
-    iproute2 \
+    curl \
     dnsutils \
-    nano \
-    vim \
-    neovim \
-    gh \
-    jq \
-    unzip \
-    gnupg2 \
-    fzf \
-    ripgrep \
     fd-find \
+    fzf \
+    gh \
+    git \
+    gnupg2 \
+    iproute2 \
+    ipset \
+    iptables \
+    jq \
+    jsonnet \
+    nano \
     ncurses-bin \
+    neovim \
+    ripgrep \
+    sudo \
+    unzip \
+    vim \
+    zsh \
     # Add Python and UV for MCP tools
     python3 \
     python3-pip \
     python3-venv \
-    curl \
+    # Add tools for building Go and other binaries
+    build-essential \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install UV for zen-mcp-server
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install Go
+ARG GO_VERSION=1.22.6
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        curl -LO https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz && \
+        tar -C /usr/local -xzf go${GO_VERSION}.linux-arm64.tar.gz && \
+        rm go${GO_VERSION}.linux-arm64.tar.gz; \
+    else \
+        curl -LO https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+        tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
+        rm go${GO_VERSION}.linux-amd64.tar.gz; \
+    fi
+ENV PATH="/usr/local/go/bin:$PATH"
+ENV GOPATH="/home/node/go"
+ENV PATH="$GOPATH/bin:$PATH"
+
+# Install Go tools
+RUN go install github.com/go-delve/delve/cmd/dlv@latest && \
+    go install github.com/fatih/faillint@latest && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
+    go install gotest.tools/gotestsum@latest && \
+    go install golang.org/x/tools/...@latest
+
+# Install golang-perf (build from source as no pre-built binaries)
+RUN go install golang.org/x/perf/cmd/benchstat@latest && \
+    ln -s $GOPATH/bin/benchstat /usr/local/bin/golang-perf
+
+# Create symlinks for expected binary names
+RUN ln -s $GOPATH/bin/dlv /usr/local/bin/delve && \
+    ln -s /usr/local/go/bin/go /usr/local/bin/gotools
+
+# Install helm-docs
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        curl -LO https://github.com/norwoodj/helm-docs/releases/download/v1.13.1/helm-docs_1.13.1_Linux_arm64.tar.gz && \
+        tar -xzf helm-docs_1.13.1_Linux_arm64.tar.gz && \
+        mv helm-docs /usr/local/bin/ && \
+        rm helm-docs_1.13.1_Linux_arm64.tar.gz; \
+    else \
+        curl -LO https://github.com/norwoodj/helm-docs/releases/download/v1.13.1/helm-docs_1.13.1_Linux_x86_64.tar.gz && \
+        tar -xzf helm-docs_1.13.1_Linux_x86_64.tar.gz && \
+        mv helm-docs /usr/local/bin/ && \
+        rm helm-docs_1.13.1_Linux_x86_64.tar.gz; \
+    fi
+
+# Install jsonnet-bundler
+RUN go install github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb@latest && \
+    ln -s $GOPATH/bin/jb /usr/local/bin/jsonnet-bundler
+
+# Install security tools
+# Snyk
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        curl -LO https://static.snyk.io/cli/latest/snyk-linux-arm64 && \
+        chmod +x snyk-linux-arm64 && \
+        mv snyk-linux-arm64 /usr/local/bin/snyk; \
+    else \
+        curl -LO https://static.snyk.io/cli/latest/snyk-linux && \
+        chmod +x snyk-linux && \
+        mv snyk-linux /usr/local/bin/snyk; \
+    fi
+
+# Trivy
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install claude-code
 ARG CLAUDE_CODE_VERSION=latest
