@@ -93,9 +93,20 @@ function M.get_start_container_command(container_name, context_dirs)
   context_dirs = context_dirs or {}
   local os_type = vim.loop.os_uname().sysname
   local network_flag = ""
+  local ssh_agent_mount = ""
+  local ssh_auth_sock = ""
 
   if os_type == "Linux" then
     network_flag = "--network host"
+    -- On Linux, use the host's SSH_AUTH_SOCK directly
+    if vim.env.SSH_AUTH_SOCK then
+      ssh_agent_mount = vim.env.SSH_AUTH_SOCK
+      ssh_auth_sock = vim.env.SSH_AUTH_SOCK
+    end
+  else
+    -- On macOS, use the Docker Desktop SSH agent forwarding
+    ssh_agent_mount = "/run/host-services/ssh-auth.sock"
+    ssh_auth_sock = "/run/host-services/ssh-auth.sock"
   end
 
   -- Check if we're in a git worktree
@@ -149,11 +160,19 @@ function M.get_start_container_command(container_name, context_dirs)
     table.insert(docker_cmd, worktree_git_file .. ":/workspace/.git:ro")
   end
 
+  -- Add SSH agent socket mount if available
+  if ssh_agent_mount ~= "" then
+    table.insert(docker_cmd, "-v")
+    table.insert(docker_cmd, ssh_agent_mount .. ":" .. ssh_auth_sock)
+  end
+
   -- Add the rest of the arguments
   local remaining_args = {
     "-v", vim.fn.getcwd() .. ":/workspace",
     "-v", vim.fn.expand("~/.config/claude-container") .. ":/home/node/.claude",
     "-v", "claude-history:/commandhistory",
+    "-v", vim.fn.expand("~/.config/git") .. ":/home/node/.config/git:ro",
+    "-v", vim.fn.expand("~/.ssh") .. ":/home/node/.ssh:ro",
     "-e", "NODE_OPTIONS=--max-old-space-size=4096",
     "-e", "CLAUDE_CONFIG_DIR=/home/node/.claude",
     "-e", "ANTHROPIC_API_KEY=" .. (vim.env.ANTHROPIC_API_KEY or ""),
@@ -163,11 +182,25 @@ function M.get_start_container_command(container_name, context_dirs)
     "-e", "COLORTERM=" .. (vim.env.COLORTERM or "truecolor"),
     "-e", "FORCE_COLOR=1",
     "-e", "CLAUDE_INBOX_URL=" .. (vim.env.CLAUDE_INBOX_URL or "http://host.docker.internal:43111/events"),
+  }
+
+  -- Add SSH_AUTH_SOCK environment variable if available
+  if ssh_auth_sock ~= "" then
+    table.insert(remaining_args, "-e")
+    table.insert(remaining_args, "SSH_AUTH_SOCK=" .. ssh_auth_sock)
+  end
+
+  -- Add remaining arguments to docker command
+  for _, arg in ipairs(remaining_args) do
+    table.insert(docker_cmd, arg)
+  end
+
+  -- Add the container image and command
+  local final_args = {
     "tw-claude-code:latest",
     "tail", "-f", "/dev/null"
   }
-
-  for _, arg in ipairs(remaining_args) do
+  for _, arg in ipairs(final_args) do
     table.insert(docker_cmd, arg)
   end
 
@@ -238,8 +271,18 @@ function M.setup_container_firewall(container_name, callback)
         local log = _G.claude_log
         if log then
           if success then
-            -- Firewall setup successful
-            log.info("Container firewall setup completed successfully")
+            -- Verify firewall is actually set up correctly
+            local verify_success = M.check_firewall_status(container_name)
+            if verify_success then
+              log.info("Container firewall setup completed and verified successfully")
+            else
+              log.warn("Firewall script succeeded but verification detected issues:")
+              log.warn("⚠️  Either DROP policies are missing or there's a catch-all ACCEPT rule")
+              log.info("  - ADVICE:")
+              log.info("    - Run :ClaudeDockerBuild to rebuild with fixed firewall script")
+              log.info("    - Or check rules with :ClaudeDockerShell and 'sudo iptables -L -n'")
+              success = false
+            end
           else
             -- Firewall setup failed - container still works but less secure
             log.warn("Container firewall setup failed, exit code: " .. exit_code .. " (container still functional)")
@@ -277,13 +320,37 @@ end
 
 function M.check_firewall_status(container_name)
   container_name = container_name or "claude-code-nvim"
-  local check_cmd = "docker exec " .. container_name .. " sudo iptables -L -n | grep -q 'policy DROP'"
-  local handle = io.popen(check_cmd .. " 2>/dev/null")
-  if handle then
-    handle:close()
-    return vim.v.shell_error == 0
+  
+  -- First check for DROP policies
+  local policy_cmd = "docker exec " .. container_name .. " sudo iptables -L -n 2>/dev/null"
+  local handle = io.popen(policy_cmd)
+  if not handle then
+    return false
   end
-  return false
+  
+  local output = handle:read("*a")
+  handle:close()
+  
+  -- Check for DROP policies in all chains
+  local has_input_drop = output:match("Chain INPUT %(policy DROP%)")
+  local has_output_drop = output:match("Chain OUTPUT %(policy DROP%)")
+  
+  -- Check for problematic catch-all ACCEPT rule in INPUT chain
+  -- This pattern matches lines like "ACCEPT     0    --  0.0.0.0/0            0.0.0.0/0"
+  -- without any interface specification (which would indicate it's NOT the loopback rule)
+  local has_bad_input_rule = false
+  for line in output:gmatch("[^\r\n]+") do
+    -- Look for ACCEPT all rule without interface specification
+    if line:match("^ACCEPT%s+0%s+%-%-%s+0%.0%.0%.0/0%s+0%.0%.0%.0/0%s*$") then
+      has_bad_input_rule = true
+      break
+    end
+  end
+  
+  -- Firewall is properly configured if:
+  -- 1. Both INPUT and OUTPUT have DROP policies
+  -- 2. There's no catch-all ACCEPT rule in INPUT
+  return has_input_drop and has_output_drop and not has_bad_input_rule
 end
 
 return M

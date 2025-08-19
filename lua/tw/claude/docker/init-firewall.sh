@@ -3,6 +3,12 @@ set -euo pipefail
 
 echo "Setting up firewall rules..."
 
+# First, flush all existing rules to ensure clean state
+echo "Flushing existing rules..."
+iptables -F INPUT
+iptables -F FORWARD
+iptables -F OUTPUT
+
 # Set default policies
 iptables -P INPUT DROP
 iptables -P FORWARD DROP
@@ -12,7 +18,7 @@ iptables -P OUTPUT DROP
 iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
-# Allow loopback
+# Allow loopback - IMPORTANT: Must specify interface with -i lo
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A OUTPUT -o lo -j ACCEPT
 

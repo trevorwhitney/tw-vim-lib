@@ -104,6 +104,8 @@ RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 # Create non-root user permissions
 RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers
+RUN echo "node ALL=(ALL) NOPASSWD: /usr/sbin/iptables" >> /etc/sudoers
+RUN echo "node ALL=(ALL) NOPASSWD: /usr/sbin/ipset" >> /etc/sudoers
 
 # Copy firewall script
 COPY init-firewall.sh /usr/local/bin/
@@ -114,7 +116,7 @@ COPY hooks /opt/claude-hooks/
 RUN chmod +x /opt/claude-hooks/*.sh
 
 # Set up directories
-RUN mkdir -p /home/node/.claude /home/node/.mcp /home/node/.local/bin /commandhistory
+RUN mkdir -p /home/node/.claude /home/node/.mcp /home/node/.local/bin /home/node/.config /commandhistory
 RUN chown -R node:node /home/node /commandhistory
 
 # Add UV to PATH for node user

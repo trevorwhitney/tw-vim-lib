@@ -1006,5 +1006,40 @@ function M.setup(opts)
       return { "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF" }
     end
   })
+  vim.api.nvim_create_user_command("ClaudeCheckFirewall", function()
+    if not M.docker_mode then
+      vim.notify("Docker mode is not enabled", vim.log.levels.WARN)
+      return
+    end
+
+    if not docker.is_container_running(M.container_name) then
+      vim.notify("Claude container is not running", vim.log.levels.ERROR)
+      return
+    end
+
+    log.info("Checking firewall status...")
+
+    -- Check if policies are set to DROP
+    local policy_check = docker.check_firewall_status(M.container_name)
+    if policy_check then
+      vim.notify("✓ Firewall policies are set to DROP (secure)", vim.log.levels.INFO)
+    else
+      vim.notify("✗ Firewall policies are NOT set to DROP (insecure)", vim.log.levels.WARN)
+    end
+
+    -- Run detailed check
+    local check_cmd = "docker exec " ..
+    M.container_name ..
+    [[ bash -c "echo '=== INPUT Chain ==='; sudo iptables -L INPUT -n -v | head -5; echo; echo '=== OUTPUT Chain ==='; sudo iptables -L OUTPUT -n -v | head -5; echo; echo '=== Allowed IPs ==='; sudo ipset list allowed_ips 2>/dev/null | head -10 || echo 'No ipset found'"]]
+
+    local handle = io.popen(check_cmd .. " 2>&1")
+    if handle then
+      local result = handle:read("*a")
+      handle:close()
+      vim.notify("Firewall Status:\n" .. result, vim.log.levels.INFO)
+    else
+      vim.notify("Failed to check firewall status", vim.log.levels.ERROR)
+    end
+  end, { desc = "Check the Claude container firewall status" })
 end
 return M
