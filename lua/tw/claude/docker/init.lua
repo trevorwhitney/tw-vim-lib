@@ -181,6 +181,7 @@ function M.get_start_container_command(container_name, context_dirs)
     "-e", "OPENAI_API_KEY=" .. (vim.env.OPENAI_API_KEY or ""),
     "-e", "COLORTERM=" .. (vim.env.COLORTERM or "truecolor"),
     "-e", "FORCE_COLOR=1",
+    "-e", "EDITOR=vim",
     "-e", "CLAUDE_INBOX_URL=" .. (vim.env.CLAUDE_INBOX_URL or "http://host.docker.internal:43111/events"),
   }
 

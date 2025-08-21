@@ -204,25 +204,53 @@ local function confirmOpenAndDo(callback, args, window_type)
     -- Wait a bit for the Claude chat to initialize
     vim.defer_fn(function()
       if callback then callback() end
+      -- Focus Claude buffer and enter insert mode
+      if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) then
+        local windows = vim.api.nvim_list_wins()
+        for _, win in ipairs(windows) do
+          if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.claude_buf then
+            vim.api.nvim_set_current_win(win)
+            vim.cmd('startinsert')
+            break
+          end
+        end
+      end
     end, 1500)
   else
     -- Buffer exists, make sure it's visible
     local windows = vim.api.nvim_list_wins()
     local is_visible = false
+    local claude_win = nil
 
     for _, win in ipairs(windows) do
       if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.claude_buf then
-        -- Buffer is visible, hide it by closing the window
+        -- Buffer is visible
         is_visible = true
+        claude_win = win
         break
       end
     end
 
-    -- If buffer exists but is not visible, show it in a vsplit
+    -- If buffer exists but is not visible, show it in window_type
     if not is_visible then
       terminal.open_buffer_in_new_window(window_type, M.claude_buf)
+      -- Find the new window
+      windows = vim.api.nvim_list_wins()
+      for _, win in ipairs(windows) do
+        if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.claude_buf then
+          claude_win = win
+          break
+        end
+      end
     end
+    
     if callback then callback() end
+    
+    -- Focus the Claude window and enter insert mode
+    if claude_win then
+      vim.api.nvim_set_current_win(claude_win)
+      vim.cmd('startinsert')
+    end
   end
 end
 
@@ -346,9 +374,7 @@ function M.SendSymbol()
   local word = vim.fn.expand('<cword>')
   confirmOpenAndDo(function()
     M.SendText({
-      " take a look at the symbol",
-      word,
-      "from @" .. rel_path .. " ",
+      word, "in @" .. rel_path .. " ",
     })
   end)
 end
@@ -358,7 +384,7 @@ function M.SendFile()
   local rel_path = Path:new(filename):make_relative(util.get_git_root())
   confirmOpenAndDo(function()
     M.SendText({
-      " take a look at the file @" .. rel_path .. " "
+      "@" .. rel_path .. " "
     })
   end)
 end
@@ -402,19 +428,20 @@ end
 
 local function configureClaudeKeymap()
   local keymap = {
-    { "<leader>c", group = "AI Code Assitant", nowait = true, remap = false },
+    { "<leader>c", group = "Claude Code", nowait = true, remap = false },
     {
       mode = { "n", "v" },
       { "<leader>cl", function() require('tw.claude').Toggle() end, desc = "Toggle Claude" },
     },
     {
       mode = { "n" },
-      { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>",                       desc = "Test Nearest (claude)",       nowait = false, remap = false },
-      { "<leader>c*", function() require('tw.claude').SendSymbol() end,                 desc = "Send Current Word to Claude", nowait = false, remap = false },
-      { "<leader>cf", function() require('tw.claude').SendFile() end,                   desc = "Send File to Claude",         nowait = false, remap = false },
-      { "<leader>ct", function() require('tw.claude').SendPrompt("tdd-plan.md") end,    desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
-      { "<leader>cm", function() require('tw.claude').SendPrompt("commit-staged.md") end, desc = "Commit Staged with Claude",   nowait = false, remap = false },
-      { "<leader>cb", function() require('tw.claude').SendOpenBuffers() end,            desc = "Send TDD Plan to Claude",     nowait = false, remap = false },
+      { "<leader>tc", ":w<cr> :TestNearest -strategy=claude<cr>",                               desc = "Test Nearest (claude)",                  nowait = false, remap = false },
+      { "<leader>c*", function() require('tw.claude').SendSymbol() end,                         desc = "Send Current Word to Claude",            nowait = false, remap = false },
+      { "<leader>cf", function() require('tw.claude').SendFile() end,                           desc = "Send File to Claude",                    nowait = false, remap = false },
+      { "<leader>ct", function() require('tw.claude').SendPrompt("tdd-plan.md", true) end,      desc = "Send TDD Plan to Claude",                nowait = false, remap = false },
+      { "<leader>cm", function() require('tw.claude').SendPrompt("commit-staged.md", true) end, desc = "Commit Staged with Claude",              nowait = false, remap = false },
+      { "<leader>ci", function() require('tw.claude').SendPrompt("implement.md", true) end,     desc = "Implement the failing test with Claude", nowait = false, remap = false },
+      { "<leader>cb", function() require('tw.claude').SendOpenBuffers() end,                    desc = "Send TDD Plan to Claude",                nowait = false, remap = false },
     },
     {
       mode = { "v" },

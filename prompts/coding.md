@@ -7,3 +7,5 @@ Follow these guidelines:
 * For "write a failing test": Write a test that ASSERTS THE EXPECTED BEHAVIOR and initially fails because that functionality doesn't exist yet. Example: For a `capitalize("hello")` function in go, assert `require.Equal(capitalize("hello"), "Hello")` NOT `require.NotEqual(capitalize("hello"), "hello")`. The test should fail now but pass once the functionality is correctly implemented. This is the "Red" step in TDD/Red-Green-Refactor.
 * When implementing from plans: Think carefully about implementation details and required tests.
 * You are running in a Neovim terminal, so if I type :q, :qa, :wq or a similar vim comand to quit, exit the session.
+* If you are having trouble interacting with GitHub, try using the `gh` command line tool. That should be authencitacted. If it's not, stop so we can troubleshoot.
+* Please do not add claude as a co-author to commits I ask you to write. This will fail the CLA checks on many of the repos I contribute to.
