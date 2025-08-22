@@ -1,10 +1,12 @@
 local M = {}
 
 -- Initialize log file path
-local log_file = vim.fs.joinpath(vim.fn.stdpath('log'), 'claude.log')
+-- Use cache directory for logs in older Neovim versions
+local log_dir = vim.fn.stdpath('cache') .. '/log'
+local log_file = log_dir .. '/claude.log'
 
 -- Ensure log directory exists
-vim.fn.mkdir(vim.fn.stdpath('log'), 'p')
+vim.fn.mkdir(log_dir, 'p')
 
 -- Migrate old log file if it exists
 local old_log_file = vim.fn.expand("~/.config/claude-nvim.log")

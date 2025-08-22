@@ -41,4 +41,46 @@ function M.open_buffer_in_new_window(window_type, claude_buf)
   end
 end
 
+-- Helper function to cleanly close a terminal buffer and its job
+function M.close_terminal_buffer(buf, job_id)
+  -- Stop the job if it's running
+  if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+    vim.fn.jobstop(job_id)
+  end
+
+  -- Close any windows showing the buffer
+  if buf and vim.api.nvim_buf_is_valid(buf) then
+    local windows = vim.api.nvim_list_wins()
+    for _, win in ipairs(windows) do
+      if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
+        vim.api.nvim_win_close(win, true)
+      end
+    end
+    -- Delete the buffer
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end
+
+  return nil, nil -- Return nil for both buf and job_id to clear state
+end
+
+-- Helper function to open or reuse an existing terminal buffer
+function M.open_or_reuse_terminal_buffer(buf, window_type)
+  if buf and vim.api.nvim_buf_is_valid(buf) then
+    -- Check if buffer is visible in any window
+    local windows = vim.api.nvim_list_wins()
+    for _, win in ipairs(windows) do
+      if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
+        vim.api.nvim_set_current_win(win)
+        vim.cmd('startinsert')
+        return true, buf
+      end
+    end
+    -- Buffer exists but not visible, show it
+    M.open_buffer_in_new_window(window_type or "vsplit", buf)
+    vim.cmd('startinsert')
+    return true, buf
+  end
+  return false, nil
+end
+
 return M

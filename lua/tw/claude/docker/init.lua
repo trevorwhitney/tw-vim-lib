@@ -93,20 +93,9 @@ function M.get_start_container_command(container_name, context_dirs)
   context_dirs = context_dirs or {}
   local os_type = vim.loop.os_uname().sysname
   local network_flag = ""
-  local ssh_agent_mount = ""
-  local ssh_auth_sock = ""
 
   if os_type == "Linux" then
     network_flag = "--network host"
-    -- On Linux, use the host's SSH_AUTH_SOCK directly
-    if vim.env.SSH_AUTH_SOCK then
-      ssh_agent_mount = vim.env.SSH_AUTH_SOCK
-      ssh_auth_sock = vim.env.SSH_AUTH_SOCK
-    end
-  else
-    -- On macOS, use the Docker Desktop SSH agent forwarding
-    ssh_agent_mount = "/run/host-services/ssh-auth.sock"
-    ssh_auth_sock = "/run/host-services/ssh-auth.sock"
   end
 
   -- Check if we're in a git worktree
@@ -160,11 +149,6 @@ function M.get_start_container_command(container_name, context_dirs)
     table.insert(docker_cmd, worktree_git_file .. ":/workspace/.git:ro")
   end
 
-  -- Add SSH agent socket mount if available
-  if ssh_agent_mount ~= "" then
-    table.insert(docker_cmd, "-v")
-    table.insert(docker_cmd, ssh_agent_mount .. ":" .. ssh_auth_sock)
-  end
 
   -- Add the rest of the arguments
   local remaining_args = {
@@ -185,11 +169,6 @@ function M.get_start_container_command(container_name, context_dirs)
     "-e", "CLAUDE_INBOX_URL=" .. (vim.env.CLAUDE_INBOX_URL or "http://host.docker.internal:43111/events"),
   }
 
-  -- Add SSH_AUTH_SOCK environment variable if available
-  if ssh_auth_sock ~= "" then
-    table.insert(remaining_args, "-e")
-    table.insert(remaining_args, "SSH_AUTH_SOCK=" .. ssh_auth_sock)
-  end
 
   -- Add remaining arguments to docker command
   for _, arg in ipairs(remaining_args) do
@@ -352,6 +331,180 @@ function M.check_firewall_status(container_name)
   -- 1. Both INPUT and OUTPUT have DROP policies
   -- 2. There's no catch-all ACCEPT rule in INPUT
   return has_input_drop and has_output_drop and not has_bad_input_rule
+end
+
+-- Container startup functions (moved from main init.lua)
+function M.start_container_async(container_name, auto_build, context_directories, callback)
+  local log = _G.claude_log
+  if log then
+    log.info("Starting Claude container startup process", true)
+  end
+  
+  -- First build image if needed (async)
+  if auto_build and not M.check_docker_image() then
+    if log then
+      log.info("Docker image not found, starting build process", true)
+    end
+    local build_cmd = M.build_docker_image()
+    if log then
+      log.debug("Build command: " .. build_cmd)
+    end
+
+    vim.fn.jobstart(build_cmd, {
+      on_exit = function(_, exit_code)
+        vim.schedule(function()
+          if log then
+            log.debug("Build process exit code: " .. exit_code)
+          end
+          if exit_code ~= 0 then
+            if log then
+              log.error("Failed to build Docker image, exit code: " .. exit_code, true)
+            end
+            if callback then
+              callback(false, "build_failed")
+            end
+            return
+          end
+          if log then
+            log.info("Docker image built successfully", true)
+          end
+          -- Now start the container
+          M.start_container_after_build(container_name, context_directories, callback)
+        end)
+      end,
+      on_stdout = function(_, data)
+        -- Log and show build progress
+        if data and #data > 0 then
+          for _, line in ipairs(data) do
+            if line and line ~= "" then
+              if log then
+                log.debug("Build output: " .. line)
+              end
+              print("Build: " .. line)
+            end
+          end
+        end
+      end,
+      on_stderr = function(_, data)
+        if data and #data > 0 then
+          for _, line in ipairs(data) do
+            if line and line ~= "" and log then
+              log.error("Build error: " .. line)
+            end
+          end
+        end
+      end,
+    })
+  else
+    if log then
+      log.info("Docker image exists, proceeding to container startup")
+    end
+    -- Image exists, start container directly
+    M.start_container_after_build(container_name, context_directories, callback)
+  end
+end
+
+function M.start_container_after_build(container_name, context_directories, callback)
+  local log = _G.claude_log
+  if log then
+    log.info("Starting container cleanup and startup process")
+  end
+  
+  -- Ensure any existing container is stopped (async)
+  local cleanup_cmd = "docker rm -f " .. container_name .. " 2>/dev/null"
+  if log then
+    log.debug("Cleanup command: " .. cleanup_cmd)
+  end
+
+  vim.fn.jobstart(cleanup_cmd, {
+    on_exit = function(_, cleanup_exit_code)
+      vim.schedule(function()
+        if log then
+          log.debug("Cleanup exit code: " .. cleanup_exit_code)
+        end
+        -- Now start the persistent container
+        local start_cmd = M.get_start_container_command(container_name, context_directories)
+        if log then
+          log.debug("Container start command: " .. start_cmd)
+        end
+        vim.fn.jobstart(start_cmd, {
+          on_exit = function(_, exit_code)
+            vim.schedule(function()
+              if log then
+                log.debug("Container start exit code: " .. exit_code)
+              end
+              if exit_code == 0 then
+                -- Container started, but need to verify it's actually running
+                vim.defer_fn(function()
+                  local is_running, container_id, container_status = M.is_container_running(container_name)
+                  if log then
+                    log.debug("Container verification - running: " .. tostring(is_running))
+                    log.debug("Container verification - ID: " .. (container_id or "none"))
+                    log.debug("Container verification - status: " .. (container_status or "unknown"))
+                  end
+
+                  if is_running then
+                    if log then
+                      log.info("Container verified running, setting up firewall...")
+                    end
+
+                    -- Set up firewall after successful container start
+                    vim.defer_fn(function()
+                      if log then
+                        log.info("Starting container firewall setup...")
+                      end
+                      M.setup_container_firewall(container_name, function(firewall_success)
+                        -- This callback runs after firewall setup (success or failure)
+                        local security_status = firewall_success and " (secured)" or " (limited security)"
+                        if log then
+                          log.info("Claude container fully ready" .. security_status, true)
+                        end
+                        if callback then
+                          callback(true, "running")
+                        end
+                      end)
+                    end, 2000) -- Wait 2 seconds after container verification to set up firewall
+                  else
+                    if log then
+                      log.error("Container started but is not running - status: " .. (container_status or "unknown"), true)
+                    end
+                    if callback then
+                      callback(false, "not_running")
+                    end
+                  end
+                end, 1000) -- Wait 1 second for container to fully initialize
+              else
+                if log then
+                  log.error("Failed to start Claude container, exit code: " .. exit_code, true)
+                end
+                if callback then
+                  callback(false, "start_failed")
+                end
+              end
+            end)
+          end,
+          on_stdout = function(_, data)
+            if data and #data > 0 then
+              for _, line in ipairs(data) do
+                if line and line ~= "" and log then
+                  log.debug("Container start output: " .. line)
+                end
+              end
+            end
+          end,
+          on_stderr = function(_, data)
+            if data and #data > 0 then
+              for _, line in ipairs(data) do
+                if line and line ~= "" and log then
+                  log.error("Container start error: " .. line)
+                end
+              end
+            end
+          end,
+        })
+      end)
+    end,
+  })
 end
 
 return M
