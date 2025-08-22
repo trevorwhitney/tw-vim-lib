@@ -12,16 +12,24 @@ local default_args = {}
 
 -- Expose log module globally for claude.lua to use
 _G.claude_log = log
+-- Separate buffers for docker and local modes
+M.docker_buf = nil
+M.docker_job_id = nil
+M.local_buf = nil
+M.local_job_id = nil
+M.active_mode = "docker" -- Track which mode is currently visible: "docker", "local", or "none"
+
+-- Legacy claude_buf/job_id will point to the active buffer
 M.claude_buf = nil
 M.claude_job_id = nil
+
 M.saved_updatetime = nil
 M.shell_buf = nil
 M.shell_job_id = nil
 M.logs_buf = nil
 M.logs_job_id = nil
 
--- Docker mode configuration
-M.docker_mode = true -- DEFAULT TO DOCKER MODE
+-- Container configuration
 M.auto_build = true -- Auto-build image if missing
 M.container_started = false -- Track if we started the container
 M.container_name = string.format("claude-code-nvim-%d-%d", vim.fn.getpid(), os.time()) -- More unique container name
@@ -40,30 +48,47 @@ local function get_plugin_root()
 	return plugin_root
 end
 
-local function OnExit(job_id, exit_code, event_type)
-	vim.schedule(function()
-		if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) then
-			vim.api.nvim_buf_set_option(M.claude_buf, "modifiable", true)
-			local message
-			if exit_code == 0 then
-				message = "Claude process completed successfully."
-			else
-				message = "Claude process exited with code: " .. exit_code
+local function OnExit(mode)
+	return function(job_id, exit_code, event_type)
+		vim.schedule(function()
+			local buf = mode == "docker" and M.docker_buf or M.local_buf
+			if buf and vim.api.nvim_buf_is_valid(buf) then
+				vim.api.nvim_buf_set_option(buf, "modifiable", true)
+				local message
+				if exit_code == 0 then
+					message = "Claude process completed successfully."
+				else
+					message = "Claude process exited with code: " .. exit_code
+				end
+				vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "", message })
+				vim.api.nvim_buf_set_option(buf, "modifiable", false)
 			end
-			vim.api.nvim_buf_set_lines(M.claude_buf, -1, -1, false, { "", message })
-			vim.api.nvim_buf_set_option(M.claude_buf, "modifiable", false)
-		end
-		-- Clear buffer and job state when process exits
-		M.claude_buf = nil
-		M.claude_job_id = nil
-	end)
+			-- Clear buffer and job state when process exits
+			if mode == "docker" then
+				M.docker_buf = nil
+				M.docker_job_id = nil
+			else
+				M.local_buf = nil
+				M.local_job_id = nil
+			end
+			-- Update legacy pointers if this was the active buffer
+			if M.claude_buf == buf then
+				M.claude_buf = nil
+				M.claude_job_id = nil
+				M.active_mode = "none"
+			end
+		end)
+	end
 end
 
-local function start_new_claude_job(args, window_type)
-	log.info("Attempting to start new Claude job")
+local function start_new_claude_job(args, window_type, mode)
+	mode = mode or "docker"
+	log.info("Attempting to start new Claude job in " .. mode .. " mode")
 	-- Launch Claude
 	local command
-	if M.docker_mode then
+	local buf, job_id
+
+	if mode == "docker" then
 		log.debug("Docker mode enabled, checking container status")
 		-- Check if container is running, if not try to start it
 		local is_running, container_id, status = docker.is_container_running(M.container_name)
@@ -80,8 +105,8 @@ local function start_new_claude_job(args, window_type)
 				local success, result = docker.start_persistent_container(M.container_name)
 				if not success then
 					log.error("Failed to restart container: " .. (result or "Unknown error"), true)
-					M.docker_mode = false
 					M.container_started = false
+					return
 				end
 			else
 				log.error("Container not running and not started by this session", true)
@@ -96,8 +121,8 @@ local function start_new_claude_job(args, window_type)
 		command = docker.attach_to_container(M.container_name, cmd_args)
 		log.debug("Using attach command: " .. command)
 	else
-		log.debug("Native mode enabled")
-		-- For non-docker mode, include allowedTools
+		log.debug("Local mode enabled")
+		-- For local mode, include allowedTools
 		local final_args = vim.tbl_extend("force", {}, default_args)
 		table.insert(final_args, '--allowedTools="' .. table.concat(allowed_tools, ",") .. '"')
 		if args and #args > 0 then
@@ -106,20 +131,35 @@ local function start_new_claude_job(args, window_type)
 		command = claude.command(final_args)
 		log.debug("Using native command: " .. command)
 	end
+
 	log.info("Starting Claude with command: " .. command)
 	terminal.open_window(window_type)
-	M.claude_buf = vim.api.nvim_get_current_buf()
-	M.claude_job_id = vim.fn.termopen(command, {
-		on_exit = OnExit,
+	buf = vim.api.nvim_get_current_buf()
+	job_id = vim.fn.termopen(command, {
+		on_exit = OnExit(mode),
 		-- TODO: make this configurable
 		env = {
 			BUILD_IN_CONTAINER = "false",
 		},
 	})
-	vim.bo[M.claude_buf].bufhidden = "hide"
-	vim.bo[M.claude_buf].filetype = "ClaudeConsole"
+	vim.bo[buf].bufhidden = "hide"
+	vim.bo[buf].filetype = "ClaudeConsole"
 
-	-- Auto-send prompt if enabled (works for both Docker and native modes)
+	-- Store buffer and job based on mode
+	if mode == "docker" then
+		M.docker_buf = buf
+		M.docker_job_id = job_id
+	else
+		M.local_buf = buf
+		M.local_job_id = job_id
+	end
+
+	-- Update active mode and legacy pointers
+	M.active_mode = mode
+	M.claude_buf = buf
+	M.claude_job_id = job_id
+
+	-- Auto-send prompt if enabled (works for both Docker and local modes)
 	if M.auto_prompt and M.auto_prompt_file then
 		vim.defer_fn(function()
 			log.debug("Sending auto-prompt: " .. M.auto_prompt_file)
@@ -142,15 +182,32 @@ local function send(args)
 		-- Handle table argument
 		text = table.concat(args, " ")
 	end
-	vim.fn.chansend(M.claude_job_id, text)
+	-- Send to the active job
+	local job_id = M.claude_job_id
+	if not job_id then
+		-- Try to get from active mode
+		if M.active_mode == "docker" then
+			job_id = M.docker_job_id
+		elseif M.active_mode == "local" then
+			job_id = M.local_job_id
+		end
+	end
+	if job_id then
+		vim.fn.chansend(job_id, text)
+	else
+		log.warn("No active Claude job to send to")
+	end
 end
 
 local function confirmOpenAndDo(callback, args, window_type)
 	args = args or default_args
 	window_type = window_type or "vsplit"
-	if not M.claude_buf or not vim.api.nvim_buf_is_valid(M.claude_buf) then
-		-- Buffer doesn't exist, open it
-		M.Open(args, window_type)
+
+	-- Determine which buffer to use (default to docker if none active)
+	local active_buf = M.claude_buf
+	if not active_buf or not vim.api.nvim_buf_is_valid(active_buf) then
+		-- No active buffer, default to docker mode
+		M.Open("docker", args, window_type)
 
 		-- Wait a bit for the Claude chat to initialize
 		vim.defer_fn(function()
@@ -176,7 +233,7 @@ local function confirmOpenAndDo(callback, args, window_type)
 		local claude_win = nil
 
 		for _, win in ipairs(windows) do
-			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.claude_buf then
+			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == active_buf then
 				-- Buffer is visible
 				is_visible = true
 				claude_win = win
@@ -186,11 +243,11 @@ local function confirmOpenAndDo(callback, args, window_type)
 
 		-- If buffer exists but is not visible, show it in window_type
 		if not is_visible then
-			terminal.open_buffer_in_new_window(window_type, M.claude_buf)
+			terminal.open_buffer_in_new_window(window_type, active_buf)
 			-- Find the new window
 			windows = vim.api.nvim_list_wins()
 			for _, win in ipairs(windows) do
-				if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.claude_buf then
+				if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == active_buf then
 					claude_win = win
 					break
 				end
@@ -209,65 +266,134 @@ local function confirmOpenAndDo(callback, args, window_type)
 	end
 end
 
-function M.Open(args, window_type)
+function M.Open(mode, args, window_type)
+	mode = mode or "docker" -- Default to docker mode
 	args = args or default_args
 	window_type = window_type or "vsplit"
 
-	-- Check if buffer exists, is valid, AND the job is still running
-	local job_is_running = M.claude_job_id and vim.fn.jobwait({ M.claude_job_id }, 0)[1] == -1
+	-- Get the appropriate buffer and job for the mode
+	local buf, job_id
+	if mode == "docker" then
+		buf = M.docker_buf
+		job_id = M.docker_job_id
+	else
+		buf = M.local_buf
+		job_id = M.local_job_id
+	end
 
-	if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) and job_is_running then
-		terminal.open_buffer_in_new_window(window_type, M.claude_buf)
+	-- Check if buffer exists, is valid, AND the job is still running
+	local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
+
+	if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
+		terminal.open_buffer_in_new_window(window_type, buf)
+		-- Update active mode and legacy pointers
+		M.active_mode = mode
+		M.claude_buf = buf
+		M.claude_job_id = job_id
 	else
 		-- Clean up dead buffer if needed
-		if M.claude_buf and not job_is_running then
-			local buf, job = terminal.close_terminal_buffer(M.claude_buf, M.claude_job_id)
-			M.claude_buf = buf
-			M.claude_job_id = job
+		if buf and not job_is_running then
+			local cleaned_buf, cleaned_job = terminal.close_terminal_buffer(buf, job_id)
+			if mode == "docker" then
+				M.docker_buf = cleaned_buf
+				M.docker_job_id = cleaned_job
+			else
+				M.local_buf = cleaned_buf
+				M.local_job_id = cleaned_job
+			end
 		end
-		start_new_claude_job(args, window_type)
+		start_new_claude_job(args, window_type, mode)
 	end
 end
 
-function M.Toggle(args, window_type)
+function M.Toggle(mode, args, window_type)
+	mode = mode or "docker" -- Default to docker if not specified
 	args = args or default_args
 	window_type = window_type or "vsplit"
 
-	-- Check if buffer exists, is valid, AND the job is still running
-	local job_is_running = M.claude_job_id and vim.fn.jobwait({ M.claude_job_id }, 0)[1] == -1
+	-- Get the appropriate buffer and job based on mode
+	local buf, job_id
+	if mode == "docker" then
+		buf = M.docker_buf
+		job_id = M.docker_job_id
+	else
+		buf = M.local_buf
+		job_id = M.local_job_id
+	end
 
-	if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) and job_is_running then
+	-- Check if buffer exists, is valid, AND the job is still running
+	local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
+
+	if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
 		-- Buffer exists and job is running - toggle visibility
 		local windows = vim.api.nvim_list_wins()
 		local is_visible = false
 
 		for _, win in ipairs(windows) do
-			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.claude_buf then
+			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
 				-- Buffer is visible, hide it by closing the window
 				vim.api.nvim_win_close(win, false)
 				is_visible = true
+				-- Clear active mode when hiding
+				if M.claude_buf == buf then
+					M.active_mode = "none"
+					M.claude_buf = nil
+					M.claude_job_id = nil
+				end
 				break
 			end
 		end
 
 		-- If buffer exists but is not visible, show it in window_type
 		if not is_visible then
-			terminal.open_buffer_in_new_window(window_type, M.claude_buf)
+			-- Hide any other visible Claude buffer first
+			M.hide_all_claude_buffers()
+			terminal.open_buffer_in_new_window(window_type, buf)
+			-- Update active mode and legacy pointers
+			M.active_mode = mode
+			M.claude_buf = buf
+			M.claude_job_id = job_id
 		end
 	else
 		-- Buffer doesn't exist or job is dead, clean up and create new
-		if M.claude_buf and not job_is_running then
-			local buf, job = terminal.close_terminal_buffer(M.claude_buf, M.claude_job_id)
-			M.claude_buf = buf
-			M.claude_job_id = job
+		if buf and not job_is_running then
+			local cleaned_buf, cleaned_job = terminal.close_terminal_buffer(buf, job_id)
+			M.docker_buf = cleaned_buf
+			M.docker_job_id = cleaned_job
 		end
-		M.Open(args, window_type)
+		M.Open(mode, args, window_type)
+	end
+end
+
+-- Helper function to hide all Claude buffers
+function M.hide_all_claude_buffers()
+	local windows = vim.api.nvim_list_wins()
+	for _, win in ipairs(windows) do
+		if vim.api.nvim_win_is_valid(win) then
+			local buf = vim.api.nvim_win_get_buf(win)
+			if buf == M.docker_buf or buf == M.local_buf then
+				vim.api.nvim_win_close(win, false)
+			end
+		end
 	end
 end
 
 local function submit()
 	vim.defer_fn(function()
-		vim.fn.chansend(M.claude_job_id, "\r")
+		local job_id = M.claude_job_id
+		if not job_id then
+			-- Try to get from active mode
+			if M.active_mode == "docker" then
+				job_id = M.docker_job_id
+			elseif M.active_mode == "local" then
+				job_id = M.local_job_id
+			end
+		end
+		if job_id then
+			vim.fn.chansend(job_id, "\r")
+		else
+			log.warn("No active Claude job to submit to")
+		end
 	end, 500)
 end
 
@@ -392,11 +518,18 @@ local function configureClaudeKeymap()
 		{
 			mode = { "n", "v" },
 			{
+				"<leader>cd",
+				function()
+					require("tw.claude").Toggle("docker")
+				end,
+				desc = "Toggle Claude Docker",
+			},
+			{
 				"<leader>cl",
 				function()
-					require("tw.claude").Toggle()
+					require("tw.claude").Toggle("local")
 				end,
-				desc = "Toggle Claude",
+				desc = "Toggle Claude Local",
 			},
 		},
 		{
@@ -482,10 +615,20 @@ local function configureClaudeKeymap()
 end
 
 function M.cleanup()
-	if M.claude_job_id and vim.fn.jobwait({ M.claude_job_id }, 0)[1] == -1 then
-		vim.fn.jobstop(M.claude_job_id)
-		M.claude_job_id = nil
+	-- Clean up docker job
+	if M.docker_job_id and vim.fn.jobwait({ M.docker_job_id }, 0)[1] == -1 then
+		vim.fn.jobstop(M.docker_job_id)
+		M.docker_job_id = nil
 	end
+	-- Clean up local job
+	if M.local_job_id and vim.fn.jobwait({ M.local_job_id }, 0)[1] == -1 then
+		vim.fn.jobstop(M.local_job_id)
+		M.local_job_id = nil
+	end
+	-- Clean up legacy pointers
+	M.claude_job_id = nil
+	M.claude_buf = nil
+
 	if M.shell_job_id and vim.fn.jobwait({ M.shell_job_id }, 0)[1] == -1 then
 		vim.fn.jobstop(M.shell_job_id)
 		M.shell_job_id = nil
@@ -501,15 +644,33 @@ function M.cleanup()
 	end
 end
 
+-- Get status for statusline integration
+function M.get_status()
+	local container_running = false
+	local container_name = nil
+
+	-- Check container status
+	if M.container_started then
+		local is_running = docker.is_container_running(M.container_name)
+		if is_running then
+			container_running = true
+			container_name = M.container_name
+		end
+	end
+
+	return {
+		mode = M.active_mode,
+		container_running = container_running,
+		container_name = container_name,
+	}
+end
+
 function M.setup(opts)
 	opts = opts or {}
-	M.docker_mode = opts.docker_mode ~= false -- Docker mode unless explicitly disabled
 	M.auto_build = opts.auto_build ~= false
 
 	-- Log the container name for this instance
-	if M.docker_mode then
-		log.info("Neovim instance PID " .. vim.fn.getpid() .. " will use container: " .. M.container_name)
-	end
+	log.info("Neovim instance PID " .. vim.fn.getpid() .. " will use container: " .. M.container_name)
 
 	-- Configure auto-prompt
 	if opts.auto_prompt ~= nil then

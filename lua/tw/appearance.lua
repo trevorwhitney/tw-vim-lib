@@ -40,7 +40,7 @@ local function change_colors()
 	end
 
 	vim.cmd("colorscheme everforest")
-	require("lualine").setup({ options = { theme = "everforest" } })
+	require("tw.statusline").setup_lualine("everforest")
 
 	-- different theme options
 	-- vim.cmd("colorscheme everforest")

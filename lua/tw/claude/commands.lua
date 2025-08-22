@@ -11,30 +11,25 @@ local refresh_timer = nil
 function M.setup_autocmds(claude_module)
 	local group = vim.api.nvim_create_augroup("Claude", { clear = true })
 
-	-- Start container on Vim startup if in docker mode (async)
+	-- Start container on Vim startup (async) - always start for docker support
 	vim.api.nvim_create_autocmd("VimEnter", {
 		callback = function()
-			if claude_module.docker_mode then
-				log.info("VimEnter triggered, Docker mode enabled")
-				vim.defer_fn(function()
-					log.info("Starting async container startup after delay")
-					docker.start_container_async(
-						claude_module.container_name,
-						claude_module.auto_build,
-						claude_module.context_directories,
-						function(success, status)
-							if success then
-								claude_module.container_started = true
-							else
-								claude_module.docker_mode = false
-								claude_module.container_started = false
-							end
+			log.info("VimEnter triggered, starting container for Docker support")
+			vim.defer_fn(function()
+				log.info("Starting async container startup after delay")
+				docker.start_container_async(
+					claude_module.container_name,
+					claude_module.auto_build,
+					claude_module.context_directories,
+					function(success, status)
+						if success then
+							claude_module.container_started = true
+						else
+							claude_module.container_started = false
 						end
-					)
-				end, 100) -- Small delay to let Neovim finish startup
-			else
-				log.info("VimEnter triggered, Docker mode disabled")
-			end
+					end
+				)
+			end, 100) -- Small delay to let Neovim finish startup
 		end,
 		group = group,
 	})
@@ -43,7 +38,7 @@ function M.setup_autocmds(claude_module)
 	vim.api.nvim_create_autocmd("VimLeavePre", {
 		callback = function()
 			claude_module.cleanup()
-			if claude_module.docker_mode and claude_module.container_started then
+			if claude_module.container_started then
 				-- Stop container asynchronously to avoid hanging vim on exit
 				-- Fork the docker stop command so vim can exit immediately
 				local stop_cmd = string.format(
@@ -62,8 +57,11 @@ function M.setup_autocmds(claude_module)
 	-- Set nowrap for Claude buffer windows, which makes code changes look better
 	vim.api.nvim_create_autocmd("BufWinEnter", {
 		callback = function(args)
-			-- Check if this is the Claude buffer
-			if claude_module.claude_buf and args.buf == claude_module.claude_buf then
+			-- Check if this is a Claude buffer (either docker or local)
+			if
+				(claude_module.docker_buf and args.buf == claude_module.docker_buf)
+				or (claude_module.local_buf and args.buf == claude_module.local_buf)
+			then
 				-- Set nowrap for the window displaying this buffer
 				vim.wo[0].wrap = false
 			end
@@ -111,8 +109,13 @@ function M.setup_autocmds(claude_module)
 			1000, -- milliseconds
 			vim.schedule_wrap(function()
 				-- Only check time if there's an active Claude Code terminal
-				local bufnr = claude_module.claude_buf
-				if bufnr and vim.api.nvim_buf_is_valid(bufnr) and #vim.fn.win_findbuf(bufnr) > 0 then
+				local docker_visible = claude_module.docker_buf
+					and vim.api.nvim_buf_is_valid(claude_module.docker_buf)
+					and #vim.fn.win_findbuf(claude_module.docker_buf) > 0
+				local local_visible = claude_module.local_buf
+					and vim.api.nvim_buf_is_valid(claude_module.local_buf)
+					and #vim.fn.win_findbuf(claude_module.local_buf) > 0
+				if docker_visible or local_visible then
 					vim.cmd("silent! checktime")
 				end
 			end)
@@ -164,39 +167,17 @@ end
 -- Subcommand handlers
 local subcommand_handlers = {}
 
--- Toggle between Docker and native mode
+-- Toggle docker mode buffer visibility
 local function handle_toggle(claude_module, args)
-	if claude_module.docker_mode then
-		-- Switching from docker to native mode
-		if claude_module.container_started then
-			local buf, job = terminal.close_terminal_buffer(claude_module.claude_buf, claude_module.claude_job_id)
-			claude_module.claude_buf = buf
-			claude_module.claude_job_id = job
-			docker.stop_container(claude_module.container_name)
-			claude_module.container_started = false
-		end
-		claude_module.docker_mode = false
-		vim.notify("Claude Docker mode: disabled (container " .. claude_module.container_name .. ")")
-	else
-		-- Switching from native to docker mode
-		claude_module.docker_mode = true
-		vim.notify("Claude Docker mode: enabled - starting container " .. claude_module.container_name .. "...")
-		-- Start container asynchronously
-		docker.start_container_async(
-			claude_module.container_name,
-			claude_module.auto_build,
-			claude_module.context_directories,
-			function(success)
-				if success then
-					claude_module.container_started = true
-				else
-					claude_module.docker_mode = false
-				end
-			end
-		)
-	end
+	claude_module.Toggle("docker")
 end
 subcommand_handlers.toggle = handle_toggle
+
+-- Toggle local mode buffer visibility
+local function handle_toggle_local(claude_module, args)
+	claude_module.Toggle("local")
+end
+subcommand_handlers["toggle-local"] = handle_toggle_local
 
 -- Build Docker image
 local function handle_build(claude_module, args)
@@ -206,10 +187,19 @@ local function handle_build(claude_module, args)
 	if vim.v.shell_error == 0 then
 		log.info("Docker image built successfully (manual)", true)
 		-- Stop current container
-		if claude_module.docker_mode and claude_module.container_started then
-			local buf, job = terminal.close_terminal_buffer(claude_module.claude_buf, claude_module.claude_job_id)
-			claude_module.claude_buf = buf
-			claude_module.claude_job_id = job
+		if claude_module.container_started then
+			-- Close docker buffer if it exists
+			if claude_module.docker_buf then
+				local buf, job = terminal.close_terminal_buffer(claude_module.docker_buf, claude_module.docker_job_id)
+				claude_module.docker_buf = buf
+				claude_module.docker_job_id = job
+				-- Clear legacy pointers if this was the active buffer
+				if claude_module.claude_buf == claude_module.docker_buf then
+					claude_module.claude_buf = nil
+					claude_module.claude_job_id = nil
+					claude_module.active_mode = "none"
+				end
+			end
 			docker.stop_container(claude_module.container_name)
 			claude_module.container_started = false
 			log.info("Stopped existing container")
@@ -233,16 +223,21 @@ subcommand_handlers.build = handle_build
 
 -- Restart container
 local function handle_restart(claude_module, args)
-	if not claude_module.docker_mode then
-		vim.notify("Docker mode is not enabled", vim.log.levels.WARN)
-		return
-	end
 	log.info("Manual container restart initiated", true)
 	-- Stop current container
 	if claude_module.container_started then
-		local buf, job = terminal.close_terminal_buffer(claude_module.claude_buf, claude_module.claude_job_id)
-		claude_module.claude_buf = buf
-		claude_module.claude_job_id = job
+		-- Close docker buffer if it exists
+		if claude_module.docker_buf then
+			local buf, job = terminal.close_terminal_buffer(claude_module.docker_buf, claude_module.docker_job_id)
+			claude_module.docker_buf = buf
+			claude_module.docker_job_id = job
+			-- Clear legacy pointers if this was the active buffer
+			if claude_module.claude_buf == claude_module.docker_buf then
+				claude_module.claude_buf = nil
+				claude_module.claude_job_id = nil
+				claude_module.active_mode = "none"
+			end
+		end
 		docker.stop_container(claude_module.container_name)
 		claude_module.container_started = false
 		log.info("Stopped existing container")
@@ -285,11 +280,20 @@ local function handle_add_context(claude_module, args)
 	claude_module.context_directories[abs_path] = true
 	log.info("Added context directory: " .. abs_path)
 	-- Restart container with new mounts
-	if claude_module.docker_mode and claude_module.container_started then
+	if claude_module.container_started then
 		vim.notify("Restarting container with new context: " .. abs_path)
-		local buf, job = terminal.close_terminal_buffer(claude_module.claude_buf, claude_module.claude_job_id)
-		claude_module.claude_buf = buf
-		claude_module.claude_job_id = job
+		-- Close docker buffer if it exists
+		if claude_module.docker_buf then
+			local buf, job = terminal.close_terminal_buffer(claude_module.docker_buf, claude_module.docker_job_id)
+			claude_module.docker_buf = buf
+			claude_module.docker_job_id = job
+			-- Clear legacy pointers if this was the active buffer
+			if claude_module.claude_buf == claude_module.docker_buf then
+				claude_module.claude_buf = nil
+				claude_module.claude_job_id = nil
+				claude_module.active_mode = "none"
+			end
+		end
 		docker.stop_container(claude_module.container_name)
 		claude_module.container_started = false
 		docker.start_container_async(
@@ -325,11 +329,20 @@ local function handle_remove_context(claude_module, args)
 	claude_module.context_directories[abs_path] = nil
 	log.info("Removed context directory: " .. abs_path)
 	-- Restart container if running
-	if claude_module.docker_mode and claude_module.container_started then
+	if claude_module.container_started then
 		vim.notify("Restarting container without context: " .. abs_path)
-		local buf, job = terminal.close_terminal_buffer(claude_module.claude_buf, claude_module.claude_job_id)
-		claude_module.claude_buf = buf
-		claude_module.claude_job_id = job
+		-- Close docker buffer if it exists
+		if claude_module.docker_buf then
+			local buf, job = terminal.close_terminal_buffer(claude_module.docker_buf, claude_module.docker_job_id)
+			claude_module.docker_buf = buf
+			claude_module.docker_job_id = job
+			-- Clear legacy pointers if this was the active buffer
+			if claude_module.claude_buf == claude_module.docker_buf then
+				claude_module.claude_buf = nil
+				claude_module.claude_job_id = nil
+				claude_module.active_mode = "none"
+			end
+		end
 		docker.stop_container(claude_module.container_name)
 		claude_module.container_started = false
 		docker.start_container_async(
@@ -380,10 +393,6 @@ subcommand_handlers["list-contexts"] = handle_list_contexts
 
 -- Open shell in container
 local function handle_shell(claude_module, args)
-	if not claude_module.docker_mode then
-		vim.notify("Docker mode is not enabled", vim.log.levels.WARN)
-		return
-	end
 	if not docker.is_container_running(claude_module.container_name) then
 		vim.notify("Claude container is not running. Start it first.", vim.log.levels.ERROR)
 		return
@@ -426,10 +435,6 @@ subcommand_handlers["show-log"] = handle_show_log
 
 -- Show container logs
 local function handle_container_logs(claude_module, args)
-	if not claude_module.docker_mode then
-		vim.notify("Docker mode is not enabled", vim.log.levels.WARN)
-		return
-	end
 	if not docker.is_container_running(claude_module.container_name) then
 		vim.notify("Claude container is not running. Start it first.", vim.log.levels.ERROR)
 		return
@@ -489,10 +494,6 @@ subcommand_handlers["log-level"] = handle_log_level
 
 -- Check firewall status
 local function handle_check_firewall(claude_module, args)
-	if not claude_module.docker_mode then
-		vim.notify("Docker mode is not enabled", vim.log.levels.WARN)
-		return
-	end
 	if not docker.is_container_running(claude_module.container_name) then
 		vim.notify("Claude container is not running", vim.log.levels.ERROR)
 		return
@@ -528,7 +529,7 @@ local function handle_claude_docker_command(args, claude_module)
 	if not subcommand then
 		vim.notify("Usage: :ClaudeDocker <subcommand> [args]", vim.log.levels.INFO)
 		vim.notify(
-			"Available subcommands: toggle, build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
+			"Available subcommands: toggle, toggle-local, build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
 			vim.log.levels.INFO
 		)
 		return
@@ -541,7 +542,7 @@ local function handle_claude_docker_command(args, claude_module)
 	else
 		vim.notify("Unknown subcommand: " .. subcommand, vim.log.levels.ERROR)
 		vim.notify(
-			"Available subcommands: toggle, build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
+			"Available subcommands: toggle, toggle-local, build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
 			vim.log.levels.INFO
 		)
 	end
@@ -562,6 +563,7 @@ function M.setup_user_commands(claude_module)
 			if num_args == 0 or (num_args == 1 and not cmd_line:match("%s$")) then
 				local subcommands = {
 					"toggle",
+					"toggle-local",
 					"build",
 					"restart",
 					"add-context",
