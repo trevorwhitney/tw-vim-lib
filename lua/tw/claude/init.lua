@@ -133,6 +133,19 @@ local function start_new_claude_job(args, window_type, mode)
 	end
 
 	log.info("Starting Claude with command: " .. command)
+
+	-- Hide the other mode's buffer if it's visible before opening new window
+	local other_buf = mode == "docker" and M.local_buf or M.docker_buf
+	if other_buf and vim.api.nvim_buf_is_valid(other_buf) then
+		local windows = vim.api.nvim_list_wins()
+		for _, win in ipairs(windows) do
+			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == other_buf then
+				vim.api.nvim_win_close(win, false)
+				break
+			end
+		end
+	end
+
 	terminal.open_window(window_type)
 	buf = vim.api.nvim_get_current_buf()
 	job_id = vim.fn.termopen(command, {
@@ -285,6 +298,17 @@ function M.Open(mode, args, window_type)
 	local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
 
 	if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
+		-- First, hide the other mode's buffer if it's visible
+		local other_buf = mode == "docker" and M.local_buf or M.docker_buf
+		if other_buf and vim.api.nvim_buf_is_valid(other_buf) then
+			local windows = vim.api.nvim_list_wins()
+			for _, win in ipairs(windows) do
+				if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == other_buf then
+					vim.api.nvim_win_close(win, false)
+					break
+				end
+			end
+		end
 		terminal.open_buffer_in_new_window(window_type, buf)
 		-- Update active mode and legacy pointers
 		M.active_mode = mode
@@ -346,8 +370,17 @@ function M.Toggle(mode, args, window_type)
 
 		-- If buffer exists but is not visible, show it in window_type
 		if not is_visible then
-			-- Hide any other visible Claude buffer first
-			M.hide_all_claude_buffers()
+			-- First, hide the other mode's buffer if it's visible
+			local other_buf = mode == "docker" and M.local_buf or M.docker_buf
+			if other_buf and vim.api.nvim_buf_is_valid(other_buf) then
+				local windows = vim.api.nvim_list_wins()
+				for _, win in ipairs(windows) do
+					if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == other_buf then
+						vim.api.nvim_win_close(win, false)
+						break
+					end
+				end
+			end
 			terminal.open_buffer_in_new_window(window_type, buf)
 			-- Update active mode and legacy pointers
 			M.active_mode = mode

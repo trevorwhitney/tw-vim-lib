@@ -167,18 +167,6 @@ end
 -- Subcommand handlers
 local subcommand_handlers = {}
 
--- Toggle docker mode buffer visibility
-local function handle_toggle(claude_module, args)
-	claude_module.Toggle("docker")
-end
-subcommand_handlers.toggle = handle_toggle
-
--- Toggle local mode buffer visibility
-local function handle_toggle_local(claude_module, args)
-	claude_module.Toggle("local")
-end
-subcommand_handlers["toggle-local"] = handle_toggle_local
-
 -- Build Docker image
 local function handle_build(claude_module, args)
 	local cmd = docker.build_docker_image()
@@ -529,7 +517,7 @@ local function handle_claude_docker_command(args, claude_module)
 	if not subcommand then
 		vim.notify("Usage: :ClaudeDocker <subcommand> [args]", vim.log.levels.INFO)
 		vim.notify(
-			"Available subcommands: toggle, toggle-local, build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
+			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
 			vim.log.levels.INFO
 		)
 		return
@@ -542,7 +530,7 @@ local function handle_claude_docker_command(args, claude_module)
 	else
 		vim.notify("Unknown subcommand: " .. subcommand, vim.log.levels.ERROR)
 		vim.notify(
-			"Available subcommands: toggle, toggle-local, build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
+			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
 			vim.log.levels.INFO
 		)
 	end
@@ -562,8 +550,6 @@ function M.setup_user_commands(claude_module)
 			-- If we're completing the first argument (subcommand)
 			if num_args == 0 or (num_args == 1 and not cmd_line:match("%s$")) then
 				local subcommands = {
-					"toggle",
-					"toggle-local",
 					"build",
 					"restart",
 					"add-context",
