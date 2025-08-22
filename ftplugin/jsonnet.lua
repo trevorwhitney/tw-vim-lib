@@ -1,23 +1,22 @@
 local M = {}
 
 local function options()
-  vim.cmd("setlocal indentexpr=")
+	vim.cmd("setlocal indentexpr=")
 end
 
 local function keybindings()
-  local whichkey = require("which-key")
-  local keymap =
-  {
-    { "<leader>e",  group = "Execute",             nowait = false,            remap = false },
-    { "<leader>eb", ":call tw#jsonnet#eval()<cr>", desc = "Evaluate Jsonnet", nowait = false, remap = false },
-  }
+	local whichkey = require("which-key")
+	local keymap = {
+		{ "<leader>e", group = "Execute", nowait = false, remap = false },
+		{ "<leader>eb", ":call tw#jsonnet#eval()<cr>", desc = "Evaluate Jsonnet", nowait = false, remap = false },
+	}
 
-  whichkey.add(keymap)
+	whichkey.add(keymap)
 end
 
 function M.ftplugin()
-  options()
-  keybindings()
+	options()
+	keybindings()
 end
 
 M.ftplugin()

@@ -84,6 +84,9 @@
                 bashInteractive
                 git
                 gnumake
+                luaPackages.luacheck
+                nixpkgs-fmt
+                statix
                 stylua
                 zip
 

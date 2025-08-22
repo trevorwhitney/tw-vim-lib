@@ -8,7 +8,7 @@ local default_options = {
 	use_eslint_daemon = true,
 	extra_path = {},
 	go_build_tags = "",
-  dap_configs = {}
+	dap_configs = {},
 }
 
 local options = vim.tbl_extend("force", {}, default_options)
@@ -20,8 +20,8 @@ function Config.setup(user_options)
 	vim.g.mapleader = " "
 
 	local fn = vim.fn
-  -- disabling CGO breaks golangci-lint, I don't remember what diagnostics this needed to
-  -- be disabled for, but let's comment it out for now and see
+	-- disabling CGO breaks golangci-lint, I don't remember what diagnostics this needed to
+	-- be disabled for, but let's comment it out for now and see
 	-- turn off CGO for go diagnostic tools (but maybe not?)
 	-- fn.setenv("CGO_ENABLED", 0)
 
@@ -43,7 +43,7 @@ function Config.setup(user_options)
 		vim.g.jdtls_home = options.jdtls_home
 	end
 
-  require("tw.plugins").install(require("packer").use)
+	require("tw.plugins").install(require("packer").use)
 	require("tw.vim-options").setup()
 
 	require("tw.augroups").setup()
@@ -51,10 +51,10 @@ function Config.setup(user_options)
 
 	require("tw.ai").setup()
 	require("tw.appearance").setup()
-  require("tw.claude").setup()
-  require("tw.dap").setup(options.dap_configs)
-  require("tw.formatting").setup()
-  require("tw.git").setup()
+	require("tw.claude").setup()
+	require("tw.dap").setup(options.dap_configs)
+	require("tw.formatting").setup()
+	require("tw.git").setup()
 	require("tw.nvim-cmp").setup()
 	require("tw.nvim-tree").setup()
 	require("tw.telescope").setup()

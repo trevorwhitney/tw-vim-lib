@@ -1,11 +1,11 @@
 local M = {}
 
 local function configre_vim_test()
-  vim.g["test#custom_strategies"] = { 
-    claude = require("tw.claude").VimTestStrategy,
-  }
-  vim.g["test#strategy"] = "dispatch"
-  vim.g["test#go#gotest#options"] = "-v"
+	vim.g["test#custom_strategies"] = {
+		claude = require("tw.claude").VimTestStrategy,
+	}
+	vim.g["test#strategy"] = "dispatch"
+	vim.g["test#go#gotest#options"] = "-v"
 	vim.g["test#javascript#jest#options"] = "--no-coverage"
 	-- vim.g["test#javascript#mocha#executable"] = "npm test --"
 end

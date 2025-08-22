@@ -2,17 +2,17 @@ local M = {}
 
 local function setOptions()
 	local set = vim.opt
-  -- Setup autocommand to copy yanked text to system clipboard
-  -- Custom clipboard handling - yanks go to system clipboard, deletes stay local
-  local autocmd = vim.api.nvim_create_autocmd
-  autocmd("TextYankPost", {
-    callback = function()
-      if vim.v.event.operator == "y" then
-        vim.fn.setreg("*", vim.fn.getreg('"'))
-      end
-    end,
-    desc = "Copy yanked text to system clipboard",
-  })
+	-- Setup autocommand to copy yanked text to system clipboard
+	-- Custom clipboard handling - yanks go to system clipboard, deletes stay local
+	local autocmd = vim.api.nvim_create_autocmd
+	autocmd("TextYankPost", {
+		callback = function()
+			if vim.v.event.operator == "y" then
+				vim.fn.setreg("*", vim.fn.getreg('"'))
+			end
+		end,
+		desc = "Copy yanked text to system clipboard",
+	})
 
 	set.autoindent = true
 	set.autoread = true
@@ -29,7 +29,7 @@ local function setOptions()
 	set.showmatch = true -- Show matching brackets/braces
 	set.smarttab = true -- Use shiftwidth to tab at line beginning
 	set.showmode = false -- mode shown through pretty bottom bar instead
-  set.title = true -- set the title of window to the value of 'titlestring'
+	set.title = true -- set the title of window to the value of 'titlestring'
 
 	set.backspace = { "indent", "eol", "start" } -- Let backspace work over anything.
 	set.ignorecase = true -- ignore case only when search term is all lowercase
@@ -111,11 +111,11 @@ local function setOptions()
 		["Find Under"] = "<C-d>", -- replace C-n
 		["Find Subword Under"] = "<C-d>", -- replace visual C-n
 	}
-  vim.filetype.add({
-    extension = {
-      mnd = "mermaid",
-    },
-  })
+	vim.filetype.add({
+		extension = {
+			mnd = "mermaid",
+		},
+	})
 end
 
 function M.setup()

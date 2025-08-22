@@ -10,7 +10,7 @@
 , useEslintDaemon ? true
 , extraPackages ? [ ]
 , goBuildTags ? ""
-, dapConfigurations ? {}
+, dapConfigurations ? { }
 , ...
 }:
 let
@@ -37,52 +37,52 @@ let
   ];
 
   lspPackages = with pkgs;
-  if withLspSupport then (lib.optionals stdenv.isDarwin [
+    if withLspSupport then (lib.optionals stdenv.isDarwin [
       pngpaste
-  ]) ++ [
-    stylua
-    jdtls
+    ]) ++ [
+      stylua
+      jdtls
 
-    ccls # c++ language server
-    codespell
-    gofumpt
-    # golangci-lint
-    # golangci-lint-langserver
-    golines
-    gopls
-    gotools
-    grafana-alloy
-    helm-ls
-    jsonnet-language-server
-    lua-language-server
-    marksman
-    pprof
-    prettierd
-    pyright
-    shellcheck
-    shfmt
-    terraform-ls
-    typescript
-    vale
-    vim-language-server
-    vim-vint
-    vscode-langservers-extracted
-    write-good
-    yaml-language-server
-    yamllint
+      ccls # c++ language server
+      codespell
+      gofumpt
+      # golangci-lint
+      # golangci-lint-langserver
+      golines
+      gopls
+      gotools
+      grafana-alloy
+      helm-ls
+      jsonnet-language-server
+      lua-language-server
+      marksman
+      pprof
+      prettierd
+      pyright
+      shellcheck
+      shfmt
+      terraform-ls
+      typescript
+      vale
+      vim-language-server
+      vim-vint
+      vscode-langservers-extracted
+      write-good
+      yaml-language-server
+      yamllint
 
-    nodePackages.bash-language-server
-    nodePackages.dockerfile-language-server-nodejs
-    nodePackages.eslint
-    nodePackages.eslint_d
-    nodePackages.fixjson
-    nodePackages.prettier
-    nodePackages.typescript-language-server
-    nodePackages.vscode-langservers-extracted
+      nodePackages.bash-language-server
+      nodePackages.dockerfile-language-server-nodejs
+      nodePackages.eslint
+      nodePackages.eslint_d
+      nodePackages.fixjson
+      nodePackages.prettier
+      nodePackages.typescript-language-server
+      nodePackages.vscode-langservers-extracted
 
-    lua53Packages.luacheck
-    lua53Packages.jsregexp
-    lua53Packages.tiktoken_core
+      lua53Packages.luacheck
+      lua53Packages.jsregexp
+      lua53Packages.tiktoken_core
     ] else [ ];
 
   treesitterPackages = with pkgs; [

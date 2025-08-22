@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     ncurses-bin \
     neovim \
     ripgrep \
+    stylua \
     sudo \
     unzip \
     vim \
@@ -106,6 +107,8 @@ RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers
 RUN echo "node ALL=(ALL) NOPASSWD: /usr/sbin/iptables" >> /etc/sudoers
 RUN echo "node ALL=(ALL) NOPASSWD: /usr/sbin/ipset" >> /etc/sudoers
+RUN echo "node ALL=(ALL) NOPASSWD: /usr/bin/apt" >> /etc/sudoers
+RUN echo "node ALL=(ALL) NOPASSWD: /usr/bin/apt-get" >> /etc/sudoers
 
 # Copy firewall script
 COPY init-firewall.sh /usr/local/bin/

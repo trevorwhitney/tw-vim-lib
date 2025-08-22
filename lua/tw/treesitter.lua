@@ -11,7 +11,7 @@ local ensure_installed = {
 	"commonlisp",
 	"cpp",
 	"css",
-  "diff",
+	"diff",
 	"dockerfile",
 	"dot",
 	"elixir",
