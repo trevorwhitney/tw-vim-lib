@@ -107,11 +107,40 @@ local function highlightedYank()
 	})
 end
 
+local function disableGoFmtForSpecialBuffers()
+	local group = api.nvim_create_augroup("DisableGoFmtSpecialBuffers", {
+		clear = true,
+	})
+
+	-- Disable vim-go formatting for DAP REPL and other special buffers
+	api.nvim_create_autocmd({ "FileType" }, {
+		pattern = "dap-repl,dapui_console",
+		callback = function()
+			vim.b.go_fmt_autosave = 0
+		end,
+		group = group,
+		desc = "Disable vim-go auto-formatting for DAP REPL buffers",
+	})
+
+	-- Also disable for any buffer with prompt or terminal buftype
+	api.nvim_create_autocmd({ "BufEnter", "BufNew", "BufWinEnter" }, {
+		pattern = "*",
+		callback = function()
+			if vim.bo.buftype == "prompt" or vim.bo.buftype == "terminal" or vim.bo.buftype == "nofile" then
+				vim.b.go_fmt_autosave = 0
+			end
+		end,
+		group = group,
+		desc = "Disable vim-go auto-formatting for special buffer types",
+	})
+end
+
 function M.setup()
 	autosave()
 	hiddenFugitive()
 	wipeRegisters()
 	highlightedYank()
+	disableGoFmtForSpecialBuffers()
 end
 
 return M

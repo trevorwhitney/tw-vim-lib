@@ -458,31 +458,33 @@ end
 
 local function sendCodeSnippet(args, rel_path)
 	send({
-		"take a look at the following code snippet from @" .. rel_path .. "\n",
+		"the code snippet from @" .. rel_path .. "\n",
 		"```\n",
 	})
 	send(args)
 	send({
-		"```\n",
+		"\n```\n",
 	})
 end
 
 function M.SendSelection()
-	-- Get the current selection
+	-- Get the current selection while in visual mode
 	vim.cmd('normal! "sy')
 
-	-- Get the content of the register x
+	-- Get the content of the register
 	local selection = vim.fn.getreg("s")
 
 	-- Get the current file path
 	local filename = vim.fn.expand("%")
 	local rel_path = Path:new(filename):make_relative(util.get_git_root())
+	
+	-- Exit visual mode before opening Claude
+	vim.cmd("normal! \027") -- \027 is escape key
+	
 	confirmOpenAndDo(function()
 		-- Send the prompt
 		sendCodeSnippet(selection, rel_path)
-
-		-- Return to visual mode
-		vim.cmd("normal! gv")
+		-- Don't return to visual mode since we're now in Claude buffer
 	end)
 end
 
