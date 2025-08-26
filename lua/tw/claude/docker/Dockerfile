@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install -y \
     ncurses-bin \
     neovim \
     ripgrep \
-    stylua \
     sudo \
     unzip \
     vim \
@@ -101,6 +100,9 @@ RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/
 # Install claude-code
 ARG CLAUDE_CODE_VERSION=latest
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+
+# Install stylua
+RUN npm install -g @johnnymorganz/stylua
 
 # Create non-root user permissions
 RUN usermod -aG sudo node
