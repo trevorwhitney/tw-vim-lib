@@ -161,6 +161,8 @@ function M.get_start_container_command(container_name, context_dirs)
 		"-v",
 		vim.fn.expand("~/.config/claude-container") .. ":/home/node/.claude",
 		"-v",
+		vim.fn.expand("~/.config/gemini-container") .. ":/home/node/.gemini",
+		"-v",
 		"claude-history:/commandhistory",
 		"-v",
 		vim.fn.expand("~/.config/git") .. ":/home/node/.config/git:ro",

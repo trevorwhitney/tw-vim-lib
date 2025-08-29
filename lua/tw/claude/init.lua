@@ -8,6 +8,7 @@ local allowed_tools = require("tw.claude.allowed-tools")
 local util = require("tw.claude.util")
 local log = require("tw.log")
 local commands = require("tw.claude.commands")
+local buffer_config = require("tw.claude.buffer-config")
 local default_args = {}
 
 -- Expose log module globally for claude.lua to use
@@ -39,6 +40,13 @@ M.auto_prompt_file = "coding.md" -- Default prompt file to send
 
 -- Context directories configuration (per-session only)
 M.context_directories = {} -- Table of paths to mount at /context/*
+
+-- Buffer configuration
+M.buffer_config = {
+	scrollback = 5000,
+	follow_output = true,
+	prevent_resize_scroll = true,
+}
 
 -- Find the plugin installation path
 local function get_plugin_root()
@@ -156,7 +164,9 @@ local function start_new_claude_job(args, window_type, mode)
 		},
 	})
 	vim.bo[buf].bufhidden = "hide"
-	vim.bo[buf].filetype = "ClaudeConsole"
+	
+	-- Configure the buffer with scrollback and resize handling
+	buffer_config.setup_buffer(buf, M.buffer_config)
 
 	-- Store buffer and job based on mode
 	if mode == "docker" then
@@ -650,15 +660,21 @@ local function configureClaudeKeymap()
 end
 
 function M.cleanup()
-	-- Clean up docker job
+	-- Clean up docker job and buffer config
 	if M.docker_job_id and vim.fn.jobwait({ M.docker_job_id }, 0)[1] == -1 then
 		vim.fn.jobstop(M.docker_job_id)
 		M.docker_job_id = nil
 	end
-	-- Clean up local job
+	if M.docker_buf then
+		buffer_config.cleanup(M.docker_buf)
+	end
+	-- Clean up local job and buffer config
 	if M.local_job_id and vim.fn.jobwait({ M.local_job_id }, 0)[1] == -1 then
 		vim.fn.jobstop(M.local_job_id)
 		M.local_job_id = nil
+	end
+	if M.local_buf then
+		buffer_config.cleanup(M.local_buf)
 	end
 	-- Clean up legacy pointers
 	M.claude_job_id = nil
@@ -714,6 +730,12 @@ function M.setup(opts)
 	if opts.auto_prompt_file then
 		M.auto_prompt_file = opts.auto_prompt_file
 	end
+	
+	-- Configure buffer settings
+	if opts.buffer_config then
+		M.buffer_config = vim.tbl_extend("force", M.buffer_config, opts.buffer_config)
+	end
+	buffer_config.setup(M.buffer_config)
 
 	-- Configure logging
 	if opts.log_level then

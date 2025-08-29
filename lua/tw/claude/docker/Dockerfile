@@ -29,6 +29,39 @@ RUN apt-get update && apt-get install -y \
     # Add tools for building Go and other binaries
     build-essential \
     ca-certificates \
+    # Puppeteer/Chrome dependencies
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcairo2 \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgbm1 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    lsb-release \
+    wget \
+    xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install UV for zen-mcp-server
@@ -104,6 +137,15 @@ RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 # Install stylua
 RUN npm install -g @johnnymorganz/stylua
 
+# Install Gemini CLI
+RUN npm install -g @google/gemini-cli
+
+# Install Gemini MCP tool
+RUN npm install -g gemini-mcp-tool
+
+# Install Puppeteer MCP server
+RUN npm install -g @modelcontextprotocol/server-puppeteer
+
 # Create non-root user permissions
 RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers
@@ -122,6 +164,7 @@ RUN chmod +x /opt/claude-hooks/*.sh
 
 # Set up directories
 RUN mkdir -p /home/node/.claude /home/node/.mcp /home/node/.local/bin /home/node/.config /commandhistory
+
 RUN chown -R node:node /home/node /commandhistory
 
 # Add UV to PATH for node user

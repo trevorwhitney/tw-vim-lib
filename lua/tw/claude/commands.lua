@@ -2,6 +2,7 @@ local M = {}
 
 local docker = require("tw.claude.docker")
 local terminal = require("tw.claude.terminal")
+local buffer_config = require("tw.claude.buffer-config")
 local log = require("tw.log")
 
 -- Timer for checking file changes
@@ -379,6 +380,32 @@ local function handle_list_contexts(claude_module, args)
 end
 subcommand_handlers["list-contexts"] = handle_list_contexts
 
+-- Clear scrollback for active Claude buffer
+local function handle_clear_scrollback(claude_module, args)
+	-- Clear scrollback for the active Claude buffer
+	local buf = claude_module.claude_buf
+	if not buf or not vim.api.nvim_buf_is_valid(buf) then
+		log.warn("No active Claude buffer to clear scrollback")
+		return
+	end
+	
+	buffer_config.clear_scrollback(buf)
+end
+subcommand_handlers["clear-scrollback"] = handle_clear_scrollback
+
+-- Toggle follow mode for Claude buffers
+local function handle_toggle_follow(claude_module, args)
+	-- Toggle follow mode for Claude buffers
+	local buf = claude_module.claude_buf
+	if not buf or not vim.api.nvim_buf_is_valid(buf) then
+		log.warn("No active Claude buffer to toggle follow mode")
+		return
+	end
+	
+	buffer_config.toggle_follow_mode(buf)
+end
+subcommand_handlers["toggle-follow"] = handle_toggle_follow
+
 -- Open shell in container
 local function handle_shell(claude_module, args)
 	if not docker.is_container_running(claude_module.container_name) then
@@ -517,7 +544,7 @@ local function handle_claude_docker_command(args, claude_module)
 	if not subcommand then
 		vim.notify("Usage: :ClaudeDocker <subcommand> [args]", vim.log.levels.INFO)
 		vim.notify(
-			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
+			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall, clear-scrollback, toggle-follow",
 			vim.log.levels.INFO
 		)
 		return
@@ -530,7 +557,7 @@ local function handle_claude_docker_command(args, claude_module)
 	else
 		vim.notify("Unknown subcommand: " .. subcommand, vim.log.levels.ERROR)
 		vim.notify(
-			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall",
+			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall, clear-scrollback, toggle-follow",
 			vim.log.levels.INFO
 		)
 	end
@@ -560,6 +587,8 @@ function M.setup_user_commands(claude_module)
 					"container-logs",
 					"log-level",
 					"check-firewall",
+					"clear-scrollback",
+					"toggle-follow",
 				}
 				return vim.tbl_filter(function(cmd)
 					return cmd:find("^" .. arg_lead)
