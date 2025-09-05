@@ -187,7 +187,9 @@ local function start_new_claude_job(args, window_type, mode)
 		vim.defer_fn(function()
 			log.debug("Sending auto-prompt: " .. M.auto_prompt_file)
 			M.SendPrompt(M.auto_prompt_file, true)
-			vim.cmd("startinsert")
+      vim.defer_fn(function()
+        vim.cmd("startinsert")
+      end, 500)
 		end, 1750)
 	else
 		vim.defer_fn(function()
@@ -248,7 +250,7 @@ local function confirmOpenAndDo(callback, args, window_type)
 					end
 				end
 			end
-		end, 1500)
+		end, 2500)
 	else
 		-- Buffer exists, make sure it's visible
 		local windows = vim.api.nvim_list_wins()
