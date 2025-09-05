@@ -143,8 +143,10 @@ RUN npm install -g @google/gemini-cli
 # Install Gemini MCP tool
 RUN npm install -g gemini-mcp-tool
 
-# Install Puppeteer MCP server
-RUN npm install -g @modelcontextprotocol/server-puppeteer
+# Install Playwright and Puppeteer MCP server
+RUN npm install -g @modelcontextprotocol/server-puppeteer && \
+    npx puppeteer browsers install chrome && \
+    npm install -g @playwright/mcp@latest
 
 # Create non-root user permissions
 RUN usermod -aG sudo node
