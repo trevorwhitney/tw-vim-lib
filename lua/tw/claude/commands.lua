@@ -12,28 +12,6 @@ local refresh_timer = nil
 function M.setup_autocmds(claude_module)
 	local group = vim.api.nvim_create_augroup("Claude", { clear = true })
 
-	-- Start container on Vim startup (async) - always start for docker support
-	vim.api.nvim_create_autocmd("VimEnter", {
-		callback = function()
-			log.info("VimEnter triggered, starting container for Docker support")
-			vim.defer_fn(function()
-				log.info("Starting async container startup after delay")
-				docker.start_container_async(
-					claude_module.container_name,
-					claude_module.auto_build,
-					claude_module.context_directories,
-					function(success, status)
-						if success then
-							claude_module.container_started = true
-						else
-							claude_module.container_started = false
-						end
-					end
-				)
-			end, 100) -- Small delay to let Neovim finish startup
-		end,
-		group = group,
-	})
 
 	-- Ensure cleanup on Neovim exit
 	vim.api.nvim_create_autocmd("VimLeavePre", {

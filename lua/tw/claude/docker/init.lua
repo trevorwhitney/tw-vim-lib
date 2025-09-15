@@ -209,17 +209,6 @@ function M.get_start_container_command(container_name, context_dirs)
 	return table.concat(docker_cmd, " ")
 end
 
-function M.start_persistent_container(container_name, context_dirs)
-	local cmd = M.get_start_container_command(container_name, context_dirs)
-	local handle = io.popen(cmd .. " 2>&1")
-	local result = ""
-	if handle then
-		result = handle:read("*a")
-		handle:close()
-	end
-
-	return vim.v.shell_error == 0, result
-end
 
 function M.attach_to_container(container_name, args)
 	container_name = container_name or "claude-code-nvim"

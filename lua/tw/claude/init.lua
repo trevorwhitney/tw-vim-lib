@@ -106,20 +106,63 @@ local function start_new_claude_job(args, window_type, mode)
 		log.debug("Container started flag: " .. tostring(M.container_started))
 
 		if not is_running then
+      -- Helper function to start container and wait for completion
+      local function wait_for_container_start(action_name)
+        local success_flag = false
+        docker.start_container_async(
+          M.container_name,
+          M.auto_build,
+          M.context_directories,
+          function(success, status)
+            if success then
+              M.container_started = true
+              success_flag = true
+            else
+              log.error("Failed to " .. action_name .. " container: " .. (status or "Unknown error"), true)
+              M.container_started = false
+              success_flag = false
+            end
+          end
+        )
+
+        -- Wait for container with timeout
+        local timeout = 30000  -- 30 seconds
+        local check_interval = 500 -- 0.5 seconds
+        local elapsed = 0
+        while elapsed < timeout do
+          vim.wait(check_interval)
+          elapsed = elapsed + check_interval
+          if success_flag then
+            break
+          end
+          if not success_flag and elapsed >= timeout then
+            log.error("Container " .. action_name .. " timed out", true)
+            M.container_started = false
+            return false
+          end
+        end
+
+        if not success_flag then
+          log.error("Container " .. action_name .. " failed", true)
+          M.container_started = false
+          return false
+        end
+        return true
+      end
 			if M.container_started then
-				-- Container was started but isn't running - try to restart it
-				log.warn("Container was started but is not running, attempting restart", true)
-				docker.ensure_container_stopped(M.container_name)
-				local success, result = docker.start_persistent_container(M.container_name)
-				if not success then
-					log.error("Failed to restart container: " .. (result or "Unknown error"), true)
-					M.container_started = false
-					return
-				end
+				-- Container was started but isn't running - restart it
+        log.warn("Container was started but is not running, attempting restart", true)
+        docker.ensure_container_stopped(M.container_name)
+				if not wait_for_container_start("restart") then
+          return
+        end
 			else
-				log.error("Container not running and not started by this session", true)
-				return
-			end
+				-- Container not started - start it on-demand
+        log.info("Container not running, starting on-demand", true)
+        if not wait_for_container_start("start") then
+          return
+        end
+      end
 		end
 
 		local cmd_args = ""
