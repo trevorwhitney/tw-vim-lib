@@ -209,7 +209,6 @@ function M.get_start_container_command(container_name, context_dirs)
 	return table.concat(docker_cmd, " ")
 end
 
-
 function M.attach_to_container(container_name, args)
 	container_name = container_name or "claude-code-nvim"
 	args = args or ""

@@ -482,21 +482,41 @@ local function vimMappings()
 	-- ====== Tmux-Navigator =======
 	-- This is done manually instead of automatically via the plugin to make it work with terminals
 	-- The default mappings are disabled in packer.lua
+	local function navigate_with_conditional_save(direction)
+		-- Filetypes that should not trigger save
+		local excluded_filetypes = {
+			"help",
+			"qf",
+			"quickfix",
+			"NvimTree",
+			"telescope",
+			"aerial",
+			"trouble",
+			"terminal",
+			"nofile",
+			"dapui_console",
+			"dap-repl",
+		}
+
+		local current_filetype = vim.bo.filetype
+		local should_skip_update = vim.tbl_contains(excluded_filetypes, current_filetype)
+
+		if not should_skip_update then
+			vim.cmd("update")
+		end
+		vim.cmd("TmuxNavigate" .. direction)
+	end
 	keymap.set("n", "<C-j>", function()
-		vim.cmd("update")
-		vim.cmd("TmuxNavigateDown")
+		navigate_with_conditional_save("Down")
 	end, { noremap = true, silent = true })
 	keymap.set("n", "<C-k>", function()
-		vim.cmd("update")
-		vim.cmd("TmuxNavigateUp")
+		navigate_with_conditional_save("Up")
 	end, { noremap = true, silent = true })
 	keymap.set("n", "<C-h>", function()
-		vim.cmd("update")
-		vim.cmd("TmuxNavigateLeft")
+		navigate_with_conditional_save("Left")
 	end, { noremap = true, silent = true })
 	keymap.set("n", "<C-l>", function()
-		vim.cmd("update")
-		vim.cmd("TmuxNavigateRight")
+		navigate_with_conditional_save("Right")
 	end, { noremap = true, silent = true })
 	keymap.set("t", "<C-j>", "<C-\\><C-n><C-W><C-J>", { noremap = true })
 	keymap.set("t", "<C-k>", "<C-\\><C-n><C-W><C-k>", { noremap = true })

@@ -12,7 +12,6 @@ local refresh_timer = nil
 function M.setup_autocmds(claude_module)
 	local group = vim.api.nvim_create_augroup("Claude", { clear = true })
 
-
 	-- Ensure cleanup on Neovim exit
 	vim.api.nvim_create_autocmd("VimLeavePre", {
 		callback = function()
@@ -366,7 +365,7 @@ local function handle_clear_scrollback(claude_module, args)
 		log.warn("No active Claude buffer to clear scrollback")
 		return
 	end
-	
+
 	buffer_config.clear_scrollback(buf)
 end
 subcommand_handlers["clear-scrollback"] = handle_clear_scrollback
@@ -379,7 +378,7 @@ local function handle_toggle_follow(claude_module, args)
 		log.warn("No active Claude buffer to toggle follow mode")
 		return
 	end
-	
+
 	buffer_config.toggle_follow_mode(buf)
 end
 subcommand_handlers["toggle-follow"] = handle_toggle_follow
