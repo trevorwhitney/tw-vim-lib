@@ -258,6 +258,16 @@ function Packer.install(use)
 		use("dstein64/vim-win")
 		use("ii14/neorepl.nvim")
 		use("grafana/vim-alloy")
+		use({
+			"nvim-pack/nvim-spectre",
+			requires = "nvim-lua/plenary.nvim",
+			config = function()
+				require("spectre").setup({
+					live_update = true,
+					use_trouble_qf = true,
+				})
+			end,
+		})
 		installNativeLsp(use)
 		installTelescope(use)
 		installDap(use)
