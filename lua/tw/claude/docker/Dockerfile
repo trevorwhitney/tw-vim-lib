@@ -1,4 +1,4 @@
-FROM node:20
+FROM node:22
 
 # Install base dependencies
 RUN apt-get update && apt-get install -y \
@@ -159,10 +159,6 @@ RUN echo "node ALL=(ALL) NOPASSWD: /usr/bin/apt-get" >> /etc/sudoers
 # Copy firewall script
 COPY init-firewall.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/init-firewall.sh
-
-# Copy Claude hooks
-COPY hooks /opt/claude-hooks/
-RUN chmod +x /opt/claude-hooks/*.sh
 
 # Set up directories
 RUN mkdir -p /home/node/.claude /home/node/.mcp /home/node/.local/bin /home/node/.config /commandhistory

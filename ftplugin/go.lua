@@ -95,25 +95,24 @@ local function keybindings()
 			nowait = false,
 			remap = false,
 		},
-    {
-      "<leader>tC",
-      function()
-        local go = require("tw.languages.go")
-        local claude = require("tw.claude")
-        local package_name = "./" .. vim.fn.expand("%:h")
+		{
+			"<leader>tC",
+			function()
+				local go = require("tw.languages.go")
+				local claude = require("tw.claude")
+				local package_name = "./" .. vim.fn.expand("%:h")
 
-        local test_name = go.get_test_name()
-        local cmd =
-            string.format("go test -v %s-run '%s' %s ", get_build_tags_flag(), test_name, package_name)
+				local test_name = go.get_test_name()
+				local cmd = string.format("go test -v %s-run '%s' %s ", get_build_tags_flag(), test_name, package_name)
 
-        vim.cmd("update")
-        -- ":w<cr> :TestNearest -strategy=claude<cr>",
-        claude.SendCommand({ cmd })
-      end,
-      desc = "Test with Claude (Prompt for Name)",
-      nowait = false,
-      remap = false,
-    },
+				vim.cmd("update")
+				-- ":w<cr> :TestNearest -strategy=claude<cr>",
+				claude.SendCommand({ cmd })
+			end,
+			desc = "Test with Claude (Prompt for Name)",
+			nowait = false,
+			remap = false,
+		},
 		{
 			"<leader>tp",
 			function()

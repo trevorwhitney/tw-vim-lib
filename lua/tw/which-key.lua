@@ -92,20 +92,20 @@ local function mapKeys(wk)
 		},
 		{
 			"<leader>sp",
-      function()
-        require("spectre").toggle()
-      end,
+			function()
+				require("spectre").toggle()
+			end,
 			desc = "Find/Replace",
 			remap = false,
 		},
-			{
-				"<leader>sw",
-        function()
-          require("spectre").open_visual({select_word = true})
-        end,
-				desc = "Find/Replace Word",
-				remap = false,
-			},
+		{
+			"<leader>sw",
+			function()
+				require("spectre").open_visual({ select_word = true })
+			end,
+			desc = "Find/Replace Word",
+			remap = false,
+		},
 		{
 			"<leader>t",
 			group = "Test",
@@ -397,9 +397,9 @@ local function mapKeys(wk)
 			},
 			{
 				"<leader>sw",
-        function()
-          require("spectre").open_visual()
-        end,
+				function()
+					require("spectre").open_visual()
+				end,
 				desc = "Find/Replace Word",
 				remap = false,
 			},

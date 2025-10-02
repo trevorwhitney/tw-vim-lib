@@ -88,6 +88,9 @@ local function setOptions()
 	-- diagnostics appear/become resolved.
 	set.signcolumn = "number"
 
+	-- Fatter vertical splits
+	set.fillchars:append("vert:║")
+
 	-- disable python2 provider
 	vim.g["loaded_python_provider"] = 0
 	vim.g["python3_host_prog"] = "/usr/local/bin/python"
