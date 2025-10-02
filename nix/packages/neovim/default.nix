@@ -28,9 +28,7 @@ let
     nixpkgs-fmt
     statix
 
-    (claude-code.override {
-      nodejs_20 = nodeJsPkg;
-    })
+    claude-code
     (pkgs.callPackage ../change-background {
       inherit pkgs;
     })
