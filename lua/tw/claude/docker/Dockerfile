@@ -148,6 +148,9 @@ RUN npm install -g @modelcontextprotocol/server-puppeteer && \
     npx puppeteer browsers install chrome && \
     npm install -g @playwright/mcp@latest
 
+# Install OpenAI Codex
+RUN npm i -g @openai/codex
+
 # Create non-root user permissions
 RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers

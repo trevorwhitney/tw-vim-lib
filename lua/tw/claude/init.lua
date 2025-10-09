@@ -18,7 +18,9 @@ M.docker_buf = nil
 M.docker_job_id = nil
 M.local_buf = nil
 M.local_job_id = nil
-M.active_mode = "docker" -- Track which mode is currently visible: "docker", "local", or "none"
+M.codex_buf = nil
+M.codex_job_id = nil
+M.active_mode = "docker" -- Track which mode is currently visible: "docker", "local", "codex", or "none"
 
 -- Legacy claude_buf/job_id will point to the active buffer
 M.claude_buf = nil
@@ -59,7 +61,15 @@ end
 local function OnExit(mode)
 	return function(job_id, exit_code, event_type)
 		vim.schedule(function()
-			local buf = mode == "docker" and M.docker_buf or M.local_buf
+			local buf
+			if mode == "docker" then
+				buf = M.docker_buf
+			elseif mode == "codex" then
+				buf = M.codex_buf
+			else
+				buf = M.local_buf
+			end
+
 			if buf and vim.api.nvim_buf_is_valid(buf) then
 				vim.api.nvim_buf_set_option(buf, "modifiable", true)
 				local message
@@ -75,6 +85,9 @@ local function OnExit(mode)
 			if mode == "docker" then
 				M.docker_buf = nil
 				M.docker_job_id = nil
+			elseif mode == "codex" then
+				M.codex_buf = nil
+				M.codex_job_id = nil
 			else
 				M.local_buf = nil
 				M.local_job_id = nil
@@ -89,6 +102,45 @@ local function OnExit(mode)
 	end
 end
 
+local function close_buffer_windows(buf)
+	if not (buf and vim.api.nvim_buf_is_valid(buf)) then
+		return
+	end
+	while true do
+		local closed = false
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
+				vim.api.nvim_win_close(win, false)
+				closed = true
+				break
+			end
+		end
+		if not closed then
+			break
+		end
+	end
+end
+
+local function close_other_mode_buffers(active_mode)
+	local seen = {}
+	local function enqueue(buf)
+		if buf and vim.api.nvim_buf_is_valid(buf) and not seen[buf] then
+			seen[buf] = true
+			close_buffer_windows(buf)
+		end
+	end
+
+	if active_mode ~= "docker" then
+		enqueue(M.docker_buf)
+	end
+	if active_mode ~= "local" then
+		enqueue(M.local_buf)
+	end
+	if active_mode ~= "codex" then
+		enqueue(M.codex_buf)
+	end
+end
+
 local function start_new_claude_job(args, window_type, mode)
 	mode = mode or "docker"
 	log.info("Attempting to start new Claude job in " .. mode .. " mode")
@@ -96,8 +148,8 @@ local function start_new_claude_job(args, window_type, mode)
 	local command
 	local buf, job_id
 
-	if mode == "docker" then
-		log.debug("Docker mode enabled, checking container status")
+	if mode == "docker" or mode == "codex" then
+		log.debug(mode .. " mode enabled, checking container status")
 		-- Check if container is running, if not try to start it
 		local is_running, container_id, status = docker.is_container_running(M.container_name)
 		log.debug("Container running check result: " .. tostring(is_running))
@@ -172,7 +224,9 @@ local function start_new_claude_job(args, window_type, mode)
 		if args and #args > 0 then
 			cmd_args = table.concat(args, " ")
 		end
-		command = docker.attach_to_container(M.container_name, cmd_args)
+		-- Use appropriate command based on mode
+		local attach_command = mode == "codex" and "codex" or "claude"
+		command = docker.attach_to_container(M.container_name, cmd_args, attach_command)
 		log.debug("Using attach command: " .. command)
 	else
 		log.debug("Local mode enabled")
@@ -189,16 +243,7 @@ local function start_new_claude_job(args, window_type, mode)
 	log.info("Starting Claude with command: " .. command)
 
 	-- Hide the other mode's buffer if it's visible before opening new window
-	local other_buf = mode == "docker" and M.local_buf or M.docker_buf
-	if other_buf and vim.api.nvim_buf_is_valid(other_buf) then
-		local windows = vim.api.nvim_list_wins()
-		for _, win in ipairs(windows) do
-			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == other_buf then
-				vim.api.nvim_win_close(win, false)
-				break
-			end
-		end
-	end
+	close_other_mode_buffers(mode)
 
 	terminal.open_window(window_type)
 	buf = vim.api.nvim_get_current_buf()
@@ -218,6 +263,9 @@ local function start_new_claude_job(args, window_type, mode)
 	if mode == "docker" then
 		M.docker_buf = buf
 		M.docker_job_id = job_id
+	elseif mode == "codex" then
+		M.codex_buf = buf
+		M.codex_job_id = job_id
 	else
 		M.local_buf = buf
 		M.local_job_id = job_id
@@ -259,6 +307,8 @@ local function send(args)
 		-- Try to get from active mode
 		if M.active_mode == "docker" then
 			job_id = M.docker_job_id
+		elseif M.active_mode == "codex" then
+			job_id = M.codex_job_id
 		elseif M.active_mode == "local" then
 			job_id = M.local_job_id
 		end
@@ -347,6 +397,9 @@ function M.Open(mode, args, window_type)
 	if mode == "docker" then
 		buf = M.docker_buf
 		job_id = M.docker_job_id
+	elseif mode == "codex" then
+		buf = M.codex_buf
+		job_id = M.codex_job_id
 	else
 		buf = M.local_buf
 		job_id = M.local_job_id
@@ -357,16 +410,7 @@ function M.Open(mode, args, window_type)
 
 	if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
 		-- First, hide the other mode's buffer if it's visible
-		local other_buf = mode == "docker" and M.local_buf or M.docker_buf
-		if other_buf and vim.api.nvim_buf_is_valid(other_buf) then
-			local windows = vim.api.nvim_list_wins()
-			for _, win in ipairs(windows) do
-				if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == other_buf then
-					vim.api.nvim_win_close(win, false)
-					break
-				end
-			end
-		end
+		close_other_mode_buffers(mode)
 		terminal.open_buffer_in_new_window(window_type, buf)
 		-- Update active mode and legacy pointers
 		M.active_mode = mode
@@ -379,6 +423,9 @@ function M.Open(mode, args, window_type)
 			if mode == "docker" then
 				M.docker_buf = cleaned_buf
 				M.docker_job_id = cleaned_job
+			elseif mode == "codex" then
+				M.codex_buf = cleaned_buf
+				M.codex_job_id = cleaned_job
 			else
 				M.local_buf = cleaned_buf
 				M.local_job_id = cleaned_job
@@ -398,6 +445,9 @@ function M.Toggle(mode, args, window_type)
 	if mode == "docker" then
 		buf = M.docker_buf
 		job_id = M.docker_job_id
+	elseif mode == "codex" then
+		buf = M.codex_buf
+		job_id = M.codex_job_id
 	else
 		buf = M.local_buf
 		job_id = M.local_job_id
@@ -429,16 +479,7 @@ function M.Toggle(mode, args, window_type)
 		-- If buffer exists but is not visible, show it in window_type
 		if not is_visible then
 			-- First, hide the other mode's buffer if it's visible
-			local other_buf = mode == "docker" and M.local_buf or M.docker_buf
-			if other_buf and vim.api.nvim_buf_is_valid(other_buf) then
-				local windows = vim.api.nvim_list_wins()
-				for _, win in ipairs(windows) do
-					if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == other_buf then
-						vim.api.nvim_win_close(win, false)
-						break
-					end
-				end
-			end
+			close_other_mode_buffers(mode)
 			terminal.open_buffer_in_new_window(window_type, buf)
 			-- Update active mode and legacy pointers
 			M.active_mode = mode
@@ -449,8 +490,16 @@ function M.Toggle(mode, args, window_type)
 		-- Buffer doesn't exist or job is dead, clean up and create new
 		if buf and not job_is_running then
 			local cleaned_buf, cleaned_job = terminal.close_terminal_buffer(buf, job_id)
-			M.docker_buf = cleaned_buf
-			M.docker_job_id = cleaned_job
+			if mode == "docker" then
+				M.docker_buf = cleaned_buf
+				M.docker_job_id = cleaned_job
+			elseif mode == "codex" then
+				M.codex_buf = cleaned_buf
+				M.codex_job_id = cleaned_job
+			else
+				M.local_buf = cleaned_buf
+				M.local_job_id = cleaned_job
+			end
 		end
 		M.Open(mode, args, window_type)
 	end
@@ -462,7 +511,7 @@ function M.hide_all_claude_buffers()
 	for _, win in ipairs(windows) do
 		if vim.api.nvim_win_is_valid(win) then
 			local buf = vim.api.nvim_win_get_buf(win)
-			if buf == M.docker_buf or buf == M.local_buf then
+			if buf == M.docker_buf or buf == M.local_buf or buf == M.codex_buf then
 				vim.api.nvim_win_close(win, false)
 			end
 		end
@@ -476,6 +525,8 @@ local function submit()
 			-- Try to get from active mode
 			if M.active_mode == "docker" then
 				job_id = M.docker_job_id
+			elseif M.active_mode == "codex" then
+				job_id = M.codex_job_id
 			elseif M.active_mode == "local" then
 				job_id = M.local_job_id
 			end
@@ -624,6 +675,13 @@ local function configureClaudeKeymap()
 				end,
 				desc = "Toggle Claude Local",
 			},
+			{
+				"<leader>cc",
+				function()
+					require("tw.claude").Toggle("codex")
+				end,
+				desc = "Toggle Codex Docker",
+			},
 		},
 		{
 			mode = { "n" },
@@ -715,6 +773,14 @@ function M.cleanup()
 	end
 	if M.docker_buf then
 		buffer_config.cleanup(M.docker_buf)
+	end
+	-- Clean up codex job and buffer config
+	if M.codex_job_id and vim.fn.jobwait({ M.codex_job_id }, 0)[1] == -1 then
+		vim.fn.jobstop(M.codex_job_id)
+		M.codex_job_id = nil
+	end
+	if M.codex_buf then
+		buffer_config.cleanup(M.codex_buf)
 	end
 	-- Clean up local job and buffer config
 	if M.local_job_id and vim.fn.jobwait({ M.local_job_id }, 0)[1] == -1 then

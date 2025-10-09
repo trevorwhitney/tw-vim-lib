@@ -163,6 +163,8 @@ function M.get_start_container_command(container_name, context_dirs)
 		"-v",
 		vim.fn.expand("~/.config/gemini-container") .. ":/home/node/.gemini",
 		"-v",
+		vim.fn.expand("~/.config/codex-container") .. ":/home/node/.codex",
+		"-v",
 		"claude-history:/commandhistory",
 		"-v",
 		vim.fn.expand("~/.config/git") .. ":/home/node/.config/git:ro",
@@ -209,18 +211,22 @@ function M.get_start_container_command(container_name, context_dirs)
 	return table.concat(docker_cmd, " ")
 end
 
-function M.attach_to_container(container_name, args)
+function M.attach_to_container(container_name, args, command)
 	container_name = container_name or "claude-code-nvim"
 	args = args or ""
+	command = command or "claude"
 	if args ~= "" then
 		args = " " .. args
 	end
 
-	local cmd = "docker exec -it "
-		.. container_name
-		.. ' /bin/bash -c "claude --dangerously-skip-permissions'
-		.. args
-		.. '"'
+	local cmd_string
+	if command == "codex" then
+		cmd_string = "codex -m gpt-5-codex -c model_reasoning_effort=high --search --full-auto" .. args
+	else
+		cmd_string = "claude --dangerously-skip-permissions" .. args
+	end
+
+	local cmd = "docker exec -it " .. container_name .. ' /bin/bash -c "' .. cmd_string .. '"'
 	return cmd
 end
 
