@@ -488,9 +488,12 @@ local function vimMappings()
 		local current_filetype = vim.bo.filetype
 		local has_file = vim.api.nvim_buf_get_name(0) ~= ""
 		local is_normal_buffer = vim.bo.buftype == ""
+    local is_readonly = vim.bo.readonly
+
 		local should_skip_update = vim.tbl_contains(excluded_filetypes, current_filetype)
 			or not has_file
 			or not is_normal_buffer
+      or is_readonly
 
 		if not should_skip_update then
 			vim.cmd("update")
