@@ -2,11 +2,11 @@ local M = {}
 
 local telescope = require("telescope.builtin")
 
--- Use an on_attach function to only map the following keys
--- after the language server attaches to the current buffer
-function M.on_attach(client, bufnr)
-  require('navigator.lspclient.mapping').setup({bufnr=bufnr, client=client})
+-- Track which buffers have had keymaps set to avoid duplicate registrations
+local keymaps_set = {}
 
+-- Use an on_attach function for server-specific configuration
+function M.on_attach(client, bufnr)
 	local function buf_set_option(...)
 		vim.api.nvim_buf_set_option(bufnr, ...)
 	end
@@ -32,126 +32,102 @@ local default_options = {
 }
 local options = vim.tbl_extend("force", {}, default_options)
 
-local keymaps = {
-	{
-		key = "gr",
-		func = function()
-			telescope.lsp_references({ fname_width = 0.4 })
-		end,
-		desc = "async_ref",
-	},
-	{
-		key = "gd",
-		func = function()
-			telescope.lsp_definitions({ fname_width = 0.4, reuse_win = true })
-		end,
-		desc = "definition",
-	},
-	{
-		key = "gi",
-		func = function()
-			telescope.lsp_implementations({ fname_width = 0.4, reuse_win = true })
-		end,
-		desc = "implementation",
-	},
-	{
-		key = "gI",
-		func = function()
-			telescope.lsp_incoming_calls({ fname_width = 0.4, reuse_win = true })
-		end,
-		desc = "incoming_calls",
-	},
-	{
-		key = "go",
-		func = function()
-			telescope.lsp_outgoing_calls({ fname_width = 0.4, reuse_win = true })
-		end,
-		desc = "outgoing_calls",
-	},
-	{
-		key = "gy",
-		func = function()
-			telescope.lsp_type_definitions({ fname_width = 0.4, reuse_win = true })
-		end,
-		desc = "implementation",
-	},
+local function setup_lsp_keymaps()
+	local group = vim.api.nvim_create_augroup("LspKeymaps", {
+		clear = true,
+	})
 
-	{ mode = "i", key = "<M-k>", func = vim.lsp.buf.signature_help, desc = "signature_help" },
-	{ key = "<leader>k", func = vim.lsp.buf.hover, desc = "hover" },
-	{ key = "<leader>K", func = require("navigator.dochighlight").hi_symbol, desc = "hi_symbol" },
-	{ key = "gD", func = vim.lsp.buf.declaration, desc = "declaration" },
-	{
-		key = "<leader>g0",
-		func = function()
-			telescope.lsp_document_symbols({ fname_width = 0.4, reuse_win = true })
-		end,
-		desc = "document_symbols",
-	},
-	{
-		key = "gW",
-		func = function()
-			telescope.lsp_workspace_symbols({ fname_width = 0.4, reuse_win = true })
-		end,
-		desc = "workspace_symbol_live",
-	},
+	vim.api.nvim_create_autocmd("LspAttach", {
+		group = group,
+		callback = function(args)
+			local bufnr = args.buf
+			local client = vim.lsp.get_client_by_id(args.data.client_id)
 
-	-- for lsp handler
-	{
-		key = "<leader>a",
-		mode = "n",
-		func = function()
-			vim.lsp.buf.code_action({
-				context = {
-					diagnostics = vim.lsp.diagnostic.get_line_diagnostics(),
+			-- Only set keymaps once per buffer, even if multiple LSP servers attach
+			if keymaps_set[bufnr] then
+				return
+			end
+			keymaps_set[bufnr] = true
+
+			-- Cleanup tracking when buffer is deleted
+			vim.api.nvim_create_autocmd("BufDelete", {
+				buffer = bufnr,
+				once = true,
+				callback = function()
+					keymaps_set[bufnr] = nil
+				end,
+			})
+
+			-- Delete default LSP keybindings that we're overriding with Telescope
+			pcall(vim.keymap.del, 'n', 'grr', { buffer = bufnr })
+			pcall(vim.keymap.del, 'n', 'gri', { buffer = bufnr })
+			pcall(vim.keymap.del, 'n', 'grt', { buffer = bufnr })
+			pcall(vim.keymap.del, 'n', 'gO', { buffer = bufnr })
+
+			-- Setup LSP keymaps with which-key
+			local wk = require("which-key")
+			local telescope = require("telescope.builtin")
+
+			wk.add({
+        -- Replace nvim defaults with telescope equivalents
+				{ "grr", function() telescope.lsp_references({ fname_width = 0.4 }) end, buffer = bufnr, desc = "LSP: References", nowait = true },
+				{ "gri", function() telescope.lsp_implementations({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Implementation" },
+				{ "grt", function() telescope.lsp_type_definitions({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Type Definition" },
+				{ "gO", function() telescope.lsp_document_symbols({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Document Symbols" },
+				{ "gd", function() telescope.lsp_definitions({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Definition" },
+
+        -- until I get use to the new one
+				{ "gr", function() telescope.lsp_references({ fname_width = 0.4 }) end, buffer = bufnr, desc = "LSP: References", nowait = true },
+				{ "gI", function() telescope.lsp_incoming_calls({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Incoming Calls" },
+				{ "go", function() telescope.lsp_outgoing_calls({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Outgoing Calls" },
+				{ "gD", vim.lsp.buf.declaration, buffer = bufnr, desc = "LSP: Declaration" },
+				{ "gW", function() telescope.lsp_workspace_symbols({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Workspace Symbols" },
+				{ "<M-k>", vim.lsp.buf.signature_help, buffer = bufnr, desc = "LSP: Signature Help", mode = "i" },
+				{ "<leader>k", vim.lsp.buf.hover, buffer = bufnr, desc = "LSP: Hover" },
+				{ "<leader>K", require("navigator.dochighlight").hi_symbol, buffer = bufnr, desc = "LSP: Highlight Symbol" },
+				-- {
+				-- 	"<leader>a",
+				-- 	function()
+				-- 		vim.lsp.buf.code_action({
+				-- 			context = {
+				-- 				diagnostics = vim.lsp.diagnostic.get_line_diagnostics(),
+				-- 			},
+				-- 		})
+				-- 	end,
+				-- 	buffer = bufnr,
+				-- 	desc = "LSP: Code Action"
+				-- },
+				{
+					"grn",
+					function()
+						local context = {}
+						context.diagnostics = vim.lsp.diagnostic.get_line_diagnostics()
+						local buf = vim.api.nvim_get_current_buf()
+						local startpos = vim.api.nvim_buf_get_mark(buf, "<")
+						local endpos = vim.api.nvim_buf_get_mark(buf, ">")
+						vim.lsp.buf.code_action({ context = context, range = { start = startpos, ["end"] = endpos } })
+					end,
+					buffer = bufnr,
+					desc = "LSP: Range Code Action",
+					mode = "v",
 				},
+        -- replaced by nvim default grn
+				-- { "<Space>rn", vim.lsp.buf.rename, buffer = bufnr, desc = "LSP: Rename" },
+				{ "<leader>la", vim.lsp.codelens.run, buffer = bufnr, desc = "LSP: Run Code Lens" },
 			})
 		end,
-		desc = "code_action",
-	},
-	{
-		key = "<leader>a",
-		mode = "v",
-		func = function()
-			local context = {}
-			context.diagnostics = vim.lsp.diagnostic.get_line_diagnostics()
-
-			local bufnr = vim.api.nvim_get_current_buf()
-			local startpos = vim.api.nvim_buf_get_mark(bufnr, "<")
-			local endpos = vim.api.nvim_buf_get_mark(bufnr, ">")
-
-			vim.lsp.buf.code_action({ context = context, range = { start = startpos, ["end"] = endpos } })
-		end,
-		desc = "range_code_action",
-	},
-
-	{
-		key = "<Space>rn",
-		func = function()
-			vim.lsp.buf.rename()
-		end,
-		desc = "rename",
-	},
-	{
-		key = "<leader>la",
-		mode = "n",
-		func = function()
-			vim.lsp.codelens.run()
-		end,
-		desc = "run code lens action",
-	},
-}
+	})
+end
 
 local function setup_navigator(opts)
 	require("navigator").setup({
 		debug = false,
-		on_attach = M.on_attach,
 		default_mapping = false,
-		keymaps = keymaps,
 		lsp = {
 			hover = {
 				enable = false,
 			},
-			format_on_save = false,
+			format_on_save = true,
 			code_action = {
 				enable = true,
 				sign = true,
@@ -196,6 +172,7 @@ local function setup_lspconfig(opts)
 			on_attach = M.on_attach,
 			capabilities = capabilities,
 		})
+		vim.lsp.enable(server)
 	end
 
   -- servers with additional customizations
@@ -226,6 +203,7 @@ local function setup_lspconfig(opts)
 			},
 		},
 	})
+	vim.lsp.enable('gopls')
 
 	vim.lsp.config('lua_ls', {
 		-- sumneko_root_path = opts.lua_ls_root,
@@ -250,6 +228,7 @@ local function setup_lspconfig(opts)
 			},
 		},
 	})
+	vim.lsp.enable('lua_ls')
 end
 
 function M.setup(lsp_options)
@@ -257,6 +236,7 @@ function M.setup(lsp_options)
 	lsp_options = lsp_options or {}
 	options = vim.tbl_extend("force", options, lsp_options)
 
+	setup_lsp_keymaps()
 	setup_navigator(options)
 	setup_lspconfig(options)
 	require("tw.formatting").setup(options.use_eslint_daemon)
