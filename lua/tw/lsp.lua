@@ -59,44 +59,131 @@ local function setup_lsp_keymaps()
 			})
 
 			-- Delete default LSP keybindings that we're overriding with Telescope
-			pcall(vim.keymap.del, 'n', 'grr', { buffer = bufnr })
-			pcall(vim.keymap.del, 'n', 'gri', { buffer = bufnr })
-			pcall(vim.keymap.del, 'n', 'grt', { buffer = bufnr })
-			pcall(vim.keymap.del, 'n', 'gO', { buffer = bufnr })
+			pcall(vim.keymap.del, "n", "grr", { buffer = bufnr })
+			pcall(vim.keymap.del, "n", "gri", { buffer = bufnr })
+			pcall(vim.keymap.del, "n", "grt", { buffer = bufnr })
+			pcall(vim.keymap.del, "n", "gO", { buffer = bufnr })
 
 			-- Setup LSP keymaps with which-key
 			local wk = require("which-key")
 			local telescope = require("telescope.builtin")
 
 			wk.add({
-        -- Replace nvim defaults with telescope equivalents
-				{ "grr", function() telescope.lsp_references({ fname_width = 0.4 }) end, buffer = bufnr, desc = "LSP: References", nowait = true },
-				{ "gri", function() telescope.lsp_implementations({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Implementation" },
-				{ "grt", function() telescope.lsp_type_definitions({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Type Definition" },
-				{ "gO", function() telescope.lsp_document_symbols({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Document Symbols" },
-				{ "gd", function() telescope.lsp_definitions({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Definition" },
+				-- Replace nvim defaults with telescope equivalents
+				{
+					"grr",
+					function()
+						telescope.lsp_references({ fname_width = 0.4 })
+					end,
+					buffer = bufnr,
+					desc = "LSP: References",
+					nowait = true,
+				},
+				{
+					"gri",
+					function()
+						telescope.lsp_implementations({ fname_width = 0.4, reuse_win = true })
+					end,
+					buffer = bufnr,
+					desc = "LSP: Implementation",
+				},
+				{
+					"grt",
+					function()
+						telescope.lsp_type_definitions({ fname_width = 0.4, reuse_win = true })
+					end,
+					buffer = bufnr,
+					desc = "LSP: Type Definition",
+				},
+				{
+					"gO",
+					function()
+						telescope.lsp_document_symbols({ fname_width = 0.4, reuse_win = true })
+					end,
+					buffer = bufnr,
+					desc = "LSP: Document Symbols",
+				},
+				{
+					"gd",
+					function()
+						telescope.lsp_definitions({ fname_width = 0.4, reuse_win = true })
+					end,
+					buffer = bufnr,
+					desc = "LSP: Definition",
+				},
 
-        -- until I get use to the new one
-				{ "gr", function() telescope.lsp_references({ fname_width = 0.4 }) end, buffer = bufnr, desc = "LSP: References", nowait = true },
-				{ "gI", function() telescope.lsp_incoming_calls({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Incoming Calls" },
-				{ "go", function() telescope.lsp_outgoing_calls({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Outgoing Calls" },
+				{
+					"gr",
+					function()
+						-- until I get use to the new one
+						vim.notify("using legacy references keybdinding. use grr instead", vim.log.levels.WARN)
+						telescope.lsp_references({ fname_width = 0.4 })
+					end,
+					buffer = bufnr,
+					desc = "LSP: References",
+					nowait = true,
+				},
+				{
+					"gI",
+					function()
+						telescope.lsp_incoming_calls({ fname_width = 0.4, reuse_win = true })
+					end,
+					buffer = bufnr,
+					desc = "LSP: Incoming Calls",
+				},
+				{
+					"go",
+					function()
+						telescope.lsp_outgoing_calls({ fname_width = 0.4, reuse_win = true })
+					end,
+					buffer = bufnr,
+					desc = "LSP: Outgoing Calls",
+				},
 				{ "gD", vim.lsp.buf.declaration, buffer = bufnr, desc = "LSP: Declaration" },
-				{ "gW", function() telescope.lsp_workspace_symbols({ fname_width = 0.4, reuse_win = true }) end, buffer = bufnr, desc = "LSP: Workspace Symbols" },
+				{
+					"gW",
+					function()
+						telescope.lsp_workspace_symbols({ fname_width = 0.4, reuse_win = true })
+					end,
+					buffer = bufnr,
+					desc = "LSP: Workspace Symbols",
+				},
 				{ "<M-k>", vim.lsp.buf.signature_help, buffer = bufnr, desc = "LSP: Signature Help", mode = "i" },
 				{ "<leader>k", vim.lsp.buf.hover, buffer = bufnr, desc = "LSP: Hover" },
-				{ "<leader>K", require("navigator.dochighlight").hi_symbol, buffer = bufnr, desc = "LSP: Highlight Symbol" },
-				-- {
-				-- 	"<leader>a",
-				-- 	function()
-				-- 		vim.lsp.buf.code_action({
-				-- 			context = {
-				-- 				diagnostics = vim.lsp.diagnostic.get_line_diagnostics(),
-				-- 			},
-				-- 		})
-				-- 	end,
-				-- 	buffer = bufnr,
-				-- 	desc = "LSP: Code Action"
-				-- },
+				{
+					"<leader>K",
+					require("navigator.dochighlight").hi_symbol,
+					buffer = bufnr,
+					desc = "LSP: Highlight Symbol",
+				},
+				{
+					"<leader>a",
+					function()
+						vim.notify("using legacy actions keybdinding. use gra instead", vim.log.levels.WARN)
+						vim.lsp.buf.code_action({
+							context = {
+								diagnostics = vim.lsp.diagnostic.get_line_diagnostics(),
+							},
+						})
+					end,
+					buffer = bufnr,
+					desc = "LSP: Code Action",
+				},
+				{
+					"<leader>a",
+					function()
+						vim.notify("using legacy actions keybdinding. use gra instead", vim.log.levels.WARN)
+						local context = {}
+						context.diagnostics = vim.lsp.diagnostic.get_line_diagnostics()
+						local buf = vim.api.nvim_get_current_buf()
+						local startpos = vim.api.nvim_buf_get_mark(buf, "<")
+						local endpos = vim.api.nvim_buf_get_mark(buf, ">")
+						vim.lsp.buf.code_action({ context = context, range = { start = startpos, ["end"] = endpos } })
+					end,
+					buffer = bufnr,
+					desc = "LSP: Range Code Action",
+					mode = "v",
+				},
 				{
 					"grn",
 					function()
@@ -111,8 +198,16 @@ local function setup_lsp_keymaps()
 					desc = "LSP: Range Code Action",
 					mode = "v",
 				},
-        -- replaced by nvim default grn
-				-- { "<Space>rn", vim.lsp.buf.rename, buffer = bufnr, desc = "LSP: Rename" },
+				-- replaced by nvim default grn
+				{
+					"<Space>rn",
+					function()
+						vim.notify("using legacy rename keybdinding. use grn instead", vim.log.levels.WARN)
+						vim.lsp.buf.rename()
+					end,
+					buffer = bufnr,
+					desc = "LSP: Rename",
+				},
 				{ "<leader>la", vim.lsp.codelens.run, buffer = bufnr, desc = "LSP: Run Code Lens" },
 			})
 		end,
@@ -153,7 +248,7 @@ end
 local function setup_lspconfig(opts)
 	local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-  -- servers wihtout additional customizations
+	-- servers wihtout additional customizations
 	local basic_servers = {
 		"dockerls",
 		"eslint",
@@ -175,8 +270,8 @@ local function setup_lspconfig(opts)
 		vim.lsp.enable(server)
 	end
 
-  -- servers with additional customizations
-	vim.lsp.config('gopls', {
+	-- servers with additional customizations
+	vim.lsp.config("gopls", {
 		on_attach = M.on_attach,
 		capabilities = capabilities,
 		settings = {
@@ -203,9 +298,9 @@ local function setup_lspconfig(opts)
 			},
 		},
 	})
-	vim.lsp.enable('gopls')
+	vim.lsp.enable("gopls")
 
-	vim.lsp.config('lua_ls', {
+	vim.lsp.config("lua_ls", {
 		-- sumneko_root_path = opts.lua_ls_root,
 		-- sumneko_binary = opts.lua_ls_root .. "/bin/lua-language-server",
 		on_attach = M.on_attach,
@@ -228,7 +323,7 @@ local function setup_lspconfig(opts)
 			},
 		},
 	})
-	vim.lsp.enable('lua_ls')
+	vim.lsp.enable("lua_ls")
 end
 
 function M.setup(lsp_options)
