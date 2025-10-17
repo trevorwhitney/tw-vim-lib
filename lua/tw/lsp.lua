@@ -4,7 +4,9 @@ local telescope = require("telescope.builtin")
 
 -- Use an on_attach function to only map the following keys
 -- after the language server attaches to the current buffer
-function M.on_attach(_, bufnr)
+function M.on_attach(client, bufnr)
+  require('navigator.lspclient.mapping').setup({bufnr=bufnr, client=client})
+
 	local function buf_set_option(...)
 		vim.api.nvim_buf_set_option(bufnr, ...)
 	end
@@ -165,30 +167,41 @@ local function setup_navigator(opts)
 				sign = true,
 				virtual_text = true,
 			},
-			-- additional language servers
-			disable_lsp = { "ruff", "gopls", "lua_ls" }, -- defer to lspconfig for advancded configs
-			servers = {
-				"dockerls",
-				"eslint",
-				-- "golangci_lint_ls",
-				"jsonnet_ls",
-				"marksman",
-				"nil_ls",
-				"statix",
-				"ts_ls",
-				"jdtls",
-				"csharp_ls",
-				"helm_ls",
-			},
+			-- disable navigator's built-in LSP setup; we handle it via vim.lsp.config
+			disable_lsp = "all",
+			servers = {},
 		},
 	})
 end
 
--- directly call lspconfig setup for advanced configs
 local function setup_lspconfig(opts)
-	local lspconfig = require("lspconfig")
-	lspconfig.gopls.setup({
+	local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+  -- servers wihtout additional customizations
+	local basic_servers = {
+		"dockerls",
+		"eslint",
+		"jsonnet_ls",
+		"marksman",
+		"nil_ls",
+		"statix",
+		"ts_ls",
+		"jdtls",
+		"csharp_ls",
+		"helm_ls",
+	}
+
+	for _, server in ipairs(basic_servers) do
+		vim.lsp.config(server, {
+			on_attach = M.on_attach,
+			capabilities = capabilities,
+		})
+	end
+
+  -- servers with additional customizations
+	vim.lsp.config('gopls', {
 		on_attach = M.on_attach,
+		capabilities = capabilities,
 		settings = {
 			gopls = {
 				analyses = {
@@ -214,10 +227,11 @@ local function setup_lspconfig(opts)
 		},
 	})
 
-	lspconfig.lua_ls.setup({
+	vim.lsp.config('lua_ls', {
 		-- sumneko_root_path = opts.lua_ls_root,
 		-- sumneko_binary = opts.lua_ls_root .. "/bin/lua-language-server",
 		on_attach = M.on_attach,
+		capabilities = capabilities,
 		cmd = { opts.lua_ls_root .. "/bin/lua-language-server" },
 		settings = {
 			Lua = {

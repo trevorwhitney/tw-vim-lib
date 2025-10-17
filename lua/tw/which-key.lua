@@ -469,33 +469,9 @@ local function vimMappings()
 	-- ====== Tmux-Navigator =======
 	-- This is done manually instead of automatically via the plugin to make it work with terminals
 	-- The default mappings are disabled in packer.lua
+	local buffer_util = require("tw.buffer-util")
 	local function navigate_with_conditional_save(direction)
-		-- Filetypes that should not trigger save
-		local excluded_filetypes = {
-			"help",
-			"qf",
-			"quickfix",
-			"NvimTree",
-			"telescope",
-			"aerial",
-			"trouble",
-			"terminal",
-			"nofile",
-			"dapui_console",
-			"dap-repl",
-		}
-
-		local current_filetype = vim.bo.filetype
-		local has_file = vim.api.nvim_buf_get_name(0) ~= ""
-		local is_normal_buffer = vim.bo.buftype == ""
-    local is_readonly = vim.bo.readonly
-
-		local should_skip_update = vim.tbl_contains(excluded_filetypes, current_filetype)
-			or not has_file
-			or not is_normal_buffer
-      or is_readonly
-
-		if not should_skip_update then
+		if buffer_util.should_autosave() then
 			vim.cmd("update")
 		end
 		vim.cmd("TmuxNavigate" .. direction)
