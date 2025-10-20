@@ -91,7 +91,7 @@ end
 function M.get_start_container_command(container_name, context_dirs)
 	container_name = container_name or "claude-code-nvim"
 	context_dirs = context_dirs or {}
-	local os_type = vim.loop.os_uname().sysname
+	local os_type = vim.uv.os_uname().sysname
 	local network_flag = ""
 
 	if os_type == "Linux" then

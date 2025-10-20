@@ -80,7 +80,7 @@ function M.setup_autocmds(claude_module)
 	end
 
 	-- Create a timer to check for file changes periodically
-	refresh_timer = vim.loop.new_timer()
+	refresh_timer = vim.uv.new_timer()
 	if refresh_timer then
 		refresh_timer:start(
 			0,

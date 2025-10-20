@@ -41,7 +41,7 @@ function M.get_buffer_files()
 
 	for _, buf in ipairs(buffers) do
 		-- Include all buffers that are listed (which includes bufferline tabs)
-		if vim.api.nvim_buf_get_option(buf, "buflisted") then
+		if vim.bo[buf].buflisted then
 			local name = vim.api.nvim_buf_get_name(buf)
 			-- Check if buffer has a valid file path and exists on disk
 			if name ~= "" and vim.fn.filereadable(name) == 1 then

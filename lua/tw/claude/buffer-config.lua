@@ -32,8 +32,8 @@ function M.setup_buffer(buf, opts)
 	M.buffer_autocmds[buf] = {}
 
 	-- Set buffer options
-	vim.api.nvim_buf_set_option(buf, "scrollback", config.scrollback)
-	vim.api.nvim_buf_set_option(buf, "filetype", "ClaudeConsole")
+	vim.bo[buf].scrollback = config.scrollback
+	vim.bo[buf].filetype = "ClaudeConsole"
 
 	-- Create buffer-local autocmds for this specific buffer
 	local augroup = vim.api.nvim_create_augroup("ClaudeBuffer_" .. buf, { clear = true })
@@ -144,16 +144,16 @@ function M.clear_scrollback(buf)
 		return
 	end
 
-	local original_scrollback = vim.api.nvim_buf_get_option(buf, "scrollback")
+	local original_scrollback = vim.bo[buf].scrollback
 
 	-- Temporarily set scrollback to 1 to clear
-	vim.api.nvim_buf_set_option(buf, "scrollback", 1)
+	vim.bo[buf].scrollback = 1
 
 	-- Wait a bit for the change to take effect
 	vim.defer_fn(function()
 		if vim.api.nvim_buf_is_valid(buf) then
 			-- Restore original scrollback setting
-			vim.api.nvim_buf_set_option(buf, "scrollback", original_scrollback)
+			vim.bo[buf].scrollback = original_scrollback
 			log.info("Cleared scrollback for Claude buffer")
 		end
 	end, 100)

@@ -49,8 +49,10 @@ let
       golines
       gopls
       gotools
+      go-jsonnet
       grafana-alloy
       helm-ls
+      mercurial
       jsonnet-language-server
       lua-language-server
       marksman
@@ -59,6 +61,7 @@ let
       pyright
       shellcheck
       shfmt
+      terraform
       terraform-ls
       typescript
       vale

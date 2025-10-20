@@ -71,7 +71,7 @@ local function OnExit(mode)
 			end
 
 			if buf and vim.api.nvim_buf_is_valid(buf) then
-				vim.api.nvim_buf_set_option(buf, "modifiable", true)
+				vim.bo[buf].modifiable = true
 				local message
 				if exit_code == 0 then
 					message = "Claude process completed successfully."
@@ -79,7 +79,7 @@ local function OnExit(mode)
 					message = "Claude process exited with code: " .. exit_code
 				end
 				vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "", message })
-				vim.api.nvim_buf_set_option(buf, "modifiable", false)
+				vim.bo[buf].modifiable = false
 			end
 			-- Clear buffer and job state when process exits
 			if mode == "docker" then

@@ -2,7 +2,7 @@ local lsp = require("tw.lsp")
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")
-local home = vim.loop.os_getenv("HOME")
+local home = vim.uv.os_getenv("HOME")
 local jdtls_home = vim.api.nvim_eval("g:jdtls_home")
 local jdtls_data = vim.fn.expand(home .. "/.local/share/jdtls")
 
