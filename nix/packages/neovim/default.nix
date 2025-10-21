@@ -7,7 +7,6 @@
 , nodeJsPkg ? pkgs.nodejs
 , goPkg ? pkgs.go_1_23
 , delvePkg ? pkgs.delve
-, useEslintDaemon ? true
 , extraPackages ? [ ]
 , goBuildTags ? ""
 , dapConfigurations ? { }
@@ -136,7 +135,6 @@ let
         "lua_ls_root = '${lua-language-server}',"
         "rocks_tree_root = '${lua53Packages.luarocks}',"
         "jdtls_home = '${jdtls}',"
-        "use_eslint_daemon = ${lib.boolToString useEslintDaemon},"
         "go_build_tags = '${goBuildTags}',"
         "dap_configs = ${lib.generators.toLua {} dapConfigurations},"
       ] else [

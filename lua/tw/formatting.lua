@@ -63,30 +63,23 @@ local function format(bufnr, options)
 	end
 end
 
-local function configure(use_eslint_daemon)
+local function configure()
 	local set = vim.opt
 	set.formatexpr = "v:lua.require'conform'.formatexpr()"
-
-	-- TODO: do something similar for prettierd vs prettier?
-	local eslint = "eslint"
-	if use_eslint_daemon then
-		eslint = "eslint_d"
-	end
 
 	local formatters_by_ft = {
 		bash = { "shfmt", "shellcheck" },
 		-- these are all broken, do they not work with partial ranges?
 		-- go = { "goimports", "gofmt", "gofumpt", "golines" },
-		javascript = { eslint, "prettierd" },
+		javascript = { "eslint_d", "prettierd", "eslint", "prettier", stop_after_first = true },
 		json = { "prettierd", "fixjson" },
 		jsonnet = { "jsonnetfmt" },
 		markdown = { "prettierd", "markdownlint" },
 		nix = { "nixpkgs_fmt" },
 		sh = { "shfmt", "shellcheck" },
 		terraform = { "terraform_fmt" },
-		typescript = { eslint, "prettierd" },
-		-- prefer lua lsp formatting
-		-- lua = { "stylua" },
+		typescript = { "eslint_d", "prettierd", "eslint", "prettier", stop_after_first = true },
+		lua = { "stylua", lsp_format = "fallback" },
 
 		["_"] = { "trim_whitespace", "trim_newlines" },
 	}
@@ -94,6 +87,9 @@ local function configure(use_eslint_daemon)
 		-- log_level = vim.log.levels.DEBUG,
 		formatters_by_ft = formatters_by_ft,
 		default_format_opts = {
+			lsp_format = "first",
+		},
+		format_on_save = {
 			lsp_format = "first",
 		},
 	})
@@ -153,10 +149,11 @@ local function mapKeys()
 
 	wk.add(keymap)
 end
-function M.setup(use_eslint_daemon)
-	configure(use_eslint_daemon)
+function M.setup()
+	configure()
 	mapKeys()
 end
+
 function M.format(options)
 	local opts = options or {}
 	local bufnr = vim.api.nvim_get_current_buf()

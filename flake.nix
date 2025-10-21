@@ -55,7 +55,6 @@
         defaultPackage = pkgs.neovim {
           inherit goPkg nodeJsPkg;
           withLspSupport = true;
-          useEslintDaemon = true;
         };
 
         packages = {
@@ -70,7 +69,6 @@
                 delvePkg
                 nodeJsPkg;
               withLspSupport = true;
-              useEslintDaemon = true;
             };
           in
 

@@ -27,7 +27,6 @@ local function configureDapUI()
 	vim.fn.sign_define("DapStopped", dap_stopped)
 
 	vim.cmd('command! -nargs=0 DapToggleConsole lua require("dapui").open(2)')
-
 	require("dapui").setup({
 		layouts = {
 			{
@@ -67,7 +66,6 @@ end
 
 local function configureKeyamp()
 	local wk = require("which-key")
-
 	local keymap = {
 		{
 			"<leader>d",
@@ -255,7 +253,6 @@ local function configureKeyamp()
 
 	wk.add(keymap)
 end
-
 local function configureAutoComplete()
 	vim.cmd([[
     au FileType dap-repl lua require('dap.ext.autocompl').attach()
@@ -263,14 +260,18 @@ local function configureAutoComplete()
 end
 
 local function additionalAdapters()
-	require("dap-vscode-js").setup({
-		node_path = "node", -- Path of node executable. Defaults to $NODE_PATH, and then "node"
-		debugger_path = vim.env.HOME .. "/.local/share/nvim/site/pack/packer/opt/vscode-js-debug", -- Path to vscode-js-debug installation.
-		adapters = { "pwa-node" }, -- which adapters to register in nvim-dap
-		-- log_file_path = vim.env.HOME .. "/dap_vscode_js.log", -- Path for file logging
-		-- log_file_level = vim.log.levels.DEBUG, -- Logging level for output to file. Set to false to disable file logging.
-		-- log_console_level = vim.log.levels.DEBUG -- Logging level for output to console. Set to false to disable console output.
-	})
+	require("dap").adapters["pwa-node"] = {
+		type = "server",
+		host = "localhost",
+		port = "${port}",
+		executable = {
+			command = "node",
+			args = {
+				vim.env.HOME .. "/.local/share/nvim/site/pack/packer/opt/vscode-js-debug/dist/src/dapDebugServer.js",
+				"${port}",
+			},
+		},
+	}
 
 	for _, language in ipairs({ "typescript", "javascript" }) do
 		require("dap").configurations[language] = {
@@ -280,27 +281,6 @@ local function additionalAdapters()
 				name = "Launch file",
 				program = "${file}",
 				cwd = "${workspaceFolder}",
-			},
-			{
-				type = "pwa-node",
-				request = "attach",
-				name = "Attach",
-				processId = require("dap.utils").pick_process,
-				cwd = "${workspaceFolder}",
-			},
-			{
-				console = "integratedTerminal",
-				cwd = "${workspaceFolder}",
-				internalConsoleOptions = "neverOpen",
-				name = "Debug Jest Tests",
-				request = "launch",
-				rootPath = "${workspaceFolder}",
-				runtimeExecutable = "node",
-				type = "pwa-node",
-				runtimeArgs = {
-					"./node_modules/jest/bin/jest.js",
-					"--runInBand",
-				},
 			},
 		}
 	end

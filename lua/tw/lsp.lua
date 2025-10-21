@@ -218,7 +218,8 @@ local function setup_navigator(opts)
 			hover = {
 				enable = false,
 			},
-			format_on_save = true,
+			-- formatting on save is handled by conform
+			format_on_save = false,
 			code_action = {
 				enable = true,
 				sign = true,
@@ -330,7 +331,7 @@ function M.setup(lsp_options)
 	setup_lsp_keymaps()
 	setup_navigator(options)
 	setup_lspconfig(options)
-	require("tw.formatting").setup(options.use_eslint_daemon)
+	require("tw.formatting").setup()
 	local go = require("tw.languages.go")
 	go.setup_build_tags(options.go_build_tags)
 	go.setup_vim_go(options.go_build_tags)

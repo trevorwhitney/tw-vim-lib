@@ -5,7 +5,6 @@ local default_options = {
 	rocks_tree_root = vim.api.nvim_eval('get(s:, "rocks_tree_root", "")'),
 	lsp_support = true,
 	jdtls_home = "",
-	use_eslint_daemon = true,
 	extra_path = {},
 	go_build_tags = "",
 	dap_configs = {},
@@ -67,7 +66,6 @@ function Config.setup(user_options)
 		require("tw.lsp").setup({
 			lua_ls_root = options.lua_ls_root,
 			rocks_tree_root = options.rocks_tree_root,
-			use_eslint_daemon = options.use_eslint_daemon,
 			go_build_tags = options.go_build_tags,
 		})
 	end

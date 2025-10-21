@@ -14,10 +14,8 @@ end
 
 local function get_name(path, patterns)
 	local filename_modifier = vim.g["test#filename_modifier"] or ":."
-
 	local position = {}
 	position["file"] = vim.fn["fnamemodify"](path, filename_modifier)
-
 	if path == vim.fn["expand"]("%") then
 		position["line"] = vim.fn["line"](".")
 	else
@@ -31,21 +29,17 @@ local function get_name(path, patterns)
 	end
 
 	local nearest = vim.fn["test#base#nearest_test"](position, vim.g["test#javascript#patterns"])
-
 	local namespace = table.concat(nearest["namespace"], " ")
 	local test = table.concat(nearest["test"], " ")
 	local name = namespace .. " " .. test
-
 	local escaped_regex = vim.fn["substitute"](name, "\\([\\[\\].*+?|$^()]\\)", "\\\1", "g")
 
 	return escaped_regex
 end
-
 function Typescript.debug_test()
 	local dap = require("dap")
 	local filename = vim.fn.expand("%")
 	local test_name = get_name(filename)
-
 	local runtimeArgs = {
 		"./node_modules/jest/bin/jest.js",
 		"--runInBand",
@@ -56,16 +50,14 @@ function Typescript.debug_test()
 	}
 
 	local config = {
-		console = "integratedTerminal",
+		console = "internalConsole",
 		cwd = "${workspaceFolder}",
-		-- internalConsoleOptions = "neverOpen",
-		protocol = "inspector",
 		name = test_name,
 		request = "launch",
 		rootPath = "${workspaceFolder}",
+		runtimeArgs = runtimeArgs,
 		runtimeExecutable = "node",
 		type = "pwa-node",
-		runtimeArgs = runtimeArgs,
 	}
 
 	dap.run(config)
