@@ -73,7 +73,6 @@ local function setup_lsp_keymaps()
 					end,
 					buffer = bufnr,
 					desc = "LSP: References",
-					nowait = true,
 				},
 				{
 					"gri",
@@ -108,17 +107,17 @@ local function setup_lsp_keymaps()
 					desc = "LSP: Definition",
 				},
 
-				{
-					"gr",
-					function()
-						-- until I get use to the new one
-						vim.notify("using legacy references keybdinding. use grr instead", vim.log.levels.WARN)
-						telescope.lsp_references({ fname_width = 0.4 })
-					end,
-					buffer = bufnr,
-					desc = "LSP: References",
-					nowait = true,
-				},
+				-- {
+				-- 	"gr",
+				-- 	function()
+				-- 		-- until I get use to the new one
+				-- 		vim.notify("using legacy references keybdinding. use grr instead", vim.log.levels.WARN)
+				-- 		telescope.lsp_references({ fname_width = 0.4 })
+				-- 	end,
+				-- 	buffer = bufnr,
+				-- 	desc = "LSP: References",
+				-- 	nowait = true,
+				-- },
 				{
 					"gI",
 					function()
