@@ -45,7 +45,7 @@
               } // attrs);
           };
 
-        nodeJsPkg = pkgs.nodejs_20;
+        nodeJsPkg = pkgs.nodejs;
         goPkg = pkgs.go_1_24;
         delvePkg = pkgs.delve;
       in

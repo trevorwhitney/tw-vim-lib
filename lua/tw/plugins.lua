@@ -125,13 +125,19 @@ local function installUI(use)
 end
 
 local function installAiTools(use)
-	-- use("zbirenbaum/copilot.lua")
 	use({
-		"supermaven-inc/supermaven-nvim",
-		requires = {
-			"onsails/lspkind.nvim",
-		},
+		"zbirenbaum/copilot.lua",
+		requires = "copilotlsp-nvim/copilot-lsp",
+		config = function()
+			vim.g.copilot_nes_debounce = 500
+		end,
 	})
+	-- use({
+	-- 	"supermaven-inc/supermaven-nvim",
+	-- 	requires = {
+	-- 		"onsails/lspkind.nvim",
+	-- 	},
+	-- })
 	-- taken from avante dependencies
 	use({
 		"MeanderingProgrammer/render-markdown.nvim",

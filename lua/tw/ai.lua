@@ -1,8 +1,8 @@
 local M = {}
-local lspkind = require("lspkind")
-local supermaven = require("supermaven-nvim")
 
 local function configureSupermaven()
+	local lspkind = require("lspkind")
+	local supermaven = require("supermaven-nvim")
 	supermaven.setup({
 		disable_keymaps = true,
 	})
@@ -45,8 +45,40 @@ local function configureSupermavenKeymap()
 	wk.add(keymap)
 end
 
-function M.setup()
-	configureSupermaven()
-	configureSupermavenKeymap()
+local function configureCopilot()
+	require("copilot").setup({
+		suggestion = {
+			enabled = true,
+			auto_trigger = true,
+			hide_during_completion = true,
+			debounce = 75,
+			keymap = {
+				accept = "<C-f>",
+				accept_word = false,
+				accept_line = false,
+				next = "<C-]>",
+				prev = "<C-[>",
+				dismiss = "<C-e>",
+			},
+		},
+		panel = {
+			enabled = false,
+		},
+		nes = {
+			enabled = true,
+			keymap = {
+				accept_and_goto = "<leader>p",
+				accept = false,
+				dismiss = "<Esc>",
+			},
+		},
+	})
 end
+
+function M.setup()
+	-- configureSupermaven()
+	-- configureSupermavenKeymap()
+	configureCopilot()
+end
+
 return M

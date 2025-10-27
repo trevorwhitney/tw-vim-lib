@@ -85,6 +85,9 @@ local function configure()
 		end,
 	})
 	cmp.setup({
+		completion = {
+			autocomplete = false,
+		},
 		experimental = {
 			-- want to reserve ghost test for supermaven
 			ghost_text = false,
@@ -99,6 +102,7 @@ local function configure()
 			documentation = cmp.config.window.bordered(),
 		},
 		mapping = cmp.mapping.preset.insert({
+			["<C-Space>"] = cmp.mapping.complete(),
 			["<C-e>"] = cmp.mapping.abort(),
 			["<C-n>"] = selectNext(true),
 			["<Tab>"] = selectOnlyOrNext,
