@@ -86,7 +86,7 @@ local function configure()
 	})
 	cmp.setup({
 		completion = {
-			autocomplete = false,
+			autocomplete = true,
 		},
 		experimental = {
 			-- want to reserve ghost test for supermaven
