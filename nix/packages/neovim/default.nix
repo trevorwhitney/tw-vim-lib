@@ -26,6 +26,7 @@ let
     nil
     nixpkgs-fmt
     statix
+    tanka
 
     claude-code
     (pkgs.callPackage ../change-background {
