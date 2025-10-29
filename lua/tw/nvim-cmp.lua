@@ -131,16 +131,16 @@ local function configure()
 		formatting = {
 			format = lspkind.cmp_format({
 				mode = "symbol_text",
-				menu = {
-					buffer = "[Buf]",
-					nvim_lsp = "[LSP]",
-					nvim_lua = "[Lua]",
-					path = "[Path]",
-					luasnip = "[LuaSnip]",
-					treesitter = "[TS]",
-					copilot = "[Copilot]",
-				},
-				sympbol_map = { Copilot = "" },
+				-- menu = {
+				-- 	buffer = "[Buf]",
+				-- 	nvim_lsp = "[LSP]",
+				-- 	nvim_lua = "[Lua]",
+				-- 	path = "[Path]",
+				-- 	luasnip = "[LuaSnip]",
+				-- 	treesitter = "[TS]",
+				-- 	copilot = "[Copilot]",
+				-- },
+				symbol_map = { Copilot = "" },
 			}),
 		},
 	})
