@@ -86,6 +86,9 @@ local function configure()
 		end,
 	})
 	cmp.setup({
+		enabled = function()
+			return vim.bo[0].buftype ~= "prompt" or require("cmp_dap").is_dap_buffer()
+		end,
 		preselect = cmp.PreselectMode.None,
 		completion = {
 			autocomplete = { cmp.TriggerEvent.TextChanged },
@@ -113,14 +116,17 @@ local function configure()
 			["<S-Tab>"] = selectPrevious(true),
 		}),
 		sources = cmp.config.sources({
-			{ name = "copilot", priority = 1000 },
-			{ name = "nvim_lsp" },
-			{ name = "nvim_lua" },
-			{ name = "path" },
-			{ name = "luasnip" },
-			{ name = "treesitter" },
-		}, {
-			{ name = "buffer" },
+			{ name = "nvim_lsp", priority = 1000, group_index = 1 },
+			{ name = "copilot", priority = 900, group_index = 1 },
+			{ name = "nvim_lsp_signature_help", priority = 800, group_index = 1 },
+
+			{ name = "luasnip", group_index = 2 },
+			{ name = "nvim_lua", group_index = 2 },
+			{ name = "path", group_index = 2 },
+			{ name = "treesitter", group_index = 2 },
+			{ name = "conventionalcommits", group_index = 2 },
+			{ name = "dap", group_index = 2 },
+			{ name = "buffer", grop_index = 2 },
 		}),
 		formatting = {
 			format = lspkind.cmp_format({
@@ -134,6 +140,7 @@ local function configure()
 					treesitter = "[TS]",
 					copilot = "[Copilot]",
 				},
+				sympbol_map = { Copilot = "" },
 			}),
 		},
 	})

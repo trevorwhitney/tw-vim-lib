@@ -73,11 +73,12 @@ local function installNvimCmp(use)
 			"hrsh7th/cmp-emoji",
 			"hrsh7th/cmp-omni",
 			"hrsh7th/cmp-cmdline",
-
+			"hrsh7th/cmp-nvim-lsp-signature-help",
 			"L3MON4D3/LuaSnip",
 			"saadparwaiz1/cmp_luasnip",
-
 			"rafamadriz/friendly-snippets",
+			"rcarriga/cmp-dap",
+			"davidsierradz/cmp-conventionalcommits",
 		},
 		config = function()
 			require("luasnip.loaders.from_lua").lazy_load()
