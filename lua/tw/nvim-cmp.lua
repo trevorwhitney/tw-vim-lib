@@ -3,6 +3,7 @@ local M = {}
 local function configure()
 	local cmp = require("cmp")
 	local luasnip = require("luasnip")
+	local lspkind = require("lspkind")
 	local select = cmp.mapping({
 		i = function(fallback)
 			if cmp.visible() then
@@ -35,7 +36,7 @@ local function configure()
 	local function selectPrevious(snips)
 		return cmp.mapping(function(fallback)
 			if cmp.visible() then
-				cmp.select_prev_item()
+				cmp.select_prev_item({ behavior = cmp.SelectBehavior.Select })
 			elseif snips and luasnip.locally_jumpable(-1) then
 				luasnip.jump(-1)
 			else
@@ -46,7 +47,7 @@ local function configure()
 	local function selectNext(snips)
 		return cmp.mapping(function(fallback)
 			if cmp.visible() then
-				cmp.select_next_item()
+				cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
 			elseif snips and luasnip.locally_jumpable(1) then
 				luasnip.jump(1)
 			else
@@ -61,7 +62,7 @@ local function configure()
 				if #cmp.get_entries() == 1 then
 					cmp.confirm({ select = true })
 				else
-					cmp.select_next_item()
+					cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
 				end
 			elseif luasnip.locally_jumpable(1) then
 				luasnip.jump(1)
@@ -74,7 +75,7 @@ local function configure()
 				if #cmp.get_entries() == 1 then
 					cmp.confirm({ select = true })
 				else
-					cmp.select_next_item()
+					cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
 				end
 			else
 				cmp.complete()
@@ -85,12 +86,12 @@ local function configure()
 		end,
 	})
 	cmp.setup({
+		preselect = cmp.PreselectMode.None,
 		completion = {
-			autocomplete = true,
+			autocomplete = { cmp.TriggerEvent.TextChanged },
 		},
 		experimental = {
-			-- want to reserve ghost test for supermaven
-			ghost_text = false,
+			ghost_text = true,
 		},
 		snippet = {
 			expand = function(args)
@@ -105,12 +106,14 @@ local function configure()
 			["<C-Space>"] = cmp.mapping.complete(),
 			["<C-e>"] = cmp.mapping.abort(),
 			["<C-n>"] = selectNext(true),
+			["<C-f>"] = cmp.mapping.confirm({ behavior = cmp.ConfirmBehavior.Replace, select = true }, { "i" }),
 			["<Tab>"] = selectOnlyOrNext,
 			["<CR>"] = select,
 			["<C-p>"] = selectPrevious(true),
 			["<S-Tab>"] = selectPrevious(true),
 		}),
 		sources = cmp.config.sources({
+			{ name = "copilot", priority = 1000 },
 			{ name = "nvim_lsp" },
 			{ name = "nvim_lua" },
 			{ name = "path" },
@@ -119,6 +122,20 @@ local function configure()
 		}, {
 			{ name = "buffer" },
 		}),
+		formatting = {
+			format = lspkind.cmp_format({
+				mode = "symbol_text",
+				menu = {
+					buffer = "[Buf]",
+					nvim_lsp = "[LSP]",
+					nvim_lua = "[Lua]",
+					path = "[Path]",
+					luasnip = "[LuaSnip]",
+					treesitter = "[TS]",
+					copilot = "[Copilot]",
+				},
+			}),
+		},
 	})
 
 	cmp.setup.cmdline({ "/", "?" }, {

@@ -132,6 +132,14 @@ local function installAiTools(use)
 			vim.g.copilot_nes_debounce = 500
 		end,
 	})
+	use({
+		"zbirenbaum/copilot-cmp",
+		requires = "zbirenbaum/copilot.lua",
+		config = function()
+			require("copilot_cmp").setup()
+		end,
+	})
+	use({ "onsails/lspkind.nvim" })
 	-- use({
 	-- 	"supermaven-inc/supermaven-nvim",
 	-- 	requires = {

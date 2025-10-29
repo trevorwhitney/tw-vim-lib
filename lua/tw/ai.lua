@@ -48,18 +48,7 @@ end
 local function configureCopilot()
 	require("copilot").setup({
 		suggestion = {
-			enabled = true,
-			auto_trigger = true,
-			hide_during_completion = true,
-			debounce = 75,
-			keymap = {
-				accept = "<C-f>",
-				accept_word = false,
-				accept_line = false,
-				next = "<C-]>",
-				prev = "<C-[>",
-				dismiss = "<C-e>",
-			},
+			enabled = false, -- use nvim-cmp for suggestions
 		},
 		panel = {
 			enabled = false,
