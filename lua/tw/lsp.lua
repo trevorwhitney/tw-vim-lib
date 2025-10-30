@@ -256,6 +256,7 @@ local function setup_lspconfig(opts)
 		"jdtls",
 		"csharp_ls",
 		"helm_ls",
+		"golangci_lint_ls",
 	}
 
 	for _, server in ipairs(basic_servers) do

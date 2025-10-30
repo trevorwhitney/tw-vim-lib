@@ -44,8 +44,8 @@ let
       ccls # c++ language server
       codespell
       gofumpt
-      # golangci-lint
-      # golangci-lint-langserver
+      golangci-lint
+      golangci-lint-langserver
       golines
       gopls
       gotools
