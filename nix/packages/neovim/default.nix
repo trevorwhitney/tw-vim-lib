@@ -9,6 +9,7 @@
 , delvePkg ? pkgs.delve
 , golangciLintPkg ? pkgs.golangci-lint
 , golangciLintLangServerPkg ? pkgs.golangci-lint-langserver
+, goplsPkg ? pkgs.gopls
 , extraPackages ? [ ]
 , goBuildTags ? ""
 , dapConfigurations ? { }
@@ -42,6 +43,7 @@ let
     ]) ++ [
       golangciLintPkg
       golangciLintLangServerPkg
+      goplsPkg
 
       stylua
       jdtls
@@ -49,7 +51,6 @@ let
       codespell
       gofumpt
       golines
-      gopls
       gotools
       go-jsonnet
       grafana-alloy

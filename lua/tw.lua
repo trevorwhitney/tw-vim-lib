@@ -19,11 +19,6 @@ function Config.setup(user_options)
 	vim.g.mapleader = " "
 
 	local fn = vim.fn
-	-- disabling CGO breaks golangci-lint, I don't remember what diagnostics this needed to
-	-- be disabled for, but let's comment it out for now and see
-	-- turn off CGO for go diagnostic tools (but maybe not?)
-	fn.setenv("CGO_ENABLED", "0")
-
 	local path = table.concat(options.extra_path, ":") .. ":" .. fn.getenv("PATH")
 	fn.setenv("PATH", path)
 

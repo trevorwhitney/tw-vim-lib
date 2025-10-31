@@ -34,7 +34,7 @@
               };
           in
           base // rec {
-            inherit (unstable) claude-code delve go golangci-lint golangci-lint-langserver;
+            inherit (unstable) claude-code delve go golangci-lint golangci-lint-langserver gopls;
             callPackage = base.callPackage;
             jdtls = callPackage ./nix/packages/jdtls { };
             neovim = attrs: import ./nix/packages/neovim
@@ -50,12 +50,13 @@
         delvePkg = pkgs.delve;
         golangciLintPkg = pkgs.golangci-lint;
         golangciLintLangServerPkg = pkgs.golangci-lint-langserver;
+        goplsPkg = pkgs.gopls;
       in
       rec {
         inherit (pkgs) neovim;
 
         defaultPackage = pkgs.neovim {
-          inherit goPkg nodeJsPkg delvePkg golangciLintPkg golangciLintLangServerPkg;
+          inherit goPkg nodeJsPkg delvePkg golangciLintPkg golangciLintLangServerPkg goplsPkg;
           withLspSupport = true;
         };
 
@@ -71,6 +72,7 @@
                 delvePkg
                 golangciLintPkg
                 golangciLintLangServerPkg
+                goplsPkg
                 nodeJsPkg;
               withLspSupport = true;
             };
