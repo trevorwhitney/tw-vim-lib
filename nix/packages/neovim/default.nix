@@ -5,8 +5,10 @@
 , neovimUtils
 , withLspSupport ? true
 , nodeJsPkg ? pkgs.nodejs
-, goPkg ? pkgs.go_1_23
+, goPkg ? pkgs.go
 , delvePkg ? pkgs.delve
+, golangciLintPkg ? pkgs.golangci-lint
+, golangciLintLangServerPkg ? pkgs.golangci-lint-langserver
 , extraPackages ? [ ]
 , goBuildTags ? ""
 , dapConfigurations ? { }
@@ -38,14 +40,14 @@ let
     if withLspSupport then (lib.optionals stdenv.isDarwin [
       pngpaste
     ]) ++ [
+      golangciLintPkg
+      golangciLintLangServerPkg
+
       stylua
       jdtls
-
       ccls # c++ language server
       codespell
       gofumpt
-      golangci-lint
-      golangci-lint-langserver
       golines
       gopls
       gotools
