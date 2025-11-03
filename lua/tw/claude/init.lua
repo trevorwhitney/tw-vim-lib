@@ -561,13 +561,22 @@ function M.SendText(args, submit_after)
 		end
 	end)
 end
+
 function M.VimTestStrategy(cmd)
 	M.SendCommand({ cmd })
 end
 
-local function sendCodeSnippet(args, rel_path)
+local function sendCodeSnippet(args, rel_path, start_line, end_line)
+	local line_ref = ""
+	if start_line and end_line then
+		if start_line == end_line then
+			line_ref = "on line " .. start_line
+		else
+			line_ref = "from lines " .. start_line .. " to " .. end_line
+		end
+	end
 	send({
-		"the code snippet from @" .. rel_path .. "\n",
+		"the code snippet " .. line_ref .. " in @" .. rel_path .. "\n",
 		"```\n",
 	})
 	send(args)
@@ -577,8 +586,10 @@ local function sendCodeSnippet(args, rel_path)
 end
 
 function M.SendSelection()
-	-- Get the current selection while in visual mode
 	vim.cmd('normal! "sy')
+
+	local start_line = vim.fn.line("'<")
+	local end_line = vim.fn.line("'>")
 
 	-- Get the content of the register
 	local selection = vim.fn.getreg("s")
@@ -592,7 +603,7 @@ function M.SendSelection()
 
 	confirmOpenAndDo(function()
 		-- Send the prompt
-		sendCodeSnippet(selection, rel_path)
+		sendCodeSnippet(selection, rel_path, start_line, end_line)
 		-- Don't return to visual mode since we're now in Claude buffer
 	end)
 end
@@ -601,10 +612,11 @@ function M.SendSymbol()
 	local filename = vim.fn.expand("%")
 	local rel_path = Path:new(filename):make_relative(util.get_git_root())
 	local word = vim.fn.expand("<cword>")
+	local line_num = vim.fn.line(".")
 	confirmOpenAndDo(function()
 		M.SendText({
 			word,
-			"in @" .. rel_path .. " ",
+			"on line " .. line_num .. " in @" .. rel_path .. " ",
 		})
 	end)
 end
@@ -652,6 +664,7 @@ function M.SendPrompt(filename, submit_after)
 		M.SendText(content, submit_after)
 	end)
 end
+
 function M.StartClaude()
 	confirmOpenAndDo(nil)
 end
@@ -861,4 +874,5 @@ function M.setup(opts)
 	commands.setup_autocmds(M)
 	commands.setup_user_commands(M)
 end
+
 return M

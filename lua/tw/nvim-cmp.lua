@@ -56,16 +56,25 @@ local function configure()
 		end, { "i", "s" })
 	end
 	-- selectOnlyOrNext will select the only entry if there is only one entry, otherwise it will select the next entry
+  -- it uses the has_words_before function to check if there are words before the cursor, which fixes the tab behavior
+  -- from copilot suggestions.
+  local has_words_before = function()
+		if vim.bo.buftype == "prompt" then
+			return false
+		end
+		local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+		return col ~= 0 and vim.api.nvim_buf_get_text(0, line - 1, 0, line - 1, col, {})[1]:match("^%s*$") == nil
+  end
 	local selectOnlyOrNext = cmp.mapping({
 		i = function(fallback)
-			if cmp.visible() then
-				if #cmp.get_entries() == 1 then
+      if cmp.visible() and has_words_before() then
+        if #cmp.get_entries() == 1 then
 					cmp.confirm({ select = true })
 				else
 					cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
 				end
-			elseif luasnip.locally_jumpable(1) then
-				luasnip.jump(1)
+      elseif luasnip.locally_jumpable(1) and has_words_before() then
+        luasnip.jump(1)
 			else
 				fallback()
 			end
