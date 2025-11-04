@@ -256,7 +256,6 @@ local function setup_lspconfig(opts)
 		"jdtls",
 		"csharp_ls",
 		"helm_ls",
-		"golangci_lint_ls",
 	}
 
 	for _, server in ipairs(basic_servers) do
@@ -296,6 +295,24 @@ local function setup_lspconfig(opts)
 		},
 	})
 	vim.lsp.enable("gopls")
+
+	vim.lsp.config("golangci_lint_ls", {
+		on_attach = M.on_attach,
+		capabilities = capabilities,
+		cmd = { "golangci-lint-langserver" },
+		filetypes = { "go", "gomod" },
+		root_dir = vim.fs.root(0, { "go.work", "go.mod", ".git" }),
+		init_options = {
+			command = {
+				"golangci-lint",
+				"run",
+				"--output.json.path=stdout",
+				"--output.text.path=stderr",
+				"--show-stats=false",
+			},
+		},
+	})
+	vim.lsp.enable("golangci_lint_ls")
 
 	vim.lsp.config("lua_ls", {
 		-- sumneko_root_path = opts.lua_ls_root,
