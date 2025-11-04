@@ -56,6 +56,7 @@ function M.create_worktree_git_file(worktree_info)
 
 	return nil
 end
+
 -- Get the plugin root directory
 local function get_plugin_root()
 	local source = debug.getinfo(1, "S").source
@@ -278,8 +279,8 @@ function M.setup_container_firewall(container_name, callback)
 							log.warn("Firewall script succeeded but verification detected issues:")
 							log.warn("⚠️  Either DROP policies are missing or there's a catch-all ACCEPT rule")
 							log.info("  - ADVICE:")
-							log.info("    - Run :ClaudeDockerBuild to rebuild with fixed firewall script")
-							log.info("    - Or check rules with :ClaudeDockerShell and 'sudo iptables -L -n'")
+							log.info("    - Run :ClaudeDocker build to rebuild with fixed firewall script")
+							log.info("    - Or check rules with :ClaudeDocker shell and 'sudo iptables -L -n'")
 							success = false
 						end
 					else
@@ -323,9 +324,10 @@ end
 
 function M.check_firewall_status(container_name)
 	container_name = container_name or "claude-code-nvim"
+	local log = _G.claude_log
 
-	-- First check for DROP policies
-	local policy_cmd = "docker exec " .. container_name .. " sudo iptables -L -n 2>/dev/null"
+	-- First check for DROP policies (use -v for verbose output with interface info)
+	local policy_cmd = "docker exec " .. container_name .. " sudo iptables -L -n -v 2>/dev/null"
 	local handle = io.popen(policy_cmd)
 	if not handle then
 		return false
@@ -335,25 +337,68 @@ function M.check_firewall_status(container_name)
 	handle:close()
 
 	-- Check for DROP policies in all chains
-	local has_input_drop = output:match("Chain INPUT %(policy DROP%)")
-	local has_output_drop = output:match("Chain OUTPUT %(policy DROP%)")
+	-- format is "Chain INPUT (policy DROP 0 packets, 0 bytes)"
+	local has_input_drop = output:match("Chain INPUT %(policy DROP")
+	local has_output_drop = output:match("Chain OUTPUT %(policy DROP")
+
+	if log then
+		log.debug("Firewall status check - INPUT DROP policy: " .. tostring(has_input_drop ~= nil))
+		log.debug("Firewall status check - OUTPUT DROP policy: " .. tostring(has_output_drop ~= nil))
+	end
 
 	-- Check for problematic catch-all ACCEPT rule in INPUT chain
-	-- This pattern matches lines like "ACCEPT     0    --  0.0.0.0/0            0.0.0.0/0"
-	-- without any interface specification (which would indicate it's NOT the loopback rule)
+	-- format is: pkts bytes target prot opt in out source destination
+	-- We need to check if there's an ACCEPT rule with "any" or "*" in the "in" column
+	-- which means it accepts from any interface (not just loopback)
 	local has_bad_input_rule = false
+	local in_input_chain = false
+
 	for line in output:gmatch("[^\r\n]+") do
-		-- Look for ACCEPT all rule without interface specification
-		if line:match("^ACCEPT%s+0%s+%-%-%s+0%.0%.0%.0/0%s+0%.0%.0%.0/0%s*$") then
-			has_bad_input_rule = true
-			break
+		-- Track which chain we're in
+		if line:match("^Chain INPUT") then
+			in_input_chain = true
+		elseif line:match("^Chain ") then
+			in_input_chain = false
 		end
+
+		-- Only check rules in INPUT chain
+		if in_input_chain then
+			-- Format: pkts bytes target prot opt in out source destination [extra]
+			-- We want to find ACCEPT rules where "in" is "any" or "*" (meaning any interface)
+			local pkts, bytes, target, prot, opt, iface_in, iface_out, source, dest =
+				line:match("^%s*(%d+)%s+(%d+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)")
+
+			if
+				target == "ACCEPT"
+				and prot == "all"
+				and (iface_in == "any" or iface_in == "*")
+				and source == "0.0.0.0/0"
+				and dest == "0.0.0.0/0"
+			then
+				-- This is a catch-all ACCEPT rule without interface restriction
+				has_bad_input_rule = true
+				if log then
+					log.debug("Found problematic catch-all ACCEPT rule in INPUT chain")
+				end
+				break
+			end
+		end
+	end
+
+	if log then
+		log.debug("Firewall status check - Bad catch-all ACCEPT rule found: " .. tostring(has_bad_input_rule))
 	end
 
 	-- Firewall is properly configured if:
 	-- 1. Both INPUT and OUTPUT have DROP policies
 	-- 2. There's no catch-all ACCEPT rule in INPUT
-	return has_input_drop and has_output_drop and not has_bad_input_rule
+	local firewall_ok = has_input_drop and has_output_drop and not has_bad_input_rule
+
+	if log then
+		log.debug("Firewall status check - Final result: " .. tostring(firewall_ok))
+	end
+
+	return firewall_ok
 end
 
 -- Container startup functions (moved from main init.lua)
