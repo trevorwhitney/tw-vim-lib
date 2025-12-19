@@ -49,6 +49,7 @@ let
       jdtls
       ccls # c++ language server
       codespell
+      dockerfile-language-server
       gofumpt
       golines
       gotools
@@ -76,7 +77,6 @@ let
       yamllint
 
       nodePackages.bash-language-server
-      nodePackages.dockerfile-language-server-nodejs
       nodePackages.eslint
       nodePackages.eslint_d
       nodePackages.fixjson
