@@ -202,6 +202,7 @@ end
 local pending_jump_to_hunk = false
 
 local function configureDiffview()
+	local actions = require("diffview.actions")
 	require("diffview").setup({
 		hooks = {
 			-- After staging/reverting a hunk, diffview refreshes and re-enters
@@ -240,6 +241,17 @@ local function configureDiffview()
 						vim.cmd("normal! ]c")
 					end
 				end,
+				-- Disable diffview's default conflict keymaps that shadow agent keymaps (<leader>c*)
+				-- Remap "choose ours" from co/cO to cu/cU
+				{ "n", "<leader>co", false },
+				{ "n", "<leader>cO", false },
+				{ "n", "<leader>cu", actions.conflict_choose("ours"), { desc = "Choose the OURS version of a conflict" } },
+				{ "n", "<leader>cU", actions.conflict_choose_all("ours"), { desc = "Choose the OURS version of a conflict for the whole file" } },
+				-- Remap "choose base" from cb/cB to cs/cS (source/baSe)
+				{ "n", "<leader>cb", false },
+				{ "n", "<leader>cB", false },
+				{ "n", "<leader>cs", actions.conflict_choose("base"), { desc = "Choose the BASE version of a conflict" } },
+				{ "n", "<leader>cS", actions.conflict_choose_all("base"), { desc = "Choose the BASE version of a conflict for the whole file" } },
 			},
 		},
 	})

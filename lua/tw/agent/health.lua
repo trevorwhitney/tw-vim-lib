@@ -92,11 +92,7 @@ M.check = function()
 		health.info("Native mode enabled (not using Docker)")
 	end
 
-	if agent.auto_prompt and agent.auto_prompt_file then
-		health.ok("Auto-prompt enabled: " .. agent.auto_prompt_file)
-	else
-		health.info("Auto-prompt disabled")
-	end
+
 end
 
 return M

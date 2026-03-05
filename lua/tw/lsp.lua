@@ -157,7 +157,7 @@ local function setup_lsp_keymaps()
 						vim.notify("using legacy actions keybdinding. use gra instead", vim.log.levels.WARN)
 						vim.lsp.buf.code_action({
 							context = {
-								diagnostics = vim.lsp.diagnostic.get_line_diagnostics(),
+								diagnostics = vim.diagnostic.get(0, { lnum = vim.api.nvim_win_get_cursor(0)[1] - 1 }),
 							},
 						})
 					end,
@@ -169,7 +169,7 @@ local function setup_lsp_keymaps()
 					function()
 						vim.notify("using legacy actions keybdinding. use gra instead", vim.log.levels.WARN)
 						local context = {}
-						context.diagnostics = vim.lsp.diagnostic.get_line_diagnostics()
+						context.diagnostics = vim.diagnostic.get(0, { lnum = vim.api.nvim_win_get_cursor(0)[1] - 1 })
 						local buf = vim.api.nvim_get_current_buf()
 						local startpos = vim.api.nvim_buf_get_mark(buf, "<")
 						local endpos = vim.api.nvim_buf_get_mark(buf, ">")
@@ -183,7 +183,7 @@ local function setup_lsp_keymaps()
 					"grn",
 					function()
 						local context = {}
-						context.diagnostics = vim.lsp.diagnostic.get_line_diagnostics()
+						context.diagnostics = vim.diagnostic.get(0, { lnum = vim.api.nvim_win_get_cursor(0)[1] - 1 })
 						local buf = vim.api.nvim_get_current_buf()
 						local startpos = vim.api.nvim_buf_get_mark(buf, "<")
 						local endpos = vim.api.nvim_buf_get_mark(buf, ">")

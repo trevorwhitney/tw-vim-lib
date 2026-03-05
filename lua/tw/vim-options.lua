@@ -117,6 +117,8 @@ local function setOptions()
 	vim.filetype.add({
 		extension = {
 			mnd = "mermaid",
+			mdx = "markdown.mdx",
+			libsonnet = "libsonnet",
 		},
 	})
 end

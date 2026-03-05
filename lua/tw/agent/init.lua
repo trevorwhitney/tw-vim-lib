@@ -41,10 +41,6 @@ M.logs_job_id = nil
 M.auto_build = true -- Auto-build image if missing
 M.container_started = false -- Track if we started the container
 M.container_name = string.format("claude-code-nvim-%d-%d", vim.fn.getpid(), os.time()) -- More unique container name
--- Auto-prompt configuration
-M.auto_prompt = false -- Send prompt automatically on startup
-M.auto_prompt_file = "coding.md" -- Default prompt file to send
-
 -- Context directories configuration (per-session only)
 M.context_directories = {} -- Table of paths to mount at /context/*
 
@@ -338,20 +334,9 @@ local function start_new_agent_job(args, window_type, mode)
 	M.active_buf = buf
 	M.active_job_id = job_id
 
-	-- Auto-send prompt if enabled (works for both Docker and local modes)
-	if M.auto_prompt and M.auto_prompt_file then
-		vim.defer_fn(function()
-			log.debug("Sending auto-prompt: " .. M.auto_prompt_file)
-			M.SendPrompt(M.auto_prompt_file, true)
-			vim.defer_fn(function()
-				vim.cmd("startinsert")
-			end, 500)
-		end, 1750)
-	else
-		vim.defer_fn(function()
-			vim.cmd("startinsert")
-		end, 500)
-	end
+	vim.defer_fn(function()
+		vim.cmd("startinsert")
+	end, 500)
 end
 
 local function send(args)
@@ -649,22 +634,7 @@ function M.SendOpenBuffers()
 	end)
 end
 
-function M.SendPrompt(filename, submit_after)
-	submit_after = submit_after or false
-	local plugin_root = get_plugin_root()
-	local prompt_path = plugin_root .. "/prompts/" .. filename
-	-- Read the prompt file
-	local file = io.open(prompt_path, "r")
-	if not file then
-		vim.api.nvim_err_writeln("Could not find prompt file: " .. prompt_path)
-		return
-	end
-	local content = file:read("*all")
-	file:close()
-	confirmOpenAndDo(function()
-		M.SendText(content, submit_after)
-	end)
-end
+
 
 function M.StartClaude()
 	confirmOpenAndDo(nil)
@@ -745,33 +715,8 @@ local function configureClaudeKeymap()
 				nowait = false,
 				remap = false,
 			},
-			{
-				"<leader>ct",
-				function()
-					require("tw.agent").SendPrompt("tdd-plan.md", true)
-				end,
-				desc = "Send TDD Plan to AI Agent",
-				nowait = false,
-				remap = false,
-			},
-			{
-				"<leader>cm",
-				function()
-					require("tw.agent").SendPrompt("commit-staged.md", true)
-				end,
-				desc = "Commit Staged with AI Agent",
-				nowait = false,
-				remap = false,
-			},
-			{
-				"<leader>ci",
-				function()
-					require("tw.agent").SendPrompt("implement.md", true)
-				end,
-				desc = "Implement the failing test with AI Agent",
-				nowait = false,
-				remap = false,
-			},
+
+
 			{
 				"<leader>cb",
 				function()
@@ -863,14 +808,6 @@ function M.setup(opts)
 
 	-- Log the container name for this instance
 	log.info("Neovim instance PID " .. vim.fn.getpid() .. " will use container: " .. M.container_name)
-
-	-- Configure auto-prompt
-	if opts.auto_prompt ~= nil then
-		M.auto_prompt = opts.auto_prompt
-	end
-	if opts.auto_prompt_file then
-		M.auto_prompt_file = opts.auto_prompt_file
-	end
 
 	-- Configure buffer settings
 	if opts.buffer_config then
