@@ -25,7 +25,7 @@ M.opencode_buf = nil
 M.opencode_job_id = nil
 M.opencode_docker_buf = nil
 M.opencode_docker_job_id = nil
-M.active_mode = "claude" -- Track which mode is currently visible: "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", or "none"
+M.active_mode = "opencode" -- Track which mode is currently visible: "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", or "none"
 
 -- Active buffer/job_id points to the currently visible buffer
 M.active_buf = nil
@@ -379,8 +379,8 @@ local function confirmOpenAndDo(callback, args, window_type)
 	-- Determine which buffer to use (default to claude local if none active)
 	local active_buf = M.active_buf
 	if not active_buf or not vim.api.nvim_buf_is_valid(active_buf) then
-		-- No active buffer, default to claude local mode
-		M.Open("claude", args, window_type)
+		-- No active buffer, use active_mode (or fall back to claude)
+		M.Open(M.active_mode, args, window_type)
 
 		-- Wait a bit for the chat to initialize
 		vim.defer_fn(function()

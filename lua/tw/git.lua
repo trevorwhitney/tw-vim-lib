@@ -6,6 +6,8 @@ local function configureGitsigns()
 		-- highlight numbers instead of using the sign column
 		signcolumn = false,
 		numhl = true,
+		-- Show staged hunk signs, enables stage_hunk() to toggle (unstage) staged hunks
+		signs_staged_enable = true,
 		on_attach = function(bufnr)
 			local gs = package.loaded.gitsigns
 
@@ -86,39 +88,39 @@ local function configureGitsigns()
 				},
 				{
 					"<leader>gd",
-          function()
-            local commit = vim.fn.input("[Commit] > ")
-            vim.cmd("DiffviewOpen " .. commit)
-          end,
+					function()
+						local commit = vim.fn.input("[Commit] > ")
+						vim.cmd("DiffviewOpen " .. commit)
+					end,
 					desc = "Diff Split (Against Commit)",
 					nowait = false,
 					remap = false,
 				},
 				{
-          "<leader>gD",
-          function()
-            local commit = vim.fn.input("[Commit] > ")
-            vim.cmd("DiffviewOpen " .. commit .. " -- %")
-          end,
-          desc = "Diff Split (Against Commit)",
+					"<leader>gD",
+					function()
+						local commit = vim.fn.input("[Commit] > ")
+						vim.cmd("DiffviewOpen " .. commit .. " -- %")
+					end,
+					desc = "Diff Split (Against Commit)",
 					nowait = false,
 					remap = false,
 				},
 				{
-          "<leader>gf",
-          function()
-            vim.cmd("DiffviewFileHistory %")
-          end,
-          desc = "File History",
+					"<leader>gf",
+					function()
+						vim.cmd("DiffviewFileHistory %")
+					end,
+					desc = "File History",
 					nowait = false,
 					remap = false,
 				},
 				{
-          "<leader>gh",
-          function()
-            vim.cmd("DiffviewFileHistory")
-          end,
-          desc = "History",
+					"<leader>gh",
+					function()
+						vim.cmd("DiffviewFileHistory")
+					end,
+					desc = "History",
 					nowait = false,
 					remap = false,
 				},
@@ -197,29 +199,45 @@ local function configureGitsigns()
 	})
 end
 
+local pending_jump_to_hunk = false
+
 local function configureDiffview()
-	local actions = require("diffview.actions")
 	require("diffview").setup({
+		hooks = {
+			-- After staging/reverting a hunk, diffview refreshes and re-enters
+			-- the diff buffer windows. Jump to the next change when that happens.
+			diff_buf_win_enter = function(_bufnr, _winid, ctx)
+				if pending_jump_to_hunk and ctx.symbol == "b" then
+					pending_jump_to_hunk = false
+					vim.schedule(function()
+						local gs = require("gitsigns")
+						pcall(gs.nav_hunk, "next", { wrap = false })
+					end)
+				end
+			end,
+		},
 		keymaps = {
 			view = {
-				-- Mimic file panel behavior: stage hunk and move to next
+				-- Stage hunk and move to next (mimics - in file panel)
 				["-"] = function()
-					-- Stage the current hunk using gitsigns if available, otherwise use diff put
 					local ok, gs = pcall(require, "gitsigns")
 					if ok then
+						pending_jump_to_hunk = true
 						gs.stage_hunk()
 					else
-						vim.cmd("normal! dp") -- Diff put (stage the hunk)
+						vim.cmd("normal! dp")
+						vim.cmd("normal! ]c")
 					end
-					vim.cmd("normal! ]c") -- Jump to next hunk
 				end,
 				-- Revert current hunk (mimics X in file panel)
 				["X"] = function()
 					local ok, gs = pcall(require, "gitsigns")
 					if ok then
+						pending_jump_to_hunk = true
 						gs.reset_hunk()
 					else
-						vim.cmd("normal! do") -- Diff obtain (revert the hunk)
+						vim.cmd("normal! do")
+						vim.cmd("normal! ]c")
 					end
 				end,
 			},
@@ -236,6 +254,7 @@ function M.setup()
     cnoreabbrev <expr> Git (getcmdtype() == ':' && getcmdline() =~ '^Git$') ? 'botright Git' : 'Git'
   ]])
 end
+
 function M.gpp()
 	vim.cmd("Git pull --rebase")
 	vim.cmd("Git push")
@@ -244,6 +263,7 @@ end
 function M.diffSplit(commit)
 	vim.cmd("DiffViewOpen " .. commit)
 end
+
 function M.toggleGitStatus()
 	local diffview = require("diffview")
 	local diffview_lib = require("diffview.lib")
