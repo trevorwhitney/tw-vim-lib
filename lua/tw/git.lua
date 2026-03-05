@@ -198,7 +198,33 @@ local function configureGitsigns()
 end
 
 local function configureDiffview()
-	require("diffview").setup()
+	local actions = require("diffview.actions")
+	require("diffview").setup({
+		keymaps = {
+			view = {
+				-- Mimic file panel behavior: stage hunk and move to next
+				["-"] = function()
+					-- Stage the current hunk using gitsigns if available, otherwise use diff put
+					local ok, gs = pcall(require, "gitsigns")
+					if ok then
+						gs.stage_hunk()
+					else
+						vim.cmd("normal! dp") -- Diff put (stage the hunk)
+					end
+					vim.cmd("normal! ]c") -- Jump to next hunk
+				end,
+				-- Revert current hunk (mimics X in file panel)
+				["X"] = function()
+					local ok, gs = pcall(require, "gitsigns")
+					if ok then
+						gs.reset_hunk()
+					else
+						vim.cmd("normal! do") -- Diff obtain (revert the hunk)
+					end
+				end,
+			},
+		},
+	})
 end
 
 function M.setup()

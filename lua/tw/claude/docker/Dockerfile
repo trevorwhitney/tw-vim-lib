@@ -151,6 +151,9 @@ RUN npm install -g @modelcontextprotocol/server-puppeteer && \
 # Install OpenAI Codex
 RUN npm i -g @openai/codex
 
+# Install OpenCode
+RUN npm i -g opencode-ai
+
 # Create non-root user permissions
 RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers

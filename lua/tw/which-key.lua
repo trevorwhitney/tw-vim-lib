@@ -15,12 +15,6 @@ local function mapKeys(wk)
 			remap = false,
 		},
 		{
-			"<leader>F",
-			"<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>",
-			desc = "Find Grep",
-			remap = false,
-		},
-		{
 			"<leader>R",
 			"<cmd>Telescope resume<cr>",
 			desc = "Resume Find",
@@ -46,6 +40,18 @@ local function mapKeys(wk)
 		},
 		{
 			"<leader>f",
+			"<cmd>lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>",
+			desc = "Find Grep",
+			remap = false,
+		},
+		{
+			"<leader>p",
+			"<cmd>Telescope git_files<cr>",
+			desc = "Find File (Git)",
+			remap = false,
+		},
+		{
+			"<D-p>", -- requres cmd+p passthrough in terminal config
 			"<cmd>Telescope git_files<cr>",
 			desc = "Find File (Git)",
 			remap = false,
