@@ -33,7 +33,7 @@ end
 
 local function configure_vim_test()
 	vim.g["test#custom_strategies"] = {
-		claude = require("tw.claude").VimTestStrategy,
+		claude = require("tw.agent").VimTestStrategy,
 	}
 	vim.g["test#strategy"] = "dispatch"
 	vim.g["test#go#gotest#options"] = "-v"

@@ -45,7 +45,7 @@ function Config.setup(user_options)
 
 	require("tw.ai").setup()
 	require("tw.appearance").setup()
-	require("tw.claude").setup()
+	require("tw.agent").setup()
 	require("tw.dap").setup(options.dap_configs)
 	require("tw.formatting").setup()
 	require("tw.git").setup()

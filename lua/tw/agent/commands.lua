@@ -1,8 +1,8 @@
 local M = {}
 
-local docker = require("tw.claude.docker")
-local terminal = require("tw.claude.terminal")
-local buffer_config = require("tw.claude.buffer-config")
+local docker = require("tw.agent.docker")
+local terminal = require("tw.agent.terminal")
+local buffer_config = require("tw.agent.buffer-config")
 local log = require("tw.log")
 
 -- Timer for checking file changes
@@ -32,16 +32,19 @@ function M.setup_autocmds(claude_module)
 		group = group,
 	})
 
-	-- Set nowrap for Claude buffer windows, which makes code changes look better
+	-- Set nowrap for agent buffer windows, which makes code changes look better
 	vim.api.nvim_create_autocmd("BufWinEnter", {
 		callback = function(args)
-			-- Check if this is a Claude buffer (either docker or local)
-			if
-				(claude_module.docker_buf and args.buf == claude_module.docker_buf)
-				or (claude_module.local_buf and args.buf == claude_module.local_buf)
-			then
-				-- Set nowrap for the window displaying this buffer
-				vim.wo[0].wrap = false
+			-- Check if this is an agent buffer
+			local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
+			for _, mode in ipairs(all_modes) do
+				local var_name = mode:gsub("-", "_")
+				local buf_key = var_name .. "_buf"
+				if claude_module[buf_key] and args.buf == claude_module[buf_key] then
+					-- Set nowrap for the window displaying this buffer
+					vim.wo[0].wrap = false
+					break
+				end
 			end
 		end,
 		group = group,
@@ -86,14 +89,19 @@ function M.setup_autocmds(claude_module)
 			0,
 			1000, -- milliseconds
 			vim.schedule_wrap(function()
-				-- Only check time if there's an active Claude Code terminal
-				local docker_visible = claude_module.docker_buf
-					and vim.api.nvim_buf_is_valid(claude_module.docker_buf)
-					and #vim.fn.win_findbuf(claude_module.docker_buf) > 0
-				local local_visible = claude_module.local_buf
-					and vim.api.nvim_buf_is_valid(claude_module.local_buf)
-					and #vim.fn.win_findbuf(claude_module.local_buf) > 0
-				if docker_visible or local_visible then
+				-- Only check time if there's an active agent terminal
+				local any_visible = false
+				local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
+				for _, mode in ipairs(all_modes) do
+					local var_name = mode:gsub("-", "_")
+					local buf_key = var_name .. "_buf"
+					local buf = claude_module[buf_key]
+					if buf and vim.api.nvim_buf_is_valid(buf) and #vim.fn.win_findbuf(buf) > 0 then
+						any_visible = true
+						break
+					end
+				end
+				if any_visible then
 					vim.cmd("silent! checktime")
 				end
 			end)
@@ -154,16 +162,22 @@ local function handle_build(claude_module, args)
 		log.info("Docker image built successfully (manual)", true)
 		-- Stop current container
 		if claude_module.container_started then
-			-- Close docker buffer if it exists
-			if claude_module.docker_buf then
-				local buf, job = terminal.close_terminal_buffer(claude_module.docker_buf, claude_module.docker_job_id)
-				claude_module.docker_buf = buf
-				claude_module.docker_job_id = job
-				-- Clear legacy pointers if this was the active buffer
-				if claude_module.claude_buf == claude_module.docker_buf then
-					claude_module.claude_buf = nil
-					claude_module.claude_job_id = nil
-					claude_module.active_mode = "none"
+			-- Close all docker buffer variants if they exist
+			local docker_modes = { "claude-docker", "codex-docker", "opencode-docker" }
+			for _, mode in ipairs(docker_modes) do
+				local var_name = mode:gsub("-", "_")
+				local buf_key = var_name .. "_buf"
+				local job_key = var_name .. "_job_id"
+				if claude_module[buf_key] then
+					local buf, job = terminal.close_terminal_buffer(claude_module[buf_key], claude_module[job_key])
+					claude_module[buf_key] = buf
+					claude_module[job_key] = job
+					-- Clear active pointers if this was the active buffer
+					if claude_module.active_buf == buf then
+						claude_module.active_buf = nil
+						claude_module.active_job_id = nil
+						claude_module.active_mode = "none"
+					end
 				end
 			end
 			docker.stop_container(claude_module.container_name)
@@ -192,16 +206,22 @@ local function handle_restart(claude_module, args)
 	log.info("Manual container restart initiated", true)
 	-- Stop current container
 	if claude_module.container_started then
-		-- Close docker buffer if it exists
-		if claude_module.docker_buf then
-			local buf, job = terminal.close_terminal_buffer(claude_module.docker_buf, claude_module.docker_job_id)
-			claude_module.docker_buf = buf
-			claude_module.docker_job_id = job
-			-- Clear legacy pointers if this was the active buffer
-			if claude_module.claude_buf == claude_module.docker_buf then
-				claude_module.claude_buf = nil
-				claude_module.claude_job_id = nil
-				claude_module.active_mode = "none"
+		-- Close all docker buffer variants if they exist
+		local docker_modes = { "claude-docker", "codex-docker", "opencode-docker" }
+		for _, mode in ipairs(docker_modes) do
+			local var_name = mode:gsub("-", "_")
+			local buf_key = var_name .. "_buf"
+			local job_key = var_name .. "_job_id"
+			if claude_module[buf_key] then
+				local buf, job = terminal.close_terminal_buffer(claude_module[buf_key], claude_module[job_key])
+				claude_module[buf_key] = buf
+				claude_module[job_key] = job
+				-- Clear active pointers if this was the active buffer
+				if claude_module.active_buf == buf then
+					claude_module.active_buf = nil
+					claude_module.active_job_id = nil
+					claude_module.active_mode = "none"
+				end
 			end
 		end
 		docker.stop_container(claude_module.container_name)
@@ -357,12 +377,12 @@ local function handle_list_contexts(claude_module, args)
 end
 subcommand_handlers["list-contexts"] = handle_list_contexts
 
--- Clear scrollback for active Claude buffer
+-- Clear scrollback for active buffer
 local function handle_clear_scrollback(claude_module, args)
-	-- Clear scrollback for the active Claude buffer
-	local buf = claude_module.claude_buf
+	-- Clear scrollback for the active buffer
+	local buf = claude_module.active_buf
 	if not buf or not vim.api.nvim_buf_is_valid(buf) then
-		log.warn("No active Claude buffer to clear scrollback")
+		log.warn("No active buffer to clear scrollback")
 		return
 	end
 
@@ -370,12 +390,12 @@ local function handle_clear_scrollback(claude_module, args)
 end
 subcommand_handlers["clear-scrollback"] = handle_clear_scrollback
 
--- Toggle follow mode for Claude buffers
+-- Toggle follow mode for active buffer
 local function handle_toggle_follow(claude_module, args)
-	-- Toggle follow mode for Claude buffers
-	local buf = claude_module.claude_buf
+	-- Toggle follow mode for active buffer
+	local buf = claude_module.active_buf
 	if not buf or not vim.api.nvim_buf_is_valid(buf) then
-		log.warn("No active Claude buffer to toggle follow mode")
+		log.warn("No active buffer to toggle follow mode")
 		return
 	end
 
@@ -513,13 +533,13 @@ local function handle_check_firewall(claude_module, args)
 end
 subcommand_handlers["check-firewall"] = handle_check_firewall
 
--- Main command handler for ClaudeDocker
-local function handle_claude_docker_command(args, claude_module)
+-- Main command handler for AiAgent
+local function handle_aiagent_command(args, agent_module)
 	local subcommand = args.fargs[1]
 	local rest_args = vim.list_slice(args.fargs, 2)
 
 	if not subcommand then
-		vim.notify("Usage: :ClaudeDocker <subcommand> [args]", vim.log.levels.INFO)
+		vim.notify("Usage: :AiAgent <subcommand> [args]", vim.log.levels.INFO)
 		vim.notify(
 			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall, clear-scrollback, toggle-follow",
 			vim.log.levels.INFO
@@ -530,7 +550,7 @@ local function handle_claude_docker_command(args, claude_module)
 	-- Look up and execute the subcommand handler
 	local handler = subcommand_handlers[subcommand]
 	if handler then
-		handler(claude_module, rest_args)
+		handler(agent_module, rest_args)
 	else
 		vim.notify("Unknown subcommand: " .. subcommand, vim.log.levels.ERROR)
 		vim.notify(
@@ -541,10 +561,10 @@ local function handle_claude_docker_command(args, claude_module)
 end
 
 -- Setup user commands
-function M.setup_user_commands(claude_module)
-	-- Main ClaudeDocker command with subcommands
-	vim.api.nvim_create_user_command("ClaudeDocker", function(args)
-		handle_claude_docker_command(args, claude_module)
+function M.setup_user_commands(agent_module)
+	-- Main AiAgent command with subcommands
+	vim.api.nvim_create_user_command("AiAgent", function(args)
+		handle_aiagent_command(args, agent_module)
 	end, {
 		nargs = "+",
 		complete = function(arg_lead, cmd_line, cursor_pos)
@@ -582,7 +602,7 @@ function M.setup_user_commands(claude_module)
 			elseif subcommand == "remove-context" then
 				-- Complete from existing contexts
 				local contexts = {}
-				for path, _ in pairs(claude_module.context_directories) do
+				for path, _ in pairs(agent_module.context_directories) do
 					table.insert(contexts, path)
 				end
 				return vim.tbl_filter(function(path)
@@ -597,7 +617,7 @@ function M.setup_user_commands(claude_module)
 
 			return {}
 		end,
-		desc = "Claude Docker management commands",
+		desc = "AI Agent management commands",
 	})
 end
 

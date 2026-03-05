@@ -3,15 +3,21 @@ local M = {}
 -- Initialize log file path
 -- Use cache directory for logs in older Neovim versions
 local log_dir = vim.fn.stdpath("cache") .. "/log"
-local log_file = log_dir .. "/claude.log"
+local log_file = log_dir .. "/agent.log"
 
 -- Ensure log directory exists
 vim.fn.mkdir(log_dir, "p")
 
--- Migrate old log file if it exists
-local old_log_file = vim.fn.expand("~/.config/claude-nvim.log")
-if vim.fn.filereadable(old_log_file) == 1 and vim.fn.filereadable(log_file) == 0 then
-	vim.fn.rename(old_log_file, log_file)
+-- Migrate old log files if they exist
+local old_log_files = {
+	vim.fn.expand("~/.config/claude-nvim.log"),
+	log_dir .. "/claude.log",
+}
+for _, old_file in ipairs(old_log_files) do
+	if vim.fn.filereadable(old_file) == 1 and vim.fn.filereadable(log_file) == 0 then
+		vim.fn.rename(old_file, log_file)
+		break
+	end
 end
 
 -- Configuration

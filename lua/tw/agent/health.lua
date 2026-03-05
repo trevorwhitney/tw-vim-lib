@@ -1,9 +1,9 @@
 local M = {}
 local health = require("vim.health")
-local docker = require("tw.claude.docker")
+local docker = require("tw.agent.docker")
 
 M.check = function()
-	health.start("Claude Docker Container")
+	health.start("AI Agent Docker Container")
 
 	-- Check Docker availability
 	if vim.fn.executable("docker") == 1 then
@@ -17,12 +17,12 @@ M.check = function()
 	if docker.check_docker_image() then
 		health.ok("Docker image 'tw-claude-code:latest' exists")
 	else
-		health.warn("Docker image not built", "Run :ClaudeDockerBuild to build the image")
+		health.warn("Docker image not built", "Run :AiAgentBuild to build the image")
 	end
 
 	-- Check container status
-	local claude = require("tw.claude")
-	local container_name = claude.container_name
+	local agent = require("tw.agent")
+	local container_name = agent.container_name
 	local is_running, container_id, status = docker.is_container_running(container_name)
 
 	if is_running then
@@ -79,11 +79,11 @@ M.check = function()
 	end
 
 	-- Check mode settings
-	health.start("Claude Mode Settings")
+	health.start("AI Agent Mode Settings")
 
-	if claude.docker_mode then
+	if agent.docker_mode then
 		health.ok("Docker mode enabled")
-		if claude.auto_build then
+		if agent.auto_build then
 			health.ok("Auto-build enabled (will build image if missing)")
 		else
 			health.info("Auto-build disabled (manual build required)")
@@ -92,8 +92,8 @@ M.check = function()
 		health.info("Native mode enabled (not using Docker)")
 	end
 
-	if claude.auto_prompt and claude.auto_prompt_file then
-		health.ok("Auto-prompt enabled: " .. claude.auto_prompt_file)
+	if agent.auto_prompt and agent.auto_prompt_file then
+		health.ok("Auto-prompt enabled: " .. agent.auto_prompt_file)
 	else
 		health.info("Auto-prompt disabled")
 	end

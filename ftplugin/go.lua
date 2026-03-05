@@ -99,17 +99,16 @@ local function keybindings()
 			"<leader>tC",
 			function()
 				local go = require("tw.languages.go")
-				local claude = require("tw.claude")
+				local agent = require("tw.agent")
 				local package_name = "./" .. vim.fn.expand("%:h")
 
 				local test_name = go.get_test_name()
 				local cmd = string.format("go test -v %s-run '%s' %s ", get_build_tags_flag(), test_name, package_name)
 
 				vim.cmd("update")
-				-- ":w<cr> :TestNearest -strategy=claude<cr>",
-				claude.SendCommand({ cmd })
+				agent.SendCommand({ cmd })
 			end,
-			desc = "Test with Claude (Prompt for Name)",
+			desc = "Test with AI Agent (Prompt for Name)",
 			nowait = false,
 			remap = false,
 		},
@@ -131,16 +130,16 @@ local function keybindings()
 			"<leader>Tc",
 			function()
 				local go = require("tw.languages.go")
-				local claude = require("tw.claude")
+				local agent = require("tw.agent")
 				local package_name = "./" .. vim.fn.expand("%:h")
 
 				local test_name = go.get_test_name()
 				local cmd = string.format("go test -v %s-run '%s' %s", get_build_tags_flag(), test_name, package_name)
 
 				vim.cmd("update")
-				claude.SendCommand(cmd)
+				agent.SendCommand(cmd)
 			end,
-			desc = "Claude Test (Prompt for Name)",
+			desc = "AI Agent Test (Prompt for Name)",
 			nowait = false,
 			remap = false,
 		},

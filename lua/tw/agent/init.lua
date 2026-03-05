@@ -1,32 +1,35 @@
 local M = {}
 
-local claude = require("tw.claude.claude")
-local docker = require("tw.claude.docker")
+local claude = require("tw.agent.claude")
+local docker = require("tw.agent.docker")
 local Path = require("plenary.path")
-local terminal = require("tw.claude.terminal")
-local allowed_tools = require("tw.claude.allowed-tools")
-local util = require("tw.claude.util")
+local terminal = require("tw.agent.terminal")
+local util = require("tw.agent.util")
 local log = require("tw.log")
-local commands = require("tw.claude.commands")
-local buffer_config = require("tw.claude.buffer-config")
+local commands = require("tw.agent.commands")
+local buffer_config = require("tw.agent.buffer-config")
 local default_args = {}
 
 -- Expose log module globally for claude.lua to use
 _G.claude_log = log
--- Separate buffers for docker and local modes
-M.docker_buf = nil
-M.docker_job_id = nil
-M.local_buf = nil
-M.local_job_id = nil
-M.codex_buf = nil
-M.codex_job_id = nil
-M.opencode_buf = nil
-M.opencode_job_id = nil
-M.active_mode = "docker" -- Track which mode is currently visible: "docker", "local", "codex", "opencode", or "none"
-
--- Legacy claude_buf/job_id will point to the active buffer
+-- Separate buffers for each mode (local and docker variants)
 M.claude_buf = nil
 M.claude_job_id = nil
+M.claude_docker_buf = nil
+M.claude_docker_job_id = nil
+M.codex_buf = nil
+M.codex_job_id = nil
+M.codex_docker_buf = nil
+M.codex_docker_job_id = nil
+M.opencode_buf = nil
+M.opencode_job_id = nil
+M.opencode_docker_buf = nil
+M.opencode_docker_job_id = nil
+M.active_mode = "claude" -- Track which mode is currently visible: "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", or "none"
+
+-- Active buffer/job_id points to the currently visible buffer
+M.active_buf = nil
+M.active_job_id = nil
 
 M.saved_updatetime = nil
 M.shell_buf = nil
@@ -52,57 +55,56 @@ M.buffer_config = {
 	prevent_resize_scroll = true,
 }
 
+-- Helper function to get buffer and job_id for a given mode
+local function get_mode_vars(mode)
+	local var_name = mode:gsub("-", "_") -- Convert "claude-docker" to "claude_docker"
+	return {
+		buf_key = var_name .. "_buf",
+		job_key = var_name .. "_job_id",
+	}
+end
+
+-- Helper function to parse mode into command and location
+local function parse_mode(mode)
+	local is_docker = mode:match("-docker$")
+	local command_name = mode:gsub("-docker$", "") -- Remove -docker suffix if present
+	return command_name, is_docker ~= nil
+end
+
 -- Find the plugin installation path
 local function get_plugin_root()
 	local source = debug.getinfo(1, "S").source
 	local file_path = string.sub(source, 2) -- Remove the '@' prefix
-	local plugin_root = string.match(file_path, "(.-)/lua/tw/claude/init%.lua$")
+	local plugin_root = string.match(file_path, "(.-)/lua/tw/agent/init%.lua$")
 	return plugin_root
 end
 
 local function OnExit(mode)
 	return function(job_id, exit_code, event_type)
 		vim.schedule(function()
-			local buf
-			if mode == "docker" then
-				buf = M.docker_buf
-			elseif mode == "codex" then
-				buf = M.codex_buf
-			elseif mode == "opencode" then
-				buf = M.opencode_buf
-			else
-				buf = M.local_buf
-			end
+			local vars = get_mode_vars(mode)
+			local buf = M[vars.buf_key]
 
 			if buf and vim.api.nvim_buf_is_valid(buf) then
 				vim.bo[buf].modifiable = true
 				local message
 				if exit_code == 0 then
-					message = "Claude process completed successfully."
+					message = "Process completed successfully."
 				else
-					message = "Claude process exited with code: " .. exit_code
+					message = "Process exited with code: " .. exit_code
 				end
 				vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "", message })
 				vim.bo[buf].modifiable = false
 			end
+
 			-- Clear buffer and job state when process exits
-			if mode == "docker" then
-				M.docker_buf = nil
-				M.docker_job_id = nil
-			elseif mode == "codex" then
-				M.codex_buf = nil
-				M.codex_job_id = nil
-			elseif mode == "opencode" then
-				M.opencode_buf = nil
-				M.opencode_job_id = nil
-			else
-				M.local_buf = nil
-				M.local_job_id = nil
-			end
-			-- Update legacy pointers if this was the active buffer
-			if M.claude_buf == buf then
-				M.claude_buf = nil
-				M.claude_job_id = nil
+			M[vars.buf_key] = nil
+			M[vars.job_key] = nil
+
+			-- Update active pointers if this was the active buffer
+			if M.active_buf == buf then
+				M.active_buf = nil
+				M.active_job_id = nil
 				M.active_mode = "none"
 			end
 		end)
@@ -137,28 +139,81 @@ local function close_other_mode_buffers(active_mode)
 		end
 	end
 
-	if active_mode ~= "docker" then
-		enqueue(M.docker_buf)
-	end
-	if active_mode ~= "local" then
-		enqueue(M.local_buf)
-	end
-	if active_mode ~= "codex" then
-		enqueue(M.codex_buf)
-	end
-	if active_mode ~= "opencode" then
-		enqueue(M.opencode_buf)
+	local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
+	for _, mode in ipairs(all_modes) do
+		if mode ~= active_mode then
+			local vars = get_mode_vars(mode)
+			enqueue(M[vars.buf_key])
+		end
 	end
 end
 
-local function start_new_claude_job(args, window_type, mode)
-	mode = mode or "docker"
-	log.info("Attempting to start new Claude job in " .. mode .. " mode")
-	-- Launch Claude
+local function start_new_agent_job(args, window_type, mode)
+	mode = mode or "claude"
+	log.info("Attempting to start new job in " .. mode .. " mode")
+
+	-- Parse mode to get command name and location
+	local command_name, is_docker = parse_mode(mode)
+	log.debug("Command: " .. command_name .. ", Docker: " .. tostring(is_docker))
+
+	-- Create a copy of args to avoid mutating the original (especially default_args)
+	args = args and vim.deepcopy(args) or {}
+
+	-- For opencode, always add the project root path
+	if command_name == "opencode" then
+		log.debug("Processing opencode command")
+		local git_root = util.get_git_root()
+		log.debug("Git root: " .. tostring(git_root))
+		if git_root then
+			log.debug("Initial args count: " .. #args)
+			local project_path
+
+			if is_docker then
+				-- In docker mode, ensure git root is in context_directories and use the mounted container path
+				if not M.context_directories[git_root] then
+					M.context_directories[git_root] = true
+					log.info("Auto-added git root to context directories: " .. git_root)
+				end
+
+				local dir_name = vim.fn.fnamemodify(git_root, ":t")
+				-- Check if there's a duplicate to determine the mount name
+				local has_duplicate = false
+				for other_path, _ in pairs(M.context_directories) do
+					if other_path ~= git_root and vim.fn.fnamemodify(other_path, ":t") == dir_name then
+						has_duplicate = true
+						break
+					end
+				end
+				local mount_name = dir_name
+				if has_duplicate then
+					local hash = vim.fn.sha256(git_root)
+					mount_name = dir_name .. "_" .. string.sub(hash, 1, 8)
+				end
+				project_path = "/context/" .. mount_name
+				log.debug("Docker project path: " .. project_path)
+			else
+				-- In local mode, use the host git root path
+				project_path = git_root
+				log.debug("Local project path: " .. project_path)
+			end
+
+			-- Prepend project path to args if not already present
+			if #args == 0 or args[1] ~= project_path then
+				table.insert(args, 1, project_path)
+				log.debug("Prepended project path to args")
+			end
+			log.debug("Final args count: " .. #args)
+			if #args > 0 then
+				log.debug("Args: " .. vim.inspect(args))
+			end
+		end
+	end
+
+	-- Launch the command
 	local command
 	local buf, job_id
 
-	if mode == "docker" or mode == "codex" or mode == "opencode" then
+	if is_docker then
 		log.debug(mode .. " mode enabled, checking container status")
 		-- Check if container is running, if not try to start it
 		local is_running, container_id, status = docker.is_container_running(M.container_name)
@@ -234,31 +289,27 @@ local function start_new_claude_job(args, window_type, mode)
 		if args and #args > 0 then
 			cmd_args = table.concat(args, " ")
 		end
-		-- Use appropriate command based on mode
-		local attach_command
-		if mode == "codex" then
-			attach_command = "codex"
-		elseif mode == "opencode" then
-			attach_command = "opencode"
-		else
-			attach_command = "claude"
-		end
-		command = docker.attach_to_container(M.container_name, cmd_args, attach_command)
-		log.debug("Using attach command: " .. command)
+		-- Use the command name from the parsed mode
+		command = docker.attach_to_container(M.container_name, cmd_args, command_name)
+		log.debug("Using docker attach command: " .. command)
 	else
-		log.debug("Local mode enabled")
-		-- For local mode, include allowedTools
+		log.debug("Local mode enabled for " .. command_name)
+		-- For local mode, skip permissions for all agents
 		local final_args = vim.tbl_extend("force", {}, default_args)
-		table.insert(final_args, "--dangerously-skip-permissions")
-		table.insert(final_args, '--allowedTools="' .. table.concat(allowed_tools, ",") .. '"')
+		if command_name ~= "opencode" then
+			table.insert(final_args, "--dangerously-skip-permissions")
+			log.debug("Added --dangerously-skip-permissions for " .. command_name)
+		end
 		if args and #args > 0 then
+			log.debug("Extending final_args with " .. #args .. " args")
 			vim.list_extend(final_args, args)
 		end
-		command = claude.command(final_args)
+		log.debug("Final args before command: " .. vim.inspect(final_args))
+		command = claude.command(final_args, command_name)
 		log.debug("Using native command: " .. command)
 	end
 
-	log.info("Starting Claude with command: " .. command)
+	log.info("Starting " .. command_name .. " with command: " .. command)
 
 	-- Hide the other mode's buffer if it's visible before opening new window
 	close_other_mode_buffers(mode)
@@ -278,24 +329,14 @@ local function start_new_claude_job(args, window_type, mode)
 	buffer_config.setup_buffer(buf, M.buffer_config)
 
 	-- Store buffer and job based on mode
-	if mode == "docker" then
-		M.docker_buf = buf
-		M.docker_job_id = job_id
-	elseif mode == "codex" then
-		M.codex_buf = buf
-		M.codex_job_id = job_id
-	elseif mode == "opencode" then
-		M.opencode_buf = buf
-		M.opencode_job_id = job_id
-	else
-		M.local_buf = buf
-		M.local_job_id = job_id
-	end
+	local vars = get_mode_vars(mode)
+	M[vars.buf_key] = buf
+	M[vars.job_key] = job_id
 
-	-- Update active mode and legacy pointers
+	-- Update active mode and pointers
 	M.active_mode = mode
-	M.claude_buf = buf
-	M.claude_job_id = job_id
+	M.active_buf = buf
+	M.active_job_id = job_id
 
 	-- Auto-send prompt if enabled (works for both Docker and local modes)
 	if M.auto_prompt and M.auto_prompt_file then
@@ -323,23 +364,11 @@ local function send(args)
 		text = table.concat(args, " ")
 	end
 	-- Send to the active job
-	local job_id = M.claude_job_id
-	if not job_id then
-		-- Try to get from active mode
-		if M.active_mode == "docker" then
-			job_id = M.docker_job_id
-		elseif M.active_mode == "codex" then
-			job_id = M.codex_job_id
-		elseif M.active_mode == "opencode" then
-			job_id = M.opencode_job_id
-		elseif M.active_mode == "local" then
-			job_id = M.local_job_id
-		end
-	end
+	local job_id = M.active_job_id
 	if job_id then
 		vim.fn.chansend(job_id, text)
 	else
-		log.warn("No active Claude job to send to")
+		log.warn("No active job to send to")
 	end
 end
 
@@ -347,22 +376,22 @@ local function confirmOpenAndDo(callback, args, window_type)
 	args = args or default_args
 	window_type = window_type or "vsplit"
 
-	-- Determine which buffer to use (default to docker if none active)
-	local active_buf = M.claude_buf
+	-- Determine which buffer to use (default to claude local if none active)
+	local active_buf = M.active_buf
 	if not active_buf or not vim.api.nvim_buf_is_valid(active_buf) then
-		-- No active buffer, default to docker mode
-		M.Open("docker", args, window_type)
+		-- No active buffer, default to claude local mode
+		M.Open("claude", args, window_type)
 
-		-- Wait a bit for the Claude chat to initialize
+		-- Wait a bit for the chat to initialize
 		vim.defer_fn(function()
 			if callback then
 				callback()
 			end
-			-- Focus Claude buffer and enter insert mode
-			if M.claude_buf and vim.api.nvim_buf_is_valid(M.claude_buf) then
+			-- Focus active buffer and enter insert mode
+			if M.active_buf and vim.api.nvim_buf_is_valid(M.active_buf) then
 				local windows = vim.api.nvim_list_wins()
 				for _, win in ipairs(windows) do
-					if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.claude_buf then
+					if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.active_buf then
 						vim.api.nvim_set_current_win(win)
 						vim.cmd("startinsert")
 						break
@@ -411,25 +440,14 @@ local function confirmOpenAndDo(callback, args, window_type)
 end
 
 function M.Open(mode, args, window_type)
-	mode = mode or "docker" -- Default to docker mode
+	mode = mode or "claude" -- Default to claude local mode
 	args = args or default_args
 	window_type = window_type or "vsplit"
 
 	-- Get the appropriate buffer and job for the mode
-	local buf, job_id
-	if mode == "docker" then
-		buf = M.docker_buf
-		job_id = M.docker_job_id
-	elseif mode == "codex" then
-		buf = M.codex_buf
-		job_id = M.codex_job_id
-	elseif mode == "opencode" then
-		buf = M.opencode_buf
-		job_id = M.opencode_job_id
-	else
-		buf = M.local_buf
-		job_id = M.local_job_id
-	end
+	local vars = get_mode_vars(mode)
+	local buf = M[vars.buf_key]
+	local job_id = M[vars.job_key]
 
 	-- Check if buffer exists, is valid, AND the job is still running
 	local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
@@ -438,52 +456,30 @@ function M.Open(mode, args, window_type)
 		-- First, hide the other mode's buffer if it's visible
 		close_other_mode_buffers(mode)
 		terminal.open_buffer_in_new_window(window_type, buf)
-		-- Update active mode and legacy pointers
+		-- Update active mode and pointers
 		M.active_mode = mode
-		M.claude_buf = buf
-		M.claude_job_id = job_id
+		M.active_buf = buf
+		M.active_job_id = job_id
 	else
 		-- Clean up dead buffer if needed
 		if buf and not job_is_running then
 			local cleaned_buf, cleaned_job = terminal.close_terminal_buffer(buf, job_id)
-			if mode == "docker" then
-				M.docker_buf = cleaned_buf
-				M.docker_job_id = cleaned_job
-			elseif mode == "codex" then
-				M.codex_buf = cleaned_buf
-				M.codex_job_id = cleaned_job
-			elseif mode == "opencode" then
-				M.opencode_buf = cleaned_buf
-				M.opencode_job_id = cleaned_job
-			else
-				M.local_buf = cleaned_buf
-				M.local_job_id = cleaned_job
-			end
+			M[vars.buf_key] = cleaned_buf
+			M[vars.job_key] = cleaned_job
 		end
-		start_new_claude_job(args, window_type, mode)
+		start_new_agent_job(args, window_type, mode)
 	end
 end
 
 function M.Toggle(mode, args, window_type)
-	mode = mode or "docker" -- Default to docker if not specified
+	mode = mode or "claude" -- Default to claude local if not specified
 	args = args or default_args
 	window_type = window_type or "vsplit"
 
 	-- Get the appropriate buffer and job based on mode
-	local buf, job_id
-	if mode == "docker" then
-		buf = M.docker_buf
-		job_id = M.docker_job_id
-	elseif mode == "codex" then
-		buf = M.codex_buf
-		job_id = M.codex_job_id
-	elseif mode == "opencode" then
-		buf = M.opencode_buf
-		job_id = M.opencode_job_id
-	else
-		buf = M.local_buf
-		job_id = M.local_job_id
-	end
+	local vars = get_mode_vars(mode)
+	local buf = M[vars.buf_key]
+	local job_id = M[vars.job_key]
 
 	-- Check if buffer exists, is valid, AND the job is still running
 	local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
@@ -499,10 +495,10 @@ function M.Toggle(mode, args, window_type)
 				vim.api.nvim_win_close(win, false)
 				is_visible = true
 				-- Clear active mode when hiding
-				if M.claude_buf == buf then
+				if M.active_buf == buf then
 					M.active_mode = "none"
-					M.claude_buf = nil
-					M.claude_job_id = nil
+					M.active_buf = nil
+					M.active_job_id = nil
 				end
 				break
 			end
@@ -513,65 +509,50 @@ function M.Toggle(mode, args, window_type)
 			-- First, hide the other mode's buffer if it's visible
 			close_other_mode_buffers(mode)
 			terminal.open_buffer_in_new_window(window_type, buf)
-			-- Update active mode and legacy pointers
+			-- Update active mode and pointers
 			M.active_mode = mode
-			M.claude_buf = buf
-			M.claude_job_id = job_id
+			M.active_buf = buf
+			M.active_job_id = job_id
 		end
 	else
 		-- Buffer doesn't exist or job is dead, clean up and create new
 		if buf and not job_is_running then
 			local cleaned_buf, cleaned_job = terminal.close_terminal_buffer(buf, job_id)
-			if mode == "docker" then
-				M.docker_buf = cleaned_buf
-				M.docker_job_id = cleaned_job
-			elseif mode == "codex" then
-				M.codex_buf = cleaned_buf
-				M.codex_job_id = cleaned_job
-			elseif mode == "opencode" then
-				M.opencode_buf = cleaned_buf
-				M.opencode_job_id = cleaned_job
-			else
-				M.local_buf = cleaned_buf
-				M.local_job_id = cleaned_job
-			end
+			M[vars.buf_key] = cleaned_buf
+			M[vars.job_key] = cleaned_job
 		end
 		M.Open(mode, args, window_type)
 	end
 end
 
--- Helper function to hide all Claude buffers
-function M.hide_all_claude_buffers()
+-- Helper function to hide all agent buffers
+function M.hide_all_agent_buffers()
 	local windows = vim.api.nvim_list_wins()
+	local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
 	for _, win in ipairs(windows) do
 		if vim.api.nvim_win_is_valid(win) then
 			local buf = vim.api.nvim_win_get_buf(win)
-			if buf == M.docker_buf or buf == M.local_buf or buf == M.codex_buf or buf == M.opencode_buf then
-				vim.api.nvim_win_close(win, false)
+			for _, mode in ipairs(all_modes) do
+				local vars = get_mode_vars(mode)
+				if buf == M[vars.buf_key] then
+					vim.api.nvim_win_close(win, false)
+					break
+				end
 			end
 		end
 	end
 end
 
+-- Backwards compatibility alias
+M.hide_all_claude_buffers = M.hide_all_agent_buffers
+
 local function submit()
 	vim.defer_fn(function()
-		local job_id = M.claude_job_id
-		if not job_id then
-			-- Try to get from active mode
-			if M.active_mode == "docker" then
-				job_id = M.docker_job_id
-			elseif M.active_mode == "codex" then
-				job_id = M.codex_job_id
-			elseif M.active_mode == "opencode" then
-				job_id = M.opencode_job_id
-			elseif M.active_mode == "local" then
-				job_id = M.local_job_id
-			end
-		end
+		local job_id = M.active_job_id
 		if job_id then
 			vim.fn.chansend(job_id, "\r")
 		else
-			log.warn("No active Claude job to submit to")
+			log.warn("No active job to submit to")
 		end
 	end, 500)
 end
@@ -579,7 +560,7 @@ end
 function M.SendCommand(args, submit_after)
 	submit_after = submit_after or false
 	confirmOpenAndDo(function()
-		vim.fn.chansend(M.claude_job_id, "!")
+		vim.fn.chansend(M.active_job_id, "!")
 		vim.defer_fn(function()
 			send(args)
 			if submit_after then
@@ -691,48 +672,48 @@ end
 
 local function configureClaudeKeymap()
 	local keymap = {
-		{ "<leader>c", group = "Claude Code", nowait = true, remap = false },
+		{ "<leader>c", group = "AI Agents", nowait = true, remap = false },
 		{
 			mode = { "n", "v" },
 			{
 				"<leader>cl",
 				function()
-					require("tw.claude").Toggle("local")
+					require("tw.agent").Toggle("claude")
 				end,
 				desc = "Toggle Claude Local",
 			},
 			{
 				"<leader>cL",
 				function()
-					require("tw.claude").Toggle("docker")
+					require("tw.agent").Toggle("claude-docker")
 				end,
 				desc = "Toggle Claude Docker",
 			},
 			{
 				"<leader>cx",
 				function()
-					require("tw.claude").Open("local")
+					require("tw.agent").Toggle("codex")
 				end,
 				desc = "Toggle Codex Local",
 			},
 			{
 				"<leader>cX",
 				function()
-					require("tw.claude").Toggle("codex")
+					require("tw.agent").Toggle("codex-docker")
 				end,
 				desc = "Toggle Codex Docker",
 			},
 			{
 				"<leader>co",
 				function()
-					require("tw.claude").Toggle("local")
+					require("tw.agent").Toggle("opencode")
 				end,
 				desc = "Toggle OpenCode Local",
 			},
 			{
 				"<leader>cO",
 				function()
-					require("tw.claude").Toggle("opencode")
+					require("tw.agent").Toggle("opencode-docker")
 				end,
 				desc = "Toggle OpenCode Docker",
 			},
@@ -749,54 +730,54 @@ local function configureClaudeKeymap()
 			{
 				"<leader>c*",
 				function()
-					require("tw.claude").SendSymbol()
+					require("tw.agent").SendSymbol()
 				end,
-				desc = "Send Current Word to Claude",
+				desc = "Send Current Word to AI Agent",
 				nowait = false,
 				remap = false,
 			},
 			{
 				"<leader>cf",
 				function()
-					require("tw.claude").SendFile()
+					require("tw.agent").SendFile()
 				end,
-				desc = "Send File to Claude",
+				desc = "Send File to AI Agent",
 				nowait = false,
 				remap = false,
 			},
 			{
 				"<leader>ct",
 				function()
-					require("tw.claude").SendPrompt("tdd-plan.md", true)
+					require("tw.agent").SendPrompt("tdd-plan.md", true)
 				end,
-				desc = "Send TDD Plan to Claude",
+				desc = "Send TDD Plan to AI Agent",
 				nowait = false,
 				remap = false,
 			},
 			{
 				"<leader>cm",
 				function()
-					require("tw.claude").SendPrompt("commit-staged.md", true)
+					require("tw.agent").SendPrompt("commit-staged.md", true)
 				end,
-				desc = "Commit Staged with Claude",
+				desc = "Commit Staged with AI Agent",
 				nowait = false,
 				remap = false,
 			},
 			{
 				"<leader>ci",
 				function()
-					require("tw.claude").SendPrompt("implement.md", true)
+					require("tw.agent").SendPrompt("implement.md", true)
 				end,
-				desc = "Implement the failing test with Claude",
+				desc = "Implement the failing test with AI Agent",
 				nowait = false,
 				remap = false,
 			},
 			{
 				"<leader>cb",
 				function()
-					require("tw.claude").SendOpenBuffers()
+					require("tw.agent").SendOpenBuffers()
 				end,
-				desc = "Send TDD Plan to Claude",
+				desc = "Send Open Buffers to AI Agent",
 				nowait = false,
 				remap = false,
 			},
@@ -806,9 +787,9 @@ local function configureClaudeKeymap()
 			{
 				"<leader>c*",
 				function()
-					require("tw.claude").SendSelection()
+					require("tw.agent").SendSelection()
 				end,
-				desc = "Send Selection to Claude",
+				desc = "Send Selection to AI Agent",
 				nowait = false,
 				remap = false,
 			},
@@ -820,41 +801,25 @@ local function configureClaudeKeymap()
 end
 
 function M.cleanup()
-	-- Clean up docker job and buffer config
-	if M.docker_job_id and vim.fn.jobwait({ M.docker_job_id }, 0)[1] == -1 then
-		vim.fn.jobstop(M.docker_job_id)
-		M.docker_job_id = nil
+	-- Clean up all mode buffers and jobs
+	local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
+	for _, mode in ipairs(all_modes) do
+		local vars = get_mode_vars(mode)
+		local job_id = M[vars.job_key]
+		local buf = M[vars.buf_key]
+
+		if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+			vim.fn.jobstop(job_id)
+			M[vars.job_key] = nil
+		end
+		if buf then
+			buffer_config.cleanup(buf)
+		end
 	end
-	if M.docker_buf then
-		buffer_config.cleanup(M.docker_buf)
-	end
-	-- Clean up codex job and buffer config
-	if M.codex_job_id and vim.fn.jobwait({ M.codex_job_id }, 0)[1] == -1 then
-		vim.fn.jobstop(M.codex_job_id)
-		M.codex_job_id = nil
-	end
-	if M.codex_buf then
-		buffer_config.cleanup(M.codex_buf)
-	end
-	-- Clean up opencode job and buffer config
-	if M.opencode_job_id and vim.fn.jobwait({ M.opencode_job_id }, 0)[1] == -1 then
-		vim.fn.jobstop(M.opencode_job_id)
-		M.opencode_job_id = nil
-	end
-	if M.opencode_buf then
-		buffer_config.cleanup(M.opencode_buf)
-	end
-	-- Clean up local job and buffer config
-	if M.local_job_id and vim.fn.jobwait({ M.local_job_id }, 0)[1] == -1 then
-		vim.fn.jobstop(M.local_job_id)
-		M.local_job_id = nil
-	end
-	if M.local_buf then
-		buffer_config.cleanup(M.local_buf)
-	end
-	-- Clean up legacy pointers
-	M.claude_job_id = nil
-	M.claude_buf = nil
+
+	-- Clean up active pointers
+	M.active_job_id = nil
+	M.active_buf = nil
 
 	if M.shell_job_id and vim.fn.jobwait({ M.shell_job_id }, 0)[1] == -1 then
 		vim.fn.jobstop(M.shell_job_id)
