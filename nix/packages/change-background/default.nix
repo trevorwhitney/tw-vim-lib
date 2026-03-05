@@ -4,17 +4,6 @@
   runtimeInputs = with pkgs; [ tmux ];
 
   text = ''
-    function everforest_light() {
-      #kitten themes --reload-in=all "Everforest Light Soft"
-      tmux set-environment -g ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE "fg=#a6b0a0,bg=#f3ead3"
-    }
-
-    function everforest_dark() {
-      #kitten themes --reload-in=all "Everforest Dark Soft"
-      tmux set-environment -g ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE "fg=#9da9a0,bg=#333c43"
-
-    }
-
     function change_background() {
       local mode_setting="''${1}"
       local mode="light"
@@ -42,16 +31,12 @@
 
       case "''${mode}" in
       dark)
-        tmux set-environment -g BAT_THEME "Solarized (dark)"
-        tmux set-environment -g FZF_PREVIEW_PREVIEW_BAT_THEME "Solarized (dark)"
-        sed -i 's/everforest-light/everforest-dark/' "''${XDG_CONFIG_HOME}/k9s/config.yaml"
-        everforest_dark
+        tmux set-environment -g BAT_THEME "ansi"
+        tmux set-environment -g FZF_PREVIEW_PREVIEW_BAT_THEME "ansi"
         ;;
       *)
-        tmux set-environment -g BAT_THEME "Solarized (light)"
-        tmux set-environment -g FZF_PREVIEW_PREVIEW_BAT_THEME "Solarized (light)"
-        sed -i 's/everforest-dark/everforest-light/' "''${XDG_CONFIG_HOME}/k9s/config.yaml"
-        everforest_light
+        tmux set-environment -g BAT_THEME "ansi"
+        tmux set-environment -g FZF_PREVIEW_PREVIEW_BAT_THEME "ansi"
         ;;
       esac
     }

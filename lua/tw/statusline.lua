@@ -34,7 +34,7 @@ end
 
 -- Setup lualine with Claude status
 function M.setup_lualine(theme)
-	theme = theme or "everforest"
+	theme = theme or "auto"
 
 	require("lualine").setup({
 		options = {

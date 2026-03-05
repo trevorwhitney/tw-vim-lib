@@ -112,15 +112,16 @@ local function installTesting(use)
 end
 
 local function installUI(use)
-	-- color schemes
-	use({ "trevorwhitney/solarized.nvim" })
-	use({ "trevorwhitney/flexoki-neovim", as = "flexoki", branch = "enable-more-plugins" })
-	-- use({ "kepano/flexoki-neovim", as = "flexoki" })
 	use({
-		"neanias/everforest-nvim",
-		-- Optional; default configuration will be used if setup isn't called.
+		"catppuccin/nvim",
+		as = "catppuccin",
 		config = function()
-			require("everforest").setup()
+			require("catppuccin").setup({
+				background = {
+					light = "latte",
+					dark = "mocha",
+				},
+			})
 		end,
 	})
 end
