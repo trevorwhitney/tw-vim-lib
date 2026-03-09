@@ -317,6 +317,13 @@ local function start_new_agent_job(args, window_type, mode)
 		-- TODO: make this configurable
 		env = {
 			BUILD_IN_CONTAINER = "false",
+			-- Unset TMUX/STY so child processes emit plain OSC 52 clipboard
+			-- sequences instead of wrapping them in tmux DCS passthrough.
+			-- Neovim's terminal emulator handles plain OSC 52 natively but
+			-- cannot parse tmux DCS wrappers, causing raw base64 to leak
+			-- onto the display.
+			TMUX = "",
+			STY = "",
 		},
 	})
 	vim.bo[buf].bufhidden = "hide"
