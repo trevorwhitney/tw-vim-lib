@@ -15,13 +15,29 @@ local function mapKeys(wk)
 			remap = false,
 		},
 		{
+			"<leader>F",
+			function()
+				require("spectre").open_visual({ select_word = true })
+			end,
+			desc = "Find/Replace",
+			remap = false,
+		},
+    {
+			"<leader>F",
+			function()
+				require("spectre").toggle()
+			end,
+			desc = "Find/Replace",
+			remap = false,
+		},
+		{
 			"<leader>R",
 			"<cmd>Telescope resume<cr>",
 			desc = "Resume Find",
 			remap = false,
 		},
 		{
-			"<leader>S",
+			"<leader>s",
 			"<cmd>Telescope lsp_dynamic_workspace_symbols<cr>",
 			desc = "Find Symbol",
 			remap = false,
@@ -75,7 +91,7 @@ local function mapKeys(wk)
 		{
 			"<leader>rbl",
 			"<cmd>lua require('refactoring').refactor('Extract Block')<CR>",
-			desc = "Extract Block",
+			desc = "EFxtract Block",
 			remap = false,
 		},
 		{
@@ -94,22 +110,6 @@ local function mapKeys(wk)
 			"<leader>rr",
 			"<cmd>lua require('telescope').extensions.refactoring.refactors()<CR>",
 			desc = "Refactor Menu",
-			remap = false,
-		},
-		{
-			"<leader>sp",
-			function()
-				require("spectre").toggle()
-			end,
-			desc = "Find/Replace",
-			remap = false,
-		},
-		{
-			"<leader>sw",
-			function()
-				require("spectre").open_visual({ select_word = true })
-			end,
-			desc = "Find/Replace Word",
 			remap = false,
 		},
 		{
@@ -367,7 +367,7 @@ local function mapKeys(wk)
 				remap = false,
 			},
 			{
-				"<leader>S",
+				"<leader>s",
 				"\"sy:TelescopeDynamicWorkspaceSymbol <C-R>=v:lua.require('tw.telescope').current_selection(@s)<cr><cr>",
 				desc = "Search Current Symbol",
 				remap = false,
@@ -402,7 +402,7 @@ local function mapKeys(wk)
 				remap = false,
 			},
 			{
-				"<leader>sw",
+				"<leader>F",
 				function()
 					require("spectre").open_visual()
 				end,

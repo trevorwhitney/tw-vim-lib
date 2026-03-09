@@ -280,24 +280,36 @@ function M.toggleGitStatus()
 	local diffview = require("diffview")
 	local diffview_lib = require("diffview.lib")
 
-	-- Check if diffview is open
+	local view = diffview_lib.get_current_view()
 	local has_diffview = next(diffview_lib.views) ~= nil
 
-	-- Check if fugitive buffer is open
-	local fugitiveBuf = vim.fn.bufnr("fugitive://")
-	local has_fugitive = fugitiveBuf >= 0 and vim.fn.bufwinnr(fugitiveBuf) >= 0
-
 	if has_diffview then
-		-- Close diffview (this will close the tab and any fugitive in it)
-		vim.cmd("DiffviewClose")
-	elseif has_fugitive then
-		-- Close standalone fugitive buffer
-		vim.cmd("bunload " .. fugitiveBuf)
+		if view then
+			-- Diffview is open AND we're on the diffview tab → close
+			vim.cmd("DiffviewClose")
+		else
+			-- Diffview is open but we're on a different tab → focus it
+			local dv = diffview_lib.views[1]
+			if dv and dv.tabpage and vim.api.nvim_tabpage_is_valid(dv.tabpage) then
+				vim.api.nvim_set_current_tabpage(dv.tabpage)
+			else
+				-- Stale view; close and reopen
+				pcall(vim.cmd, "DiffviewClose")
+				diffview.open()
+			end
+		end
 	else
-		-- Open combined interface
-		diffview.open()
-		-- diffview.emit("toggle_files")
-		-- vim.cmd("Git")
+		-- Check for fugitive
+		local fugitive_buf = vim.fn.bufnr("fugitive://")
+		local has_fugitive = fugitive_buf >= 0 and vim.fn.bufwinnr(fugitive_buf) >= 0
+
+		if has_fugitive then
+			vim.cmd("bunload " .. fugitive_buf)
+		else
+			diffview.open()
+			-- diffview.emit("toggle_files")
+			-- vim.cmd("Git")
+		end
 	end
 end
 
