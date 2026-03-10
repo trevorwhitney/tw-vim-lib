@@ -222,7 +222,7 @@ function M.attach_to_container(container_name, args, command)
 
 	local cmd_string
 	if command == "codex" then
-		cmd_string = "codex -m gpt-5.3-codex -c model_reasoning_effort=high --search --full-auto" .. args
+		cmd_string = "codex --search --full-auto" .. args
 	elseif command == "opencode" then
 		cmd_string = "opencode" .. args
 	else
