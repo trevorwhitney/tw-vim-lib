@@ -18,6 +18,7 @@ end
 --- @return string[]
 local function git_log_cmd(show_all)
 	if show_all then
+		-- Cap at 500 to keep the picker responsive on large repos
 		return { "git", "log", "--oneline", "--max-count=500" }
 	else
 		return { "git", "log", "--oneline", "@{upstream}..HEAD" }
@@ -44,7 +45,7 @@ end
 --- @return fun(line: string): table|nil
 local function make_entry_maker(index_counter)
 	return function(line)
-		local sha = line:match("^(%S+)")
+		local sha = line:match("^(%x+)")
 		if not sha then
 			return nil
 		end
