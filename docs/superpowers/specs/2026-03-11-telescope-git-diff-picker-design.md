@@ -20,7 +20,7 @@ Replace the `<leader>gd` and `<leader>gD` keybindings with a Telescope picker th
 ### Toggling Commit Scope
 
 - **Default:** unpushed commits only (`git log --oneline @{upstream}..HEAD`).
-- **`<C-u>` toggle:** switches between unpushed and all commits. The picker title updates to reflect the current mode ("Diff (unpushed)" vs "Diff (all)"). Results refresh in-place without closing the picker.
+- **`<C-o>` toggle:** switches between unpushed and all commits. The picker title updates to reflect the current mode ("Diff (unpushed)" vs "Diff (all)"). Results refresh in-place without closing the picker.
 - **No upstream fallback:** if no upstream branch is set, default to all commits. Title shows "Diff (all -- no upstream)".
 
 ## Selection Behavior
@@ -62,7 +62,7 @@ Both functions call a shared internal `create_picker(opts)` where `opts.current_
 
 **Upstream detection:** before opening the picker, run `git rev-parse --abbrev-ref @{upstream}` to check if an upstream exists. If it fails, set mode to "all" and flag `no_upstream = true`.
 
-**`<C-u>` toggle:** swaps the finder on the live picker instance via `picker:refresh(new_finder, { reset_prompt = true })` and updates the prompt title.
+**`<C-o>` toggle:** swaps the finder on the live picker instance via `picker:refresh(new_finder, { reset_prompt = true })` and updates the prompt title.
 
 **Entry parsing:** each line from `git log --oneline` is `<sha> <message>`. The entry maker splits on the first space to extract the SHA for use in the DiffviewOpen command. The full line is displayed to the user.
 
@@ -113,14 +113,14 @@ Same pattern for `<leader>gD` calling `git_diff_picker_current_file()`.
 | `<Tab>` | insert/normal | Toggle multi-select on current entry, move down |
 | `<S-Tab>` | insert/normal | Toggle multi-select on current entry, move up |
 | `<CR>` | insert/normal | Confirm selection, open DiffviewOpen |
-| `<C-u>` | insert/normal | Toggle unpushed/all commits, refresh results |
+| `<C-o>` | insert/normal | Toggle unpushed/all commits, refresh results |
 | `<Esc>` / `<C-c>` | insert/normal | Cancel (standard Telescope behavior) |
 
 ## Edge Cases
 
 - **No upstream branch:** fall back to all commits, title indicates "no upstream".
 - **No commits at all:** empty picker, user can cancel. No special handling needed.
-- **No unpushed commits:** empty picker in unpushed mode. User can `<C-u>` to switch to all. Title shows "Diff (unpushed)" with an empty list, which is self-explanatory.
+- **No unpushed commits:** empty picker in unpushed mode. User can `<C-o>` to switch to all. Title shows "Diff (unpushed)" with an empty list, which is self-explanatory.
 - **3+ selections:** notify with `vim.notify("Select at most 2 commits", vim.log.levels.WARN)`, do nothing.
 - **Detached HEAD:** `@{upstream}` will fail, same as no-upstream fallback.
 
