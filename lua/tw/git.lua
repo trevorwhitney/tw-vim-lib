@@ -89,20 +89,18 @@ local function configureGitsigns()
 				{
 					"<leader>gd",
 					function()
-						local commit = vim.fn.input("[Commit] > ")
-						vim.cmd("DiffviewOpen " .. commit)
+						require("tw.telescope-git-diff").git_diff_picker()
 					end,
-					desc = "Diff Split (Against Commit)",
+					desc = "Diff (Commit Picker)",
 					nowait = false,
 					remap = false,
 				},
 				{
 					"<leader>gD",
 					function()
-						local commit = vim.fn.input("[Commit] > ")
-						vim.cmd("DiffviewOpen " .. commit .. " -- %")
+						require("tw.telescope-git-diff").git_diff_picker_current_file()
 					end,
-					desc = "Diff Split (Against Commit)",
+					desc = "Diff Current File (Commit Picker)",
 					nowait = false,
 					remap = false,
 				},
@@ -245,13 +243,33 @@ local function configureDiffview()
 				-- Remap "choose ours" from co/cO to cu/cU
 				{ "n", "<leader>co", false },
 				{ "n", "<leader>cO", false },
-				{ "n", "<leader>cu", actions.conflict_choose("ours"), { desc = "Choose the OURS version of a conflict" } },
-				{ "n", "<leader>cU", actions.conflict_choose_all("ours"), { desc = "Choose the OURS version of a conflict for the whole file" } },
+				{
+					"n",
+					"<leader>cu",
+					actions.conflict_choose("ours"),
+					{ desc = "Choose the OURS version of a conflict" },
+				},
+				{
+					"n",
+					"<leader>cU",
+					actions.conflict_choose_all("ours"),
+					{ desc = "Choose the OURS version of a conflict for the whole file" },
+				},
 				-- Remap "choose base" from cb/cB to cs/cS (source/baSe)
 				{ "n", "<leader>cb", false },
 				{ "n", "<leader>cB", false },
-				{ "n", "<leader>cs", actions.conflict_choose("base"), { desc = "Choose the BASE version of a conflict" } },
-				{ "n", "<leader>cS", actions.conflict_choose_all("base"), { desc = "Choose the BASE version of a conflict for the whole file" } },
+				{
+					"n",
+					"<leader>cs",
+					actions.conflict_choose("base"),
+					{ desc = "Choose the BASE version of a conflict" },
+				},
+				{
+					"n",
+					"<leader>cS",
+					actions.conflict_choose_all("base"),
+					{ desc = "Choose the BASE version of a conflict for the whole file" },
+				},
 			},
 		},
 	})
@@ -270,10 +288,6 @@ end
 function M.gpp()
 	vim.cmd("Git pull --rebase")
 	vim.cmd("Git push")
-end
-
-function M.diffSplit(commit)
-	vim.cmd("DiffViewOpen " .. commit)
 end
 
 function M.toggleGitStatus()
