@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace `<leader>gd` and `<leader>gD` with a Telescope picker for selecting one or two commits and opening DiffviewOpen with the appropriate range.
+**Goal:** Replace `<leader>gd` and `<leader>gD` with a Telescope picker for selecting one or two commits and opening DiffviewOpen with the appropriate range, with a `<C-o>` toggle between unpushed and all commits.
 
 **Architecture:** A single new Lua module (`lua/tw/telescope-git-diff.lua`) contains all picker logic. It exposes two public functions (`git_diff_picker` and `git_diff_picker_current_file`) that share a common internal `create_picker(opts)`. The existing keybindings in `lua/tw/git.lua` are updated to call these functions instead of using `vim.fn.input()`.
 
@@ -15,18 +15,22 @@
 | File | Action | Responsibility |
 |------|--------|----------------|
 | `lua/tw/telescope-git-diff.lua` | Create | All picker logic: finder creation, upstream detection, entry parsing, commit sorting, `<C-o>` toggle, DiffviewOpen command building |
-| `lua/tw/git.lua` | Modify (lines 89-108) | Replace `vim.fn.input()` keybinding functions with calls to new module |
+| `lua/tw/git.lua` | Modify (lines 89-108, 275-277) | Replace `vim.fn.input()` keybinding functions with calls to new module; remove unused `M.diffSplit` |
 
 ---
 
-### Task 1: Create the picker module skeleton with upstream detection
+### Task 1: Create the complete picker module
 
 **Files:**
 - Create: `lua/tw/telescope-git-diff.lua`
 
-- [ ] **Step 1: Create the module file with requires and public API**
+- [ ] **Step 1: Create the full module file**
 
-Create `lua/tw/telescope-git-diff.lua` with the module skeleton, imports, and the two public functions that delegate to a shared `create_picker`:
+Create `lua/tw/telescope-git-diff.lua` with all helpers, the complete `create_picker` implementation, `<C-o>` toggle, and both public functions.
+
+**Important correctness note:** The `current_file` path must be captured via `vim.fn.expand("%:p")` *before* opening the picker. When the picker is open, `%` refers to the Telescope prompt buffer, not the user's file. Store the resolved path and use it in the DiffviewOpen command instead of relying on `%` expansion after close.
+
+**Important feasibility note:** `picker.prompt_border:change_title()` is not a stable Telescope API. Guard the call with `pcall` or a nil check so the toggle still works even if the internal path changes in a future Telescope update.
 
 ```lua
 local pickers = require("telescope.pickers")
@@ -69,53 +73,10 @@ local function picker_title(show_all, no_upstream)
     end
 end
 
---- Create and open the git diff telescope picker.
---- @param opts { current_file: boolean }
-local function create_picker(opts)
-    -- placeholder: will be implemented in subsequent tasks
-end
-
-function M.git_diff_picker()
-    create_picker({ current_file = false })
-end
-
-function M.git_diff_picker_current_file()
-    create_picker({ current_file = true })
-end
-
-return M
-```
-
-- [ ] **Step 2: Verify the module loads without errors**
-
-Open Neovim and run:
-```
-:lua require("tw.telescope-git-diff")
-```
-Expected: no errors. The module loads and returns the table.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add lua/tw/telescope-git-diff.lua
-git commit -m "feat: add telescope-git-diff module skeleton with upstream detection"
-```
-
----
-
-### Task 2: Implement the core picker with entry parsing and single-commit action
-
-**Files:**
-- Modify: `lua/tw/telescope-git-diff.lua`
-
-- [ ] **Step 1: Implement the entry maker**
-
-Add an `entry_maker` function after the `picker_title` function. Each `git log --oneline` line is `<sha> <message>`. The entry stores the SHA as `value`, the full line as `display`, the full line as `ordinal` (for filtering), and the entry's index for sorting:
-
-```lua
 --- Parse a git log --oneline line into a telescope entry.
---- @param index number The position in the log (1 = newest)
---- @return fun(line: string): table
+--- Each entry tracks its position in the log for chronological sorting.
+--- @param index_counter { n: number } Mutable counter shared across entries
+--- @return fun(line: string): table|nil
 local function make_entry_maker(index_counter)
     return function(line)
         local sha, message = line:match("^(%S+)%s+(.+)$")
@@ -131,17 +92,17 @@ local function make_entry_maker(index_counter)
         }
     end
 end
-```
 
-- [ ] **Step 2: Implement `create_picker` with finder and single-commit action**
-
-Replace the `create_picker` placeholder with the full implementation. This handles upstream detection, creates the finder and picker, and implements the `<CR>` action for single-commit selection (diff against HEAD):
-
-```lua
+--- Create and open the git diff telescope picker.
+--- @param opts { current_file: boolean }
 local function create_picker(opts)
     opts = opts or {}
     local no_upstream = not has_upstream()
     local show_all = no_upstream
+
+    -- Capture the current file path BEFORE opening the picker.
+    -- Once the picker opens, vim's "%" refers to the Telescope prompt buffer.
+    local current_file_path = opts.current_file and vim.fn.expand("%:p") or nil
 
     local index_counter = { n = 0 }
 
@@ -152,12 +113,10 @@ local function create_picker(opts)
         })
     end
 
-    local current_finder = make_finder(show_all)
-
     pickers
         .new({}, {
             prompt_title = picker_title(show_all, no_upstream),
-            finder = current_finder,
+            finder = make_finder(show_all),
             sorter = conf.generic_sorter({}),
             attach_mappings = function(prompt_bufnr, map)
                 actions.select_default:replace(function()
@@ -200,71 +159,14 @@ local function create_picker(opts)
                         cmd = "DiffviewOpen " .. older .. ".." .. newer
                     end
 
-                    if opts.current_file then
-                        cmd = cmd .. " -- %"
+                    if current_file_path then
+                        cmd = cmd .. " -- " .. vim.fn.fnameescape(current_file_path)
                     end
 
                     vim.cmd(cmd)
                 end)
 
-                return true
-            end,
-        })
-        :find()
-end
-```
-
-- [ ] **Step 3: Smoke test the picker**
-
-Open Neovim in this repo and run:
-```
-:lua require("tw.telescope-git-diff").git_diff_picker()
-```
-Expected: Telescope opens showing commits. Pressing `<CR>` on a commit opens DiffviewOpen with `<sha>..HEAD`. Close diffview with `:DiffviewClose`.
-
-- [ ] **Step 4: Test multi-select**
-
-Open the picker again. Press `<Tab>` on one commit, navigate to another, press `<Tab>`, then `<CR>`.
-Expected: DiffviewOpen opens with `<older>..<newer>` range showing the changes between those two commits.
-
-- [ ] **Step 5: Test current file variant**
-
-Open Neovim on a file with changes across commits and run:
-```
-:lua require("tw.telescope-git-diff").git_diff_picker_current_file()
-```
-Expected: same picker, but DiffviewOpen command ends with ` -- %`, scoping to the current file.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add lua/tw/telescope-git-diff.lua
-git commit -m "feat: implement core git diff picker with entry parsing and commit selection"
-```
-
----
-
-### Task 3: Implement the `<C-o>` toggle between unpushed and all commits
-
-**Files:**
-- Modify: `lua/tw/telescope-git-diff.lua`
-
-- [ ] **Step 1: Add the `<C-o>` mapping inside `attach_mappings`**
-
-In the `attach_mappings` function, after the `actions.select_default:replace(...)` block and before `return true`, add the `<C-o>` mapping for both insert and normal mode. This toggles the `show_all` state, rebuilds the finder, refreshes the picker, and updates the title:
-
-```lua
-                map({ "i", "n" }, "<C-o>", function()
-                    show_all = not show_all
-                    local picker = action_state.get_current_picker(prompt_bufnr)
-                    picker:refresh(make_finder(show_all), { reset_prompt = true })
-                    picker.prompt_border:change_title(picker_title(show_all, no_upstream))
-                end, { desc = "Toggle unpushed/all commits" })
-```
-
-Note: when `no_upstream` is true, `show_all` starts as `true`. Toggling it to `false` would attempt to show unpushed commits which would fail. Guard against this:
-
-```lua
+                -- Toggle between unpushed and all commits
                 map({ "i", "n" }, "<C-o>", function()
                     if no_upstream then
                         vim.notify("No upstream branch set — showing all commits", vim.log.levels.INFO)
@@ -273,39 +175,63 @@ Note: when `no_upstream` is true, `show_all` starts as `true`. Toggling it to `f
                     show_all = not show_all
                     local picker = action_state.get_current_picker(prompt_bufnr)
                     picker:refresh(make_finder(show_all), { reset_prompt = true })
-                    picker.prompt_border:change_title(picker_title(show_all, no_upstream))
+                    -- Update title if the API is available (internal Telescope path)
+                    pcall(function()
+                        picker.prompt_border:change_title(picker_title(show_all, no_upstream))
+                    end)
                 end, { desc = "Toggle unpushed/all commits" })
+
+                return true
+            end,
+        })
+        :find()
+end
+
+function M.git_diff_picker()
+    create_picker({ current_file = false })
+end
+
+function M.git_diff_picker_current_file()
+    create_picker({ current_file = true })
+end
+
+return M
 ```
 
-- [ ] **Step 2: Smoke test the toggle**
+- [ ] **Step 2: Verify the module loads and the picker opens**
 
-Open the picker in a repo with an upstream branch:
+Open Neovim in this repo and run:
 ```
 :lua require("tw.telescope-git-diff").git_diff_picker()
 ```
-Expected: shows unpushed commits, title says "Diff (unpushed)". Press `<C-o>`: list refreshes to show all commits, title changes to "Diff (all)". Press `<C-o>` again: back to unpushed.
+Expected: Telescope opens showing commits. Verify:
+1. Pressing `<CR>` on a commit opens `DiffviewOpen <sha>..HEAD`. Close with `:DiffviewClose`.
+2. `<Tab>` two commits, `<CR>` opens `DiffviewOpen <older>..<newer>`. Close with `:DiffviewClose`.
+3. `<Tab>` three commits, `<CR>` shows warning "Select at most 2 commits", no DiffviewOpen.
+4. `<C-o>` toggles between unpushed/all commits with title update.
 
-- [ ] **Step 3: Test the no-upstream fallback**
+- [ ] **Step 3: Test the current file variant**
 
-Create a new local branch with no upstream and open the picker:
+Open a file that has changes across commits and run:
 ```
-:lua require("tw.telescope-git-diff").git_diff_picker()
+:lua require("tw.telescope-git-diff").git_diff_picker_current_file()
 ```
-Expected: shows all commits, title says "Diff (all -- no upstream)". Press `<C-o>`: notification says "No upstream branch set — showing all commits", list does not change.
+Expected: same picker, but DiffviewOpen scopes to the current file.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Format and commit**
 
 ```bash
+make format && make lint
 git add lua/tw/telescope-git-diff.lua
-git commit -m "feat: add <C-o> toggle between unpushed and all commits in git diff picker"
+git commit -m "feat: add telescope git diff picker with commit selection and <C-o> toggle"
 ```
 
 ---
 
-### Task 4: Wire up keybindings in git.lua
+### Task 2: Wire up keybindings and remove dead code in git.lua
 
 **Files:**
-- Modify: `lua/tw/git.lua:89-108`
+- Modify: `lua/tw/git.lua:89-108` (keybindings), `lua/tw/git.lua:275-277` (dead code)
 
 - [ ] **Step 1: Replace the `<leader>gd` keybinding**
 
@@ -365,37 +291,9 @@ In `lua/tw/git.lua`, replace lines 99-108 (the `<leader>gD` entry):
 			},
 ```
 
-- [ ] **Step 3: Run lint**
+- [ ] **Step 3: Remove the unused `M.diffSplit` function**
 
-```bash
-make lint
-```
-Expected: no errors from `luacheck` for the new or modified files.
-
-- [ ] **Step 4: Smoke test both keybindings**
-
-Open Neovim and test:
-1. Press `<leader>gd` — picker opens, select a commit, DiffviewOpen shows full repo diff.
-2. `:DiffviewClose`
-3. Press `<leader>gD` — picker opens, select a commit, DiffviewOpen shows diff for current file only.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add lua/tw/git.lua
-git commit -m "feat: wire <leader>gd and <leader>gD to telescope git diff picker"
-```
-
----
-
-### Task 5: Clean up dead code
-
-**Files:**
-- Modify: `lua/tw/git.lua:275-277`
-
-- [ ] **Step 1: Remove the old `M.diffSplit` function**
-
-The function `M.diffSplit` at `lua/tw/git.lua:275-277` is no longer referenced anywhere — it was the old programmatic entry point. Remove it:
+Remove the `M.diffSplit` function at `lua/tw/git.lua:275-277` — it is no longer referenced anywhere:
 
 ```lua
 -- Remove these lines (275-277):
@@ -404,73 +302,18 @@ function M.diffSplit(commit)
 end
 ```
 
-- [ ] **Step 2: Verify no other references to `diffSplit`**
+Verify no other references exist: search for `diffSplit` across the codebase. Expected: no results.
 
-Search the codebase for `diffSplit`:
-```bash
-grep -r "diffSplit" lua/
-```
-Expected: no results.
+- [ ] **Step 4: Smoke test both keybindings**
 
-- [ ] **Step 3: Run lint**
+Open Neovim and test:
+1. Press `<leader>gd` — picker opens, select a commit, DiffviewOpen shows full repo diff. `:DiffviewClose`.
+2. Press `<leader>gD` — picker opens, select a commit, DiffviewOpen shows diff for current file only. `:DiffviewClose`.
 
-```bash
-make lint
-```
-Expected: no errors.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Format, lint, and commit**
 
 ```bash
+make format && make lint
 git add lua/tw/git.lua
-git commit -m "chore: remove unused M.diffSplit function"
+git commit -m "feat: wire <leader>gd and <leader>gD to telescope git diff picker"
 ```
-
----
-
-### Task 6: End-to-end validation
-
-- [ ] **Step 1: Full workflow test — single commit, all files**
-
-1. Open Neovim in a git repo with an upstream branch.
-2. Press `<leader>gd`.
-3. Picker opens showing unpushed commits with title "Diff (unpushed)".
-4. Navigate to a commit, press `<CR>`.
-5. DiffviewOpen shows diff of `<commit>..HEAD` for all files.
-6. `:DiffviewClose`.
-
-- [ ] **Step 2: Full workflow test — two commits, all files**
-
-1. Press `<leader>gd`.
-2. Press `<C-o>` to switch to all commits. Title changes to "Diff (all)".
-3. `<Tab>` on an older commit, navigate to a newer commit, `<Tab>`, `<CR>`.
-4. DiffviewOpen shows diff between the two commits for all files.
-5. `:DiffviewClose`.
-
-- [ ] **Step 3: Full workflow test — single commit, current file**
-
-1. Open a file that has been modified across commits.
-2. Press `<leader>gD`.
-3. Select a commit, press `<CR>`.
-4. DiffviewOpen shows diff for the current file only.
-5. `:DiffviewClose`.
-
-- [ ] **Step 4: Edge case — 3+ selections**
-
-1. Press `<leader>gd`, toggle to all commits.
-2. `<Tab>` three commits, press `<CR>`.
-3. Expected: warning notification "Select at most 2 commits", no DiffviewOpen.
-
-- [ ] **Step 5: Edge case — empty unpushed list**
-
-1. Push all local commits so there are none unpushed.
-2. Press `<leader>gd`.
-3. Expected: empty picker with title "Diff (unpushed)".
-4. Press `<C-o>` — switches to all commits, list populates.
-
-- [ ] **Step 6: Run final lint**
-
-```bash
-make lint
-```
-Expected: clean.
