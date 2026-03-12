@@ -37,162 +37,120 @@ local function configureGitsigns()
 				return "<Ignore>"
 			end, { expr = true })
 
-			local keymap = {
-				{
-					"<leader>g",
-					group = "Git",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gS",
-					"<cmd>lua require('gitsigns').stage_buffer()<cr>",
-					desc = "Stage Buffer",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gU",
-					"<cmd>lua require('gitsigns').reset_buffer_index()<cr>",
-					desc = "Reset Buffer Index",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gW",
-					"<cmd>Gwrite!<cr>",
-					desc = "Git write",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gX",
-					"<cmd>lua require('gitsigns').reset_buffer()<cr>",
-					desc = "Reset Buffer",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gb",
-					"<cmd>lua require('gitsigns').blame_line({ full = true })<cr>",
-					desc = "Blame",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gc",
-					"<cmd>lua require('gitsigns').toggle_current_line_blame()<cr>",
-					desc = "Toggle Current Line Blame",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gd",
-					function()
-						require("tw.telescope-git-diff").git_diff_picker()
-					end,
-					desc = "Diff (Commit Picker)",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gD",
-					function()
-						require("tw.telescope-git-diff").git_diff_picker_current_file()
-					end,
-					desc = "Diff Current File (Commit Picker)",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gf",
-					function()
-						vim.cmd("DiffviewFileHistory %")
-					end,
-					desc = "File History",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gh",
-					function()
-						vim.cmd("DiffviewFileHistory")
-					end,
-					desc = "History",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>go",
-					"<cmd>lua require('tw.git').browseCurrentLine()<cr>",
-					desc = "Open Current Line in Browser",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gp",
-					"<cmd>lua require('gitsigns').preview_hunk()<cr>",
-					desc = "Preview Hunk",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gs",
-					"<cmd>lua require('gitsigns').stage_hunk()<cr>",
-					desc = "Stage Hunk",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gu",
-					"<cmd>lua require('gitsigns').undo_stage_hunk()<cr>",
-					desc = "Undo Stage Hunk",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gw",
-					"<cmd>Gwrite<cr>",
-					desc = "Git write",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"<leader>gx",
-					"<cmd>lua require('gitsigns').reset_hunk()<cr>",
-					desc = "Reset Hunk",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"ih",
-					"<cmd>lua require('gitsigns').select_hunk()<cr>",
-					desc = "Select In Hunk",
-					mode = "o",
-					nowait = false,
-					remap = false,
-				},
+		local keymap = {
+			{
+				"<leader>gS",
+				"<cmd>lua require('gitsigns').stage_buffer()<cr>",
+				desc = "Stage Buffer",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gU",
+				"<cmd>lua require('gitsigns').reset_buffer_index()<cr>",
+				desc = "Reset Buffer Index",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gW",
+				"<cmd>Gwrite!<cr>",
+				desc = "Git write",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gX",
+				"<cmd>lua require('gitsigns').reset_buffer()<cr>",
+				desc = "Reset Buffer",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gb",
+				"<cmd>lua require('gitsigns').blame_line({ full = true })<cr>",
+				desc = "Blame",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gc",
+				"<cmd>lua require('gitsigns').toggle_current_line_blame()<cr>",
+				desc = "Toggle Current Line Blame",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>go",
+				"<cmd>lua require('tw.git').browseCurrentLine()<cr>",
+				desc = "Open Current Line in Browser",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gp",
+				"<cmd>lua require('gitsigns').preview_hunk()<cr>",
+				desc = "Preview Hunk",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gs",
+				"<cmd>lua require('gitsigns').stage_hunk()<cr>",
+				desc = "Stage Hunk",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gu",
+				"<cmd>lua require('gitsigns').undo_stage_hunk()<cr>",
+				desc = "Undo Stage Hunk",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gw",
+				"<cmd>Gwrite<cr>",
+				desc = "Git write",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"<leader>gx",
+				"<cmd>lua require('gitsigns').reset_hunk()<cr>",
+				desc = "Reset Hunk",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"ih",
+				"<cmd>lua require('gitsigns').select_hunk()<cr>",
+				desc = "Select In Hunk",
+				mode = "o",
+				nowait = false,
+				remap = false,
+			},
 
-				{
-					"go",
-					":'<,'>GBrowse<cr>",
-					desc = "Open in Browser",
-					mode = "x",
-					nowait = false,
-					remap = false,
-				},
-				{
-					"ih",
-					"<cmd>lua require('gitsigns').select_hunk()<cr>",
-					desc = "Select In Hunk",
-					mode = "x",
-					nowait = false,
-					remap = false,
-				},
-			}
+			{
+				"go",
+				":'<,'>GBrowse<cr>",
+				desc = "Open in Browser",
+				mode = "x",
+				nowait = false,
+				remap = false,
+			},
+			{
+				"ih",
+				"<cmd>lua require('gitsigns').select_hunk()<cr>",
+				desc = "Select In Hunk",
+				mode = "x",
+				nowait = false,
+				remap = false,
+			},
+		}
 
-			local whichkey = require("which-key")
-			whichkey.add(keymap)
+		local whichkey = require("which-key")
+		whichkey.add(keymap)
 		end,
 	})
 end
@@ -278,6 +236,53 @@ end
 function M.setup()
 	configureGitsigns()
 	configureDiffview()
+
+	-- Register keymaps that don't depend on gitsigns globally so they work
+	-- even on blank or non-git-tracked buffers (e.g. right after opening Vim).
+	require("which-key").add({
+		{
+			"<leader>g",
+			group = "Git",
+			nowait = false,
+			remap = false,
+		},
+		{
+			"<leader>gd",
+			function()
+				require("tw.telescope-git-diff").git_diff_picker()
+			end,
+			desc = "Diff (Commit Picker)",
+			nowait = false,
+			remap = false,
+		},
+		{
+			"<leader>gD",
+			function()
+				require("tw.telescope-git-diff").git_diff_picker_current_file()
+			end,
+			desc = "Diff Current File (Commit Picker)",
+			nowait = false,
+			remap = false,
+		},
+		{
+			"<leader>gf",
+			function()
+				vim.cmd("DiffviewFileHistory %")
+			end,
+			desc = "File History",
+			nowait = false,
+			remap = false,
+		},
+		{
+			"<leader>gh",
+			function()
+				vim.cmd("DiffviewFileHistory")
+			end,
+			desc = "History",
+			nowait = false,
+			remap = false,
+		},
+	})
 
 	-- Make :Git always open in a full-width split at the bottom
 	vim.cmd([[
