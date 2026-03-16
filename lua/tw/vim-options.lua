@@ -118,7 +118,7 @@ local function setOptions()
 		extension = {
 			mnd = "mermaid",
 			mdx = "markdown.mdx",
-			libsonnet = "libsonnet",
+			libsonnet = "jsonnet",
 		},
 	})
 end
