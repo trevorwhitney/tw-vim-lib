@@ -16,6 +16,7 @@
 , ...
 }:
 let
+
   basePackages = with pkgs; [
     nodeJsPkg
     goPkg
@@ -25,11 +26,13 @@ let
     gnumake
     gnutar
 
+    imagemagick
     nodePackages.markdownlint-cli
     nil
     nixpkgs-fmt
     statix
     tanka
+    ueberzugpp
 
     claude-code
     (pkgs.callPackage ../change-background {
@@ -37,57 +40,62 @@ let
     })
   ];
 
-  lspPackages = with pkgs;
-    if withLspSupport then (lib.optionals stdenv.isDarwin [
-      pngpaste
-    ]) ++ [
-      golangciLintPkg
-      golangciLintLangServerPkg
-      goplsPkg
+  lspPackages =
+    with pkgs;
+    if withLspSupport then
+      (lib.optionals stdenv.isDarwin [
+        pngpaste
+      ])
+      ++ [
+        golangciLintPkg
+        golangciLintLangServerPkg
+        goplsPkg
 
-      stylua
-      jdtls
-      ccls # c++ language server
-      codespell
-      dockerfile-language-server
-      gofumpt
-      golines
-      gotools
-      go-jsonnet
-      grafana-alloy
-      helm-ls
-      mercurial
-      jsonnet-language-server
-      lua-language-server
-      marksman
-      pprof
-      prettierd
-      pyright
-      shellcheck
-      shfmt
-      terraform
-      terraform-ls
-      typescript
-      vale
-      vim-language-server
-      vim-vint
-      vscode-langservers-extracted
-      write-good
-      yaml-language-server
-      yamllint
+        stylua
+        jdtls
+        ccls # c++ language server
+        codespell
+        dockerfile-language-server
+        gofumpt
+        golines
+        gotools
+        go-jsonnet
+        grafana-alloy
+        helm-ls
+        mercurial
+        jsonnet-language-server
+        lua-language-server
+        marksman
+        pprof
+        prettierd
+        pyright
+        shellcheck
+        shfmt
+        terraform
+        terraform-ls
+        typescript
+        vale
+        vim-language-server
+        vim-vint
+        vscode-langservers-extracted
+        write-good
+        yaml-language-server
+        yamllint
 
-      nodePackages.bash-language-server
-      nodePackages.eslint
-      nodePackages.eslint_d
-      nodePackages.fixjson
-      nodePackages.prettier
-      nodePackages.typescript-language-server
-      nodePackages.vscode-langservers-extracted
+        nodePackages.bash-language-server
+        nodePackages.eslint
+        nodePackages.eslint_d
+        nodePackages.fixjson
+        nodePackages.prettier
+        nodePackages.typescript-language-server
+        nodePackages.vscode-langservers-extracted
 
-      lua53Packages.luacheck
-      lua53Packages.jsregexp
-      lua53Packages.tiktoken_core
-    ] else [ ];
+        lua53Packages.luacheck
+        lua53Packages.jsregexp
+        lua53Packages.tiktoken_core
+      ]
+    else
+      [ ];
 
   treesitterPackages = with pkgs; [
     # TODO: not entirely sure which of these fixed it
@@ -103,58 +111,74 @@ let
 
   packages = basePackages ++ treesitterPackages ++ lspPackages ++ extraPackages;
 
-  extraMakeWrapperArgs = lib.optionalString (packages != [ ])
-    ''--prefix PATH : "${lib.makeBinPath packages}"'';
+  extraMakeWrapperArgs = lib.optionalString
+    (
+      packages != [ ]
+    ) ''--prefix PATH : "${lib.makeBinPath packages}"'';
 
-  neovimConfig = neovimUtils.makeNeovimConfig
-    {
-      vimAlias = true;
-      withRuby = true;
-      withPython3 = true;
+  neovimConfig = neovimUtils.makeNeovimConfig {
+    vimAlias = true;
+    withRuby = true;
+    withPython3 = true;
 
-      # manually overridden in package
-      withNodeJs = false;
+    # manually overridden in package
+    withNodeJs = false;
 
-      extraPython3Packages = ps: with ps; [ pynvim tiktoken ];
-      plugins = with pkgs.vimPlugins; [
-        packer-nvim
-        (vimUtils.buildVimPlugin rec {
-          pname = "tw-vim-lib";
-          version = if (self ? rev) then self.rev else "dirty";
-          src = self;
-          meta.homepage = "https://github.com/trevorwhitney/tw-vim-lib";
-          doCheck = false;
-          dontPatchShebangs = true;
-          postInstall = ''
-            # find and remove broken symlinks
-            find $out -xtype l -exec echo "Removing broken symlink: {}" \; -delete
-          '';
-        })
+    extraPython3Packages =
+      ps: with ps; [
+        pynvim
+        tiktoken
       ];
+    extraLuaPackages = ps: [ ps.magick ];
+    plugins = with pkgs.vimPlugins; [
+      packer-nvim
+      (vimUtils.buildVimPlugin rec {
+        pname = "tw-vim-lib";
+        version = if (self ? rev) then self.rev else "dirty";
+        src = self;
+        meta.homepage = "https://github.com/trevorwhitney/tw-vim-lib";
+        doCheck = false;
+        dontPatchShebangs = true;
+        postInstall = ''
+          # find and remove broken symlinks
+          find $out -xtype l -exec echo "Removing broken symlink: {}" \; -delete
+        '';
+      })
+    ];
 
-      customRC = builtins.concatStringsSep "\n" (with pkgs; [
+    customRC = builtins.concatStringsSep "\n" (
+      with pkgs;
+      [
         "lua <<EOF"
         "require('tw').setup({"
-      ] ++ (if withLspSupport then [
-        "lsp_support = true,"
-        "lua_ls_root = '${lua-language-server}',"
-        "rocks_tree_root = '${lua53Packages.luarocks}',"
-        "jdtls_home = '${jdtls}',"
-        "go_build_tags = '${goBuildTags}',"
-        "dap_configs = ${lib.generators.toLua {} dapConfigurations},"
-      ] else [
-        "lsp_support = false,"
-      ]) ++ [
+      ]
+      ++ (
+        if withLspSupport then
+          [
+            "lsp_support = true,"
+            "lua_ls_root = '${lua-language-server}',"
+            "rocks_tree_root = '${lua53Packages.luarocks}',"
+            "jdtls_home = '${jdtls}',"
+            "go_build_tags = '${goBuildTags}',"
+            "dap_configs = ${lib.generators.toLua { } dapConfigurations},"
+          ]
+        else
+          [
+            "lsp_support = false,"
+          ]
+      )
+      ++ [
         "extra_path = {'${stdenv.cc}/bin', '${tree-sitter}/bin'},"
         "})"
         "EOF"
-      ]);
-    };
+      ]
+    );
+  };
 in
-with pkgs; (wrapNeovimUnstable
-  (neovim-unwrapped.override { nodejs = nodeJsPkg; })
-  (neovimConfig // {
-    wrapperArgs =
-      (lib.escapeShellArgs neovimConfig.wrapperArgs) + " "
-        + extraMakeWrapperArgs;
-  }))
+with pkgs;
+(wrapNeovimUnstable (neovim-unwrapped.override { nodejs = nodeJsPkg; }) (
+  neovimConfig
+    // {
+    wrapperArgs = (lib.escapeShellArgs neovimConfig.wrapperArgs) + " " + extraMakeWrapperArgs;
+  }
+))

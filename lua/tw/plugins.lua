@@ -288,6 +288,18 @@ function Packer.install(use)
 				})
 			end,
 		})
+		use({
+			"3rd/image.nvim",
+			config = function()
+				require("image").setup({
+					backend = "kitty",
+					integrations = {
+						markdown = { enabled = true },
+					},
+					hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.avif" },
+				})
+			end,
+		})
 		installNativeLsp(use)
 		installTelescope(use)
 		installDap(use)
