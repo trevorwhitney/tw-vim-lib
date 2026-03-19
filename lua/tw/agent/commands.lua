@@ -44,6 +44,41 @@ function M.setup_autocmds(claude_module)
 		desc = "Detect and send workmux prompt to agent on startup",
 	})
 
+	-- When workmux opened opencode fullscreen, revert to vsplit layout
+	-- the first time a non-terminal buffer is entered (e.g. editing a file).
+	vim.api.nvim_create_autocmd("BufEnter", {
+		callback = function(args)
+			if not claude_module.workmux_fullscreen then
+				return
+			end
+
+			-- Only act on normal (non-terminal) buffers
+			local buftype = vim.bo[args.buf].buftype
+			if buftype == "terminal" then
+				return
+			end
+
+			-- Disable the flag so this only fires once
+			claude_module.workmux_fullscreen = false
+
+			-- Find the opencode agent buffer
+			local agent_buf = claude_module.opencode_buf or claude_module.opencode_docker_buf
+			if not agent_buf or not vim.api.nvim_buf_is_valid(agent_buf) then
+				return
+			end
+
+			-- The file buffer is now in the current window. Open the agent
+			-- buffer in a right-side vsplit so the layout becomes:
+			--   [file (left)]  |  [opencode (right)]
+			terminal.open_buffer_in_new_window("vsplit", agent_buf)
+
+			-- Move focus back to the file window (the previous window)
+			vim.cmd("wincmd p")
+		end,
+		group = group,
+		desc = "Revert workmux fullscreen opencode to vsplit when a file is opened",
+	})
+
 	-- Set nowrap for agent buffer windows, which makes code changes look better
 	vim.api.nvim_create_autocmd("BufWinEnter", {
 		callback = function(args)

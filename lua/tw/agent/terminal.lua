@@ -21,7 +21,10 @@ local function open_editor_relative_window()
 end
 
 function M.open_window(window_type)
-	if window_type == "vsplit" then
+	if window_type == "current" then
+		-- Use the current window as-is (no split)
+		return
+	elseif window_type == "vsplit" then
 		open_vsplit_window()
 	elseif window_type == "hsplit" then
 		open_hsplit_window()
@@ -31,7 +34,10 @@ function M.open_window(window_type)
 end
 
 function M.open_buffer_in_new_window(window_type, claude_buf)
-	if window_type == "vsplit" then
+	if window_type == "current" then
+		-- Open in the current window without splitting
+		vim.api.nvim_command("buffer " .. claude_buf)
+	elseif window_type == "vsplit" then
 		vim.api.nvim_command("vert botright split | buffer " .. claude_buf)
 	elseif window_type == "hsplit" then
 		vim.api.nvim_command("split | buffer " .. claude_buf)

@@ -37,6 +37,10 @@ M.shell_job_id = nil
 M.logs_buf = nil
 M.logs_job_id = nil
 
+-- Workmux fullscreen state: when true, opencode occupies the full viewport
+-- and will revert to a vsplit when a non-terminal buffer is opened.
+M.workmux_fullscreen = false
+
 -- Container configuration
 M.auto_build = true -- Auto-build image if missing
 M.container_started = false -- Track if we started the container
@@ -841,7 +845,10 @@ function M.WorkmuxPrompt()
 	-- Pass prompt to opencode via --prompt with shellescape for safe shell passing
 	-- shellescape wraps in single quotes, which table.concat in claude.lua joins with spaces
 	-- Result: opencode /project --prompt 'the prompt text'
-	M.Open("opencode", { "--prompt", vim.fn.shellescape(prompt_text) }, "vsplit")
+	-- Use "current" window type so opencode fills the whole viewport on boot;
+	-- a BufEnter autocmd will revert it to a vsplit when a file is opened.
+	M.workmux_fullscreen = true
+	M.Open("opencode", { "--prompt", vim.fn.shellescape(prompt_text) }, "current")
 end
 
 function M.setup(opts)
