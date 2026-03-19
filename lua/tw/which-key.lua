@@ -31,6 +31,12 @@ local function mapKeys(wk)
 			remap = false,
 		},
 		{
+			"<leader>P",
+			"<cmd>Telescope find_files<cr>",
+			desc = "Find File",
+			remap = false,
+		},
+		{
 			"<leader>R",
 			"<cmd>Telescope resume<cr>",
 			desc = "Resume Find",
