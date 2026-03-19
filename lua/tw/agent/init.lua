@@ -809,6 +809,41 @@ function M.get_status()
 	}
 end
 
+function M.WorkmuxPrompt()
+	-- Find .workmux/PROMPT-*.md in cwd
+	local cwd = vim.fn.getcwd()
+	local workmux_dir = cwd .. "/.workmux"
+	local prompt_files = vim.fn.glob(workmux_dir .. "/PROMPT-*.md", false, true)
+
+	if #prompt_files == 0 then
+		return
+	end
+
+	-- Use the first prompt file (warn if multiple found)
+	local prompt_file = prompt_files[1]
+	if #prompt_files > 1 then
+		log.warn("Multiple workmux prompts found, using: " .. prompt_file)
+	end
+	log.info("Found workmux prompt: " .. prompt_file)
+
+	-- Read content before deleting to avoid race with async termopen
+	local lines = vim.fn.readfile(prompt_file)
+	if #lines == 0 then
+		return
+	end
+	local prompt_text = table.concat(lines, "\n")
+
+	-- Clean up all prompt files so they aren't re-sent on restart
+	for _, f in ipairs(prompt_files) do
+		vim.fn.delete(f)
+	end
+
+	-- Pass prompt to opencode via --prompt with shellescape for safe shell passing
+	-- shellescape wraps in single quotes, which table.concat in claude.lua joins with spaces
+	-- Result: opencode /project --prompt 'the prompt text'
+	M.Open("opencode", { "--prompt", vim.fn.shellescape(prompt_text) }, "vsplit")
+end
+
 function M.setup(opts)
 	opts = opts or {}
 	M.auto_build = opts.auto_build ~= false

@@ -32,6 +32,18 @@ function M.setup_autocmds(claude_module)
 		group = group,
 	})
 
+	-- Detect workmux prompt file on startup
+	vim.api.nvim_create_autocmd("VimEnter", {
+		callback = function()
+			-- Slight delay to let vim fully initialize
+			vim.defer_fn(function()
+				claude_module.WorkmuxPrompt()
+			end, 100)
+		end,
+		group = group,
+		desc = "Detect and send workmux prompt to agent on startup",
+	})
+
 	-- Set nowrap for agent buffer windows, which makes code changes look better
 	vim.api.nvim_create_autocmd("BufWinEnter", {
 		callback = function(args)
