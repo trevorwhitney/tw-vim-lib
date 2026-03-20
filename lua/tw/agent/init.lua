@@ -829,6 +829,81 @@ function M.get_status()
 	}
 end
 
+--- Generate a short pane description from prompt text via LLM and set @desc.
+--- Fire-and-forget: errors are logged but never disrupt the user.
+local function generate_pane_description(prompt_text)
+	if not prompt_text or prompt_text == "" then
+		return
+	end
+	if vim.fn.executable("opencode") ~= 1 then
+		log.debug("generate_pane_description: opencode not found, skipping")
+		return
+	end
+	if not os.getenv("TMUX") then
+		log.debug("generate_pane_description: not in tmux, skipping")
+		return
+	end
+
+	-- Clear any stale description before the async call
+	vim.system({ "tmux", "set", "-pu", "@desc" })
+
+	local instructions = "Summarize this task in 3-5 words. "
+		.. "Output ONLY the summary, nothing else. "
+		.. "No quotes, no punctuation, no explanation."
+	local capped_prompt = prompt_text:sub(1, 2000)
+	local message = instructions .. " The task: " .. capped_prompt
+
+	vim.system(
+		{ "opencode", "run", "--format", "json", "--model", "anthropic/claude-haiku-4-5", message },
+		{ timeout = 15000 },
+		function(result)
+			vim.schedule(function()
+				if result.code ~= 0 then
+					log.warn("generate_pane_description: opencode exited with code " .. tostring(result.code))
+					return
+				end
+
+				local stdout = result.stdout or ""
+				if stdout == "" then
+					log.warn("generate_pane_description: empty output")
+					return
+				end
+
+				-- Parse NDJSON: collect .part.text from all type=="text" objects
+				local parts = {}
+				for line in stdout:gmatch("[^\n]+") do
+					local ok, decoded = pcall(vim.json.decode, line)
+					if ok and type(decoded) == "table" and decoded.type == "text" then
+						local text = decoded.part and decoded.part.text
+						if text then
+							table.insert(parts, text)
+						end
+					end
+				end
+
+				local desc = vim.trim(table.concat(parts, " "))
+				desc = desc:gsub("[%c]", "")
+				desc = desc:sub(1, 50)
+				desc = vim.trim(desc)
+
+				if desc == "" then
+					log.warn("generate_pane_description: empty after sanitization")
+					return
+				end
+
+				log.info("generate_pane_description: @desc = " .. desc)
+				vim.system({ "tmux", "set", "-p", "@desc", desc }, {}, function(tmux_result)
+					vim.schedule(function()
+						if tmux_result.code ~= 0 then
+							log.warn("generate_pane_description: tmux set failed: " .. tostring(tmux_result.code))
+						end
+					end)
+				end)
+			end)
+		end
+	)
+end
+
 function M.WorkmuxPrompt()
 	-- Find .workmux/PROMPT-*.md in cwd
 	local cwd = vim.fn.getcwd()
@@ -852,6 +927,9 @@ function M.WorkmuxPrompt()
 		return
 	end
 	local prompt_text = table.concat(lines, "\n")
+
+	-- Generate a short pane description asynchronously (fire-and-forget)
+	generate_pane_description(prompt_text)
 
 	-- Clean up all prompt files so they aren't re-sent on restart
 	for _, f in ipairs(prompt_files) do
