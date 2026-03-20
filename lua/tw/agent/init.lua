@@ -855,11 +855,19 @@ local function generate_pane_description(prompt_text)
 
 	vim.system(
 		{ "opencode", "run", "--format", "json", "--model", "anthropic/claude-haiku-4-5", message },
-		{ timeout = 15000 },
+		{ timeout = 45000 },
 		function(result)
 			vim.schedule(function()
 				if result.code ~= 0 then
-					log.warn("generate_pane_description: opencode exited with code " .. tostring(result.code))
+					local stderr_info = ""
+					if result.stderr and result.stderr ~= "" then
+						stderr_info = " stderr: " .. result.stderr:sub(1, 500)
+					end
+					log.warn(
+						"generate_pane_description: opencode exited with code "
+							.. tostring(result.code)
+							.. stderr_info
+					)
 					return
 				end
 
