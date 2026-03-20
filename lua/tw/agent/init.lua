@@ -581,16 +581,23 @@ function M.VimTestStrategy(cmd)
 end
 
 function M.SendSelection()
+	-- Resolve file path FIRST — bail before any side effects if unresolvable
+	local filename, repo_root = util.resolve_file_path()
+	if not filename then
+		vim.notify("Cannot resolve file path in this buffer", vim.log.levels.WARN)
+		return
+	end
+
+	local git_root = repo_root or util.get_git_root()
+	local rel_path = Path:new(filename):make_relative(git_root)
+
+	-- Yank sets the '< and '> marks reliably
 	vim.cmd('normal! "sy')
 
 	local start_line = vim.fn.line("'<")
 	local end_line = vim.fn.line("'>")
 
-	-- Get the current file path
-	local filename = vim.fn.expand("%")
-	local rel_path = Path:new(filename):make_relative(util.get_git_root())
-
-	-- Exit visual mode before opening Claude
+	-- Exit visual mode before opening agent
 	vim.cmd("normal! \027") -- \027 is escape key
 
 	-- Format: @filename:start-end
@@ -607,8 +614,14 @@ function M.SendSelection()
 end
 
 function M.SendSymbol()
-	local filename = vim.fn.expand("%")
-	local rel_path = Path:new(filename):make_relative(util.get_git_root())
+	local filename, repo_root = util.resolve_file_path()
+	if not filename then
+		vim.notify("Cannot resolve file path in this buffer", vim.log.levels.WARN)
+		return
+	end
+
+	local git_root = repo_root or util.get_git_root()
+	local rel_path = Path:new(filename):make_relative(git_root)
 	local word = vim.fn.expand("<cword>")
 	local line_num = vim.fn.line(".")
 	confirmOpenAndDo(function()
@@ -619,8 +632,14 @@ function M.SendSymbol()
 end
 
 function M.SendFile()
-	local filename = vim.fn.expand("%")
-	local rel_path = Path:new(filename):make_relative(util.get_git_root())
+	local filename, repo_root = util.resolve_file_path()
+	if not filename then
+		vim.notify("Cannot resolve file path in this buffer", vim.log.levels.WARN)
+		return
+	end
+
+	local git_root = repo_root or util.get_git_root()
+	local rel_path = Path:new(filename):make_relative(git_root)
 	confirmOpenAndDo(function()
 		M.SendText({
 			"@" .. rel_path .. " ",
@@ -644,8 +663,6 @@ function M.SendOpenBuffers()
 		}, true)
 	end)
 end
-
-
 
 function M.StartClaude()
 	confirmOpenAndDo(nil)
@@ -726,7 +743,6 @@ local function configureClaudeKeymap()
 				nowait = false,
 				remap = false,
 			},
-
 
 			{
 				"<leader>cb",

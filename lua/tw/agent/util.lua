@@ -98,16 +98,24 @@ end
 
 function M.get_buffer_files()
 	local files = {}
+	local seen = {}
 	local buffers = vim.api.nvim_list_bufs()
+	-- Hoist git root lookup above loop — avoid per-buffer subprocess spawning
+	local fallback_root = M.get_git_root()
 
 	for _, buf in ipairs(buffers) do
-		-- Include all buffers that are listed (which includes bufferline tabs)
 		if vim.bo[buf].buflisted then
 			local name = vim.api.nvim_buf_get_name(buf)
-			-- Check if buffer has a valid file path and exists on disk
-			if name ~= "" and vim.fn.filereadable(name) == 1 then
-				local rel_path = Path:new(name):make_relative(M.get_git_root())
-				table.insert(files, "@" .. rel_path)
+			-- Resolve diffview URIs to real paths before any checks
+			local resolved, repo_root = M.resolve_file_path(name)
+			if resolved and not seen[resolved] then
+				-- Check if resolved path exists on disk
+				if vim.fn.filereadable(resolved) == 1 then
+					seen[resolved] = true
+					local git_root = repo_root or fallback_root
+					local rel_path = Path:new(resolved):make_relative(git_root)
+					table.insert(files, "@" .. rel_path)
+				end
 			end
 		end
 	end
