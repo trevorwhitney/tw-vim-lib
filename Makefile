@@ -1,4 +1,4 @@
-.PHONY: help docker lint lint-lua lint-nix format format-lua format-nix
+.PHONY: help docker lint lint-lua lint-nix format format-lua format-nix test-lua
 
 help:
 	@echo "Available targets:"
@@ -9,6 +9,7 @@ help:
 	@echo "  format     - Run all formatters (Lua and Nix)"
 	@echo "  format-lua - Format Lua files with stylua"
 	@echo "  format-nix - Format Nix files with nixpkgs-fmt"
+	@echo "  test-lua  - Run Lua unit tests"
 
 docker:
 	docker build -t tw-claude-code:latest -f lua/tw/claude/docker/Dockerfile lua/tw/claude/docker
@@ -54,3 +55,7 @@ format-nix:
 		echo "Warning: nixpkgs-fmt not found. Install with: nix-env -iA nixpkgs.nixpkgs-fmt"; \
 		exit 1; \
 	fi
+
+test-lua:
+	@echo "Running Lua tests..."
+	@lua test/resolve_file_path_test.lua
