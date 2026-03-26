@@ -581,7 +581,7 @@ function M.start_container_after_build(container_name, context_directories, call
 					log.debug("Cleanup exit code: " .. cleanup_exit_code)
 				end
 				-- Now start the persistent container
-				local start_cmd = M.get_start_container_command(container_name, context_directories)
+				local start_cmd, mount_info = M.get_start_container_command(container_name, context_directories)
 				if log then
 					log.debug("Container start command: " .. start_cmd)
 				end
@@ -621,9 +621,9 @@ function M.start_container_after_build(container_name, context_directories, call
 												if log then
 													log.info("Claude container fully ready" .. security_status, true)
 												end
-												if callback then
-													callback(true, "running")
-												end
+											if callback then
+												callback(true, "running", mount_info)
+											end
 											end)
 										end, 2000) -- Wait 2 seconds after container verification to set up firewall
 									else

@@ -47,6 +47,7 @@ M.container_started = false -- Track if we started the container
 M.container_name = string.format("claude-code-nvim-%d-%d", vim.fn.getpid(), os.time()) -- More unique container name
 -- Context directories configuration (per-session only)
 M.context_directories = {} -- Table of paths to mount at /context/*
+M.mount_info = nil -- Cached workspace mount info from last container start
 
 -- Buffer configuration
 M.buffer_config = {
@@ -169,27 +170,29 @@ local function start_new_agent_job(args, window_type, mode)
 			local project_path
 
 			if is_docker then
-				-- In docker mode, ensure git root is in context_directories and use the mounted container path
-				if not M.context_directories[git_root] then
-					M.context_directories[git_root] = true
-					log.info("Auto-added git root to context directories: " .. git_root)
-				end
-
-				local dir_name = vim.fn.fnamemodify(git_root, ":t")
-				-- Check if there's a duplicate to determine the mount name
-				local has_duplicate = false
-				for other_path, _ in pairs(M.context_directories) do
-					if other_path ~= git_root and vim.fn.fnamemodify(other_path, ":t") == dir_name then
-						has_duplicate = true
-						break
+				-- Determine project path based on mount strategy
+				local mi = docker.workspace_mount_info()
+				if mi.is_workspace_mode then
+					-- Git root is accessible under the workspace mount — translate path directly
+					local host_ws = mi.host_workspace
+					local is_git_root_under_ws = git_root == host_ws
+						or git_root:sub(1, #host_ws + 1) == host_ws .. "/"
+					if is_git_root_under_ws then
+						local relative = git_root:sub(#host_ws + 1) -- includes leading "/"
+						project_path = mi.container_workspace .. relative
+					else
+						-- Git root outside workspace — fall back to context dir mount
+						if not M.context_directories[git_root] then
+							M.context_directories[git_root] = true
+							log.info("Auto-added git root to context directories: " .. git_root)
+						end
+						local dir_name = vim.fn.fnamemodify(git_root, ":t")
+						project_path = "/context/" .. dir_name
 					end
+				else
+					-- Fallback mode: git root IS the mounted CWD
+					project_path = mi.container_workspace
 				end
-				local mount_name = dir_name
-				if has_duplicate then
-					local hash = vim.fn.sha256(git_root)
-					mount_name = dir_name .. "_" .. string.sub(hash, 1, 8)
-				end
-				project_path = "/context/" .. mount_name
 				log.debug("Docker project path: " .. project_path)
 			else
 				-- In local mode, use the host git root path
@@ -226,13 +229,15 @@ local function start_new_agent_job(args, window_type, mode)
 			-- Helper function to start container and wait for completion
 			local function wait_for_container_start(action_name)
 				local success_flag = false
+				local captured_mount_info = nil
 				docker.start_container_async(
 					M.container_name,
 					M.auto_build,
 					M.context_directories,
-					function(success, status)
+					function(success, status, mount_info)
 						if success then
 							M.container_started = true
+							captured_mount_info = mount_info
 							success_flag = true
 						else
 							log.error(
@@ -267,6 +272,7 @@ local function start_new_agent_job(args, window_type, mode)
 					M.container_started = false
 					return false
 				end
+				M.mount_info = captured_mount_info
 				return true
 			end
 			if M.container_started then
@@ -289,8 +295,15 @@ local function start_new_agent_job(args, window_type, mode)
 		if args and #args > 0 then
 			cmd_args = table.concat(args, " ")
 		end
-		-- Use the command name from the parsed mode
-		command = docker.attach_to_container(M.container_name, cmd_args, command_name)
+		-- Use mount info for working directory (may have been set during container start,
+		-- or compute fresh if container was already running)
+		local working_dir
+		if M.mount_info then
+			working_dir = M.mount_info.container_cwd
+		else
+			working_dir = docker.workspace_mount_info().container_cwd
+		end
+		command = docker.attach_to_container(M.container_name, cmd_args, command_name, working_dir)
 		log.debug("Using docker attach command: " .. command)
 	else
 		log.debug("Local mode enabled for " .. command_name)
