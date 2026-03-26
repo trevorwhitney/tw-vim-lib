@@ -12,7 +12,7 @@ help:
 	@echo "  test-lua  - Run Lua unit tests"
 
 docker:
-	docker build -t tw-claude-code:latest -f lua/tw/claude/docker/Dockerfile lua/tw/claude/docker
+	docker build -t tw-claude-code:latest -f lua/tw/agent/docker/Dockerfile lua/tw/agent/docker
 
 lint: lint-lua lint-nix
 	@echo "All linting complete"

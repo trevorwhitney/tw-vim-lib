@@ -131,13 +131,13 @@ end
 local function get_plugin_root()
 	local source = debug.getinfo(1, "S").source
 	local file_path = string.sub(source, 2) -- Remove the '@' prefix
-	local plugin_root = string.match(file_path, "(.-)/lua/tw/claude/docker/init%.lua$")
+	local plugin_root = string.match(file_path, "(.-)/lua/tw/agent/docker/init%.lua$")
 	return plugin_root
 end
 
 function M.build_docker_image()
 	local plugin_root = get_plugin_root()
-	local docker_dir = plugin_root .. "/lua/tw/claude/docker"
+	local docker_dir = plugin_root .. "/lua/tw/agent/docker"
 	return "cd " .. docker_dir .. " && docker build -t tw-claude-code:latest ."
 end
 
