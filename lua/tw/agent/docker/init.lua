@@ -202,8 +202,7 @@ function M.get_start_container_command(container_name, context_dirs)
 		-- In workspace mode, skip dirs that are under ~/workspace (already accessible)
 		if mount_info.is_workspace_mode then
 			local host_ws = mount_info.host_workspace
-			local is_under_workspace = source_path == host_ws
-				or source_path:sub(1, #host_ws + 1) == host_ws .. "/"
+			local is_under_workspace = source_path == host_ws or source_path:sub(1, #host_ws + 1) == host_ws .. "/"
 			if is_under_workspace then
 				goto continue_context
 			end
@@ -621,9 +620,9 @@ function M.start_container_after_build(container_name, context_directories, call
 												if log then
 													log.info("Claude container fully ready" .. security_status, true)
 												end
-											if callback then
-												callback(true, "running", mount_info)
-											end
+												if callback then
+													callback(true, "running", mount_info)
+												end
 											end)
 										end, 2000) -- Wait 2 seconds after container verification to set up firewall
 									else

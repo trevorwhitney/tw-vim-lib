@@ -22,7 +22,7 @@ local function mapKeys(wk)
 			desc = "Find/Replace",
 			remap = false,
 		},
-    {
+		{
 			"<leader>F",
 			function()
 				require("spectre").toggle()

@@ -91,8 +91,6 @@ M.check = function()
 	else
 		health.info("Native mode enabled (not using Docker)")
 	end
-
-
 end
 
 return M

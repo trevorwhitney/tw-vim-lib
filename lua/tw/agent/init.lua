@@ -175,8 +175,7 @@ local function start_new_agent_job(args, window_type, mode)
 				if mi.is_workspace_mode then
 					-- Git root is accessible under the workspace mount — translate path directly
 					local host_ws = mi.host_workspace
-					local is_git_root_under_ws = git_root == host_ws
-						or git_root:sub(1, #host_ws + 1) == host_ws .. "/"
+					local is_git_root_under_ws = git_root == host_ws or git_root:sub(1, #host_ws + 1) == host_ws .. "/"
 					if is_git_root_under_ws then
 						local relative = git_root:sub(#host_ws + 1) -- includes leading "/"
 						project_path = mi.container_workspace .. relative
@@ -877,9 +876,7 @@ local function generate_pane_description(prompt_text)
 						stderr_info = " stderr: " .. result.stderr:sub(1, 500)
 					end
 					log.warn(
-						"generate_pane_description: opencode exited with code "
-							.. tostring(result.code)
-							.. stderr_info
+						"generate_pane_description: opencode exited with code " .. tostring(result.code) .. stderr_info
 					)
 					return
 				end
