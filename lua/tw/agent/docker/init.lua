@@ -1,7 +1,13 @@
 local M = {}
 
--- Detect if we're in a git worktree and return worktree info
-function M.detect_worktree()
+-- Constants for workspace-mirroring mount strategy
+local CONTAINER_HOME = "/home/node"
+local CONTAINER_WORKSPACE = CONTAINER_HOME .. "/workspace"
+
+-- Detect if we're in a git worktree and return worktree info.
+-- mount_info: result of workspace_mount_info(), used to determine container paths.
+--   If nil, falls back to legacy /git-root based paths.
+function M.detect_worktree(mount_info)
 	local git_path = vim.fn.getcwd() .. "/.git"
 
 	-- Check if .git is a file (worktree indicator)
@@ -25,12 +31,33 @@ function M.detect_worktree()
 					-- Resolve to absolute path
 					main_repo = vim.fn.fnamemodify(main_repo, ":p")
 
+					-- Determine the container gitdir path based on mount strategy
+					local container_gitdir
+					if mount_info and mount_info.is_workspace_mode then
+						-- Main repo is under ~/workspace, rewrite host prefix to container prefix
+						local host_ws = mount_info.host_workspace
+						container_gitdir = gitdir:gsub("^" .. vim.pesc(host_ws), mount_info.container_workspace)
+					else
+						-- Fallback: main repo mounted at /git-root
+						container_gitdir = gitdir:gsub("^" .. vim.pesc(main_repo), "/git-root/")
+					end
+
+					-- Determine where to mount the .git file inside the container
+					local container_git_mount_path
+					if mount_info and mount_info.is_workspace_mode then
+						container_git_mount_path = mount_info.container_cwd .. "/.git"
+					else
+						container_git_mount_path = CONTAINER_WORKSPACE .. "/.git"
+					end
+
 					return {
 						worktree_dir = vim.fn.getcwd(),
 						gitdir = gitdir,
 						main_repo = main_repo,
-						-- Extract relative path from main repo for container
-						container_gitdir = gitdir:gsub("^" .. vim.pesc(main_repo), "/git-root/"),
+						container_gitdir = container_gitdir,
+						container_git_mount_path = container_git_mount_path,
+						-- Track whether main repo needs a separate mount
+						needs_git_root_mount = not (mount_info and mount_info.is_workspace_mode),
 					}
 				end
 			end
@@ -39,10 +66,6 @@ function M.detect_worktree()
 
 	return nil
 end
-
--- Constants for workspace-mirroring mount strategy
-local CONTAINER_HOME = "/home/node"
-local CONTAINER_WORKSPACE = CONTAINER_HOME .. "/workspace"
 
 -- Determine mount strategy based on whether CWD is under ~/workspace.
 -- Returns a table with mount info:
