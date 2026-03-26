@@ -169,8 +169,11 @@ function M.get_start_container_command(container_name, context_dirs)
 		network_flag = "--network host"
 	end
 
+	-- Determine mount strategy
+	local mount_info = M.workspace_mount_info()
+
 	-- Check if we're in a git worktree
-	local worktree_info = M.detect_worktree()
+	local worktree_info = M.detect_worktree(mount_info)
 	local worktree_git_file = nil
 
 	if worktree_info then
@@ -194,8 +197,18 @@ function M.get_start_container_command(container_name, context_dirs)
 		table.insert(docker_cmd, network_flag)
 	end
 
-	-- Add context directory mounts
+	-- Add context directory mounts (skip dirs already under workspace mount)
 	for source_path, _ in pairs(context_dirs) do
+		-- In workspace mode, skip dirs that are under ~/workspace (already accessible)
+		if mount_info.is_workspace_mode then
+			local host_ws = mount_info.host_workspace
+			local is_under_workspace = source_path == host_ws
+				or source_path:sub(1, #host_ws + 1) == host_ws .. "/"
+			if is_under_workspace then
+				goto continue_context
+			end
+		end
+
 		local dir_name = vim.fn.fnamemodify(source_path, ":t")
 		-- Ensure unique mount points by using full path hash if duplicate names
 		local mount_name = dir_name
@@ -212,23 +225,27 @@ function M.get_start_container_command(container_name, context_dirs)
 		end
 		table.insert(docker_cmd, "-v")
 		table.insert(docker_cmd, source_path .. ":/context/" .. mount_name)
+
+		::continue_context::
 	end
 
 	-- Add worktree-specific mounts if needed
 	if worktree_info and worktree_git_file then
-		-- Mount the main git repository
-		table.insert(docker_cmd, "-v")
-		table.insert(docker_cmd, worktree_info.main_repo .. ":/git-root")
+		-- Only mount the main repo at /git-root if NOT in workspace mode
+		if worktree_info.needs_git_root_mount then
+			table.insert(docker_cmd, "-v")
+			table.insert(docker_cmd, worktree_info.main_repo .. ":/git-root")
+		end
 
-		-- Mount the corrected .git file over the workspace .git
+		-- Mount the corrected .git file at the appropriate container path
 		table.insert(docker_cmd, "-v")
-		table.insert(docker_cmd, worktree_git_file .. ":/workspace/.git:ro")
+		table.insert(docker_cmd, worktree_git_file .. ":" .. worktree_info.container_git_mount_path .. ":ro")
 	end
 
-	-- Add the rest of the arguments
+	-- Add the primary workspace mount and other volume/env arguments
 	local remaining_args = {
 		"-v",
-		vim.fn.getcwd() .. ":/workspace",
+		mount_info.mount_source .. ":" .. mount_info.mount_target,
 		"-v",
 		vim.fn.expand("~/.config/claude-container") .. ":/home/node/.claude",
 		"-v",
@@ -279,7 +296,7 @@ function M.get_start_container_command(container_name, context_dirs)
 		table.insert(docker_cmd, arg)
 	end
 
-	return table.concat(docker_cmd, " ")
+	return table.concat(docker_cmd, " "), mount_info
 end
 
 function M.attach_to_container(container_name, args, command)
