@@ -181,7 +181,7 @@ ENV CLAUDE_CONFIG_DIR="/home/node/.claude"
 ENV PATH="/home/node/.local/bin:$PATH"
 
 USER node
-WORKDIR /workspace
+WORKDIR /home/node/workspace
 
 # Default command
 CMD ["/bin/bash"]
