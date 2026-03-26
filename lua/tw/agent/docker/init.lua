@@ -299,10 +299,11 @@ function M.get_start_container_command(container_name, context_dirs)
 	return table.concat(docker_cmd, " "), mount_info
 end
 
-function M.attach_to_container(container_name, args, command)
+function M.attach_to_container(container_name, args, command, working_dir)
 	container_name = container_name or "claude-code-nvim"
 	args = args or ""
 	command = command or "claude"
+	working_dir = working_dir or CONTAINER_WORKSPACE
 	if args ~= "" then
 		args = " " .. args
 	end
@@ -316,7 +317,7 @@ function M.attach_to_container(container_name, args, command)
 		cmd_string = "claude --dangerously-skip-permissions" .. args
 	end
 
-	local cmd = "docker exec -it " .. container_name .. ' /bin/bash -c "' .. cmd_string .. '"'
+	local cmd = "docker exec -it -w " .. working_dir .. " " .. container_name .. ' /bin/bash -c "' .. cmd_string .. '"'
 	return cmd
 end
 
