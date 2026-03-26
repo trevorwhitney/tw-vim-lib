@@ -40,6 +40,53 @@ function M.detect_worktree()
 	return nil
 end
 
+-- Constants for workspace-mirroring mount strategy
+local CONTAINER_HOME = "/home/node"
+local CONTAINER_WORKSPACE = CONTAINER_HOME .. "/workspace"
+
+-- Determine mount strategy based on whether CWD is under ~/workspace.
+-- Returns a table with mount info:
+--   host_workspace: expanded ~/workspace path (string)
+--   container_workspace: "/home/node/workspace" (string)
+--   is_workspace_mode: true if CWD is under ~/workspace (boolean)
+--   mount_source: host path to mount (~/workspace or CWD) (string)
+--   mount_target: container path to mount at (string)
+--   container_cwd: the working directory inside the container (string)
+function M.workspace_mount_info()
+	local host_workspace = vim.fn.expand("~/workspace")
+	-- Ensure no trailing slash for consistent prefix matching
+	host_workspace = host_workspace:gsub("/$", "")
+	local cwd = vim.fn.getcwd()
+
+	-- Check if CWD is under ~/workspace (equal to it or a subdirectory)
+	local is_workspace_mode = cwd == host_workspace or cwd:sub(1, #host_workspace + 1) == host_workspace .. "/"
+
+	if is_workspace_mode then
+		-- Derive container CWD by replacing host prefix with container prefix
+		local relative = cwd:sub(#host_workspace + 1) -- includes leading "/" or is ""
+		local container_cwd = CONTAINER_WORKSPACE .. relative
+
+		return {
+			host_workspace = host_workspace,
+			container_workspace = CONTAINER_WORKSPACE,
+			is_workspace_mode = true,
+			mount_source = host_workspace,
+			mount_target = CONTAINER_WORKSPACE,
+			container_cwd = container_cwd,
+		}
+	else
+		-- Fallback: mount CWD at /home/node/workspace (same as old /workspace behavior)
+		return {
+			host_workspace = host_workspace,
+			container_workspace = CONTAINER_WORKSPACE,
+			is_workspace_mode = false,
+			mount_source = cwd,
+			mount_target = CONTAINER_WORKSPACE,
+			container_cwd = CONTAINER_WORKSPACE,
+		}
+	end
+end
+
 -- Create a temporary .git file with corrected paths for container
 function M.create_worktree_git_file(worktree_info)
 	-- Create temp file with corrected gitdir path
