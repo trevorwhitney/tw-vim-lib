@@ -856,8 +856,18 @@ local function generate_pane_description(prompt_text)
 		return
 	end
 
+	-- Capture the pane ID for this vim instance so we target the correct pane
+	-- even when vim loads in a non-focused tab (e.g. via workmux).
+	-- $TMUX_PANE is set by tmux when the shell is spawned and is stable
+	-- regardless of which pane currently has focus.
+	local pane_id = os.getenv("TMUX_PANE")
+	if not pane_id then
+		log.debug("generate_pane_description: TMUX_PANE not set, skipping")
+		return
+	end
+
 	-- Clear any stale description before the async call
-	vim.system({ "tmux", "set", "-pu", "@desc" })
+	vim.system({ "tmux", "set", "-pt", pane_id, "@desc" })
 
 	local instructions = "Summarize this task in 3-5 words. "
 		.. "Output ONLY the summary, nothing else. "
@@ -910,7 +920,7 @@ local function generate_pane_description(prompt_text)
 				end
 
 				log.info("generate_pane_description: @desc = " .. desc)
-				vim.system({ "tmux", "set", "-p", "@desc", desc }, {}, function(tmux_result)
+				vim.system({ "tmux", "set", "-pt", pane_id, "@desc", desc }, {}, function(tmux_result)
 					vim.schedule(function()
 						if tmux_result.code ~= 0 then
 							log.warn("generate_pane_description: tmux set failed: " .. tostring(tmux_result.code))
