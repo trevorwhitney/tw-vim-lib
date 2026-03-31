@@ -34,14 +34,14 @@
               };
           in
           base // rec {
-            inherit (unstable) claude-code delve go golangci-lint golangci-lint-langserver gopls;
+            inherit (unstable) claude-code gemini-cli delve go golangci-lint golangci-lint-langserver gopls;
             callPackage = base.callPackage;
             jdtls = callPackage ./nix/packages/jdtls { };
             neovim = attrs: import ./nix/packages/neovim
               ({
                 inherit self jdtls;
                 inherit (base) lib fetchFromGitHub vimUtils neovimUtils;
-                pkgs = base // { inherit jdtls claude-code golangci-lint golangci-lint-langserver; };
+                pkgs = base // { inherit jdtls claude-code gemini-cli golangci-lint golangci-lint-langserver; };
               } // attrs);
           };
 

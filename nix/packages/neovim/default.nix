@@ -35,6 +35,7 @@ let
     ueberzugpp
 
     claude-code
+    gemini-cli
     (pkgs.callPackage ../change-background {
       inherit pkgs;
     })
