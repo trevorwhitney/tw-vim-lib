@@ -480,7 +480,7 @@ local function vimMappings()
 
 	-- ====== Tmux-Navigator =======
 	-- This is done manually instead of automatically via the plugin to make it work with terminals
-	-- The default mappings are disabled in packer.lua
+	-- The default mappings are disabled in plugins/testing.lua
 	local buffer_util = require("tw.buffer-util")
 	local function navigate_with_conditional_save(direction)
 		if buffer_util.should_autosave() then

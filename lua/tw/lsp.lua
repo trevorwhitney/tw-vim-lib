@@ -1,7 +1,5 @@
 local M = {}
 
-local telescope = require("telescope.builtin")
-
 -- Track which buffers have had keymaps set to avoid duplicate registrations
 local keymaps_set = {}
 

@@ -267,7 +267,7 @@ local function additionalAdapters()
 		executable = {
 			command = "node",
 			args = {
-				vim.env.HOME .. "/.local/share/nvim/site/pack/packer/opt/vscode-js-debug/dist/src/dapDebugServer.js",
+				require("lazy.core.config").options.root .. "/vscode-js-debug/dist/src/dapDebugServer.js",
 				"${port}",
 			},
 		},

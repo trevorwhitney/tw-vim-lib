@@ -1,6 +1,6 @@
 local M = {}
-local conform_format = require("conform").format
 local function format(bufnr, options)
+	local conform_format = require("conform").format
 	local opts = options or {}
 	opts = vim.tbl_deep_extend("force", opts, {
 		async = false, -- this needs to stay false, otherwise the ranges clobber each other

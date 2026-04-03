@@ -1,13 +1,14 @@
-local trouble = require("trouble")
-local telescope = require("telescope")
-local actions = require("telescope.actions")
 local fn = vim.fn
-local function openTroubleQF(prompt_bufnr)
-	actions.send_to_qflist(prompt_bufnr)
-	trouble.open("quickfix")
-end
 
 local function configure()
+	local trouble = require("trouble")
+	local telescope = require("telescope")
+	local actions = require("telescope.actions")
+	local function openTroubleQF(prompt_bufnr)
+		actions.send_to_qflist(prompt_bufnr)
+		trouble.open("quickfix")
+	end
+
 	telescope.load_extension("fzf")
 	telescope.load_extension("refactoring")
 	telescope.load_extension("dap")

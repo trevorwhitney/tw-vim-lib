@@ -1,9 +1,3 @@
-local pickers = require("telescope.pickers")
-local finders = require("telescope.finders")
-local conf = require("telescope.config").values
-local actions = require("telescope.actions")
-local action_state = require("telescope.actions.state")
-
 local M = {}
 
 --- Check if an upstream branch exists for the current branch.
@@ -62,6 +56,12 @@ end
 --- Create and open the git diff telescope picker.
 --- @param opts { current_file: boolean }
 local function create_picker(opts)
+	local pickers = require("telescope.pickers")
+	local finders = require("telescope.finders")
+	local conf = require("telescope.config").values
+	local actions = require("telescope.actions")
+	local action_state = require("telescope.actions.state")
+
 	opts = opts or {}
 	local no_upstream = not has_upstream()
 	local show_all = no_upstream

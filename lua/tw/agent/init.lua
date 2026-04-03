@@ -2,7 +2,6 @@ local M = {}
 
 local claude = require("tw.agent.claude")
 local docker = require("tw.agent.docker")
-local Path = require("plenary.path")
 local terminal = require("tw.agent.terminal")
 local util = require("tw.agent.util")
 local log = require("tw.log")
@@ -593,6 +592,7 @@ function M.VimTestStrategy(cmd)
 end
 
 function M.SendSelection()
+	local Path = require("plenary.path")
 	-- Resolve file path FIRST — bail before any side effects if unresolvable
 	local filename, repo_root = util.resolve_file_path()
 	if not filename then
@@ -626,6 +626,7 @@ function M.SendSelection()
 end
 
 function M.SendSymbol()
+	local Path = require("plenary.path")
 	local filename, repo_root = util.resolve_file_path()
 	if not filename then
 		vim.notify("Cannot resolve file path in this buffer", vim.log.levels.WARN)
@@ -644,6 +645,7 @@ function M.SendSymbol()
 end
 
 function M.SendFile()
+	local Path = require("plenary.path")
 	local filename, repo_root = util.resolve_file_path()
 	if not filename then
 		vim.notify("Cannot resolve file path in this buffer", vim.log.levels.WARN)
