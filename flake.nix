@@ -41,7 +41,7 @@
               ({
                 inherit self jdtls;
                 inherit (base) lib fetchFromGitHub;
-                inherit (unstable) vimUtils neovimUtils;
+                inherit (unstable) vimUtils;
                 pkgs = base // {
                   inherit jdtls claude-code gemini-cli golangci-lint golangci-lint-langserver;
                   inherit (unstable) neovim-unwrapped wrapNeovimUnstable;

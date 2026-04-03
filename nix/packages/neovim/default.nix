@@ -2,7 +2,6 @@
 , lib
 , self
 , vimUtils
-, neovimUtils
 , withLspSupport ? true
 , nodeJsPkg ? pkgs.nodejs
 , goPkg ? pkgs.go
@@ -117,7 +116,22 @@ let
       packages != [ ]
     ) ''--prefix PATH : "${lib.makeBinPath packages}"'';
 
-  neovimConfig = neovimUtils.makeNeovimConfig {
+  neovim = pkgs.neovim-unwrapped.override { nodejs = nodeJsPkg; };
+
+  extraLuaPackages = ps: [ ps.magick ];
+  luaEnv = neovim.lua.withPackages extraLuaPackages;
+  luaWrapperArgs = lib.optionals (luaEnv != null) [
+    "--prefix"
+    "LUA_PATH"
+    ";"
+    (neovim.lua.pkgs.luaLib.genLuaPathAbsStr luaEnv)
+    "--prefix"
+    "LUA_CPATH"
+    ";"
+    (neovim.lua.pkgs.luaLib.genLuaCPathAbsStr luaEnv)
+  ];
+
+  neovimConfig = {
     vimAlias = true;
     withRuby = true;
     withPython3 = true;
@@ -130,7 +144,7 @@ let
         pynvim
         tiktoken
       ];
-    extraLuaPackages = ps: [ ps.magick ];
+    inherit extraLuaPackages;
     plugins = with pkgs.vimPlugins; [
       packer-nvim
       (vimUtils.buildVimPlugin rec {
@@ -147,7 +161,7 @@ let
       })
     ];
 
-    customRC = builtins.concatStringsSep "\n" (
+    neovimRcContent = builtins.concatStringsSep "\n" (
       with pkgs;
       [
         "lua <<EOF"
@@ -177,9 +191,9 @@ let
   };
 in
 with pkgs;
-(wrapNeovimUnstable (neovim-unwrapped.override { nodejs = nodeJsPkg; }) (
+(wrapNeovimUnstable neovim (
   neovimConfig
     // {
-    wrapperArgs = (lib.escapeShellArgs neovimConfig.wrapperArgs) + " " + extraMakeWrapperArgs;
+    wrapperArgs = (lib.escapeShellArgs luaWrapperArgs) + " " + extraMakeWrapperArgs;
   }
 ))
