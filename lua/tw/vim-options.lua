@@ -66,7 +66,7 @@ local function setOptions()
 
 	-- folding
 	set.foldmethod = "expr" -- fold based on treesitter
-	set.foldexpr = "nvim_treesitter#foldexpr()"
+	set.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 	set.foldenable = false -- dont fold by default
 	set.foldopen = "insert" -- open folds when inserted into
 

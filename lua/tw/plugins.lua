@@ -97,7 +97,6 @@ end
 
 local function installTreesitter(use)
 	use({ "nvim-treesitter/nvim-treesitter", branch = "main" })
-	use({ "nvim-treesitter/nvim-treesitter-textobjects", branch = "main" }) -- Additional textobjects for treesitter
 	use("nvim-treesitter/nvim-treesitter-context")
 	use("nvim-telescope/telescope-ui-select.nvim")
 end

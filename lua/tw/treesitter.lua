@@ -66,21 +66,18 @@ local ensure_installed = {
 }
 
 local function configure()
-	-- clang++ needed on OS X
-	-- TODO: test on linux
-	require("nvim-treesitter.install").compilers = { "clang", "cc" }
-	require("nvim-treesitter.configs").setup({
-		ensure_installed = ensure_installed,
-		sync_install = false, -- install languages synchronously (only applied to `ensure_installed`)
-		ignore_install = { "haskell", "phpdoc" }, -- List of parsers to ignore installing
-		highlight = {
-			enable = true, -- false will disable the whole extension
-			-- Setting this to true will run `:h syntax` and tree-sitter at the same time.
-			-- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
-			-- Using this option may slow down your editor, and you may see some duplicate highlights.
-			-- Instead of true it can also be a list of languages
-			additional_vim_regex_highlighting = false,
-		},
+	-- Install parsers for all configured languages
+	require("nvim-treesitter").install(ensure_installed)
+
+	-- Enable treesitter features for installed languages via FileType autocmd
+	vim.api.nvim_create_autocmd("FileType", {
+		pattern = ensure_installed,
+		callback = function()
+			vim.treesitter.start()
+			vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+			vim.wo.foldmethod = "expr"
+			vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+		end,
 	})
 end
 
