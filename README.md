@@ -54,20 +54,16 @@ end
 vim.cmd("set packpath=" .. join_paths(temp_dir, "nvim", "site"))
 vim.cmd("set runtimepath^=" .. join_paths(vim.loop.os_getenv("HOME"), ".local", "share", "nvim", "site", "parser"))
 
-local package_root = join_paths(temp_dir, "nvim", "site", "pack")
-local install_path = join_paths(package_root, "packer", "start", "packer.nvim")
-local compile_path = join_paths(install_path, "plugin", "packer_compiled.lua")
+-- Bootstrap lazy.nvim for debugging
+local lazypath = join_paths(temp_dir, "nvim", "lazy", "lazy.nvim")
+if not vim.loop.fs_stat(lazypath) then
+	vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable",
+		"https://github.com/folke/lazy.nvim.git", lazypath })
+end
+vim.opt.rtp:prepend(lazypath)
 
 local function load_plugins()
-	local use = require("packer").use
-
-	require("packer").init({
-		package_root = package_root,
-		compile_path = compile_path,
-	})
-
-  require('tw.packer').install(use)
-  require("tw").setup()
+	require("tw").setup()
 end
 
 _G.load_config = function()
@@ -125,14 +121,10 @@ _G.load_config = function()
 	)
 end
 
-if vim.fn.isdirectory(install_path) == 0 then
-	vim.fn.system({ "git", "clone", "https://github.com/wbthomason/packer.nvim", install_path })
+if not vim.loop.fs_stat(lazypath) then
 	load_plugins()
-	require("packer").sync()
-	vim.cmd([[autocmd User PackerComplete ++once lua load_config()]])
 else
 	load_plugins()
-	require("packer").sync()
 	_G.load_config()
 end
 ```
