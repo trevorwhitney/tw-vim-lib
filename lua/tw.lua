@@ -48,6 +48,7 @@ function Config.setup(user_options)
 			colorscheme = { "catppuccin" },
 		},
 		performance = {
+			reset_packpath = false, -- preserve Nix-managed packpath (contains lazy.nvim itself)
 			rtp = { reset = false }, -- preserve Nix-managed rtp
 		},
 	})
