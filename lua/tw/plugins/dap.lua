@@ -6,9 +6,7 @@ return {
 		config = function()
 			local tw_config = require("tw.config")
 			local opts = tw_config.get()
-			require("tw.dap").setup({
-				dap_configs = opts.dap_configs,
-			})
+			require("tw.dap").setup(opts.dap_configs or {})
 		end,
 	},
 	{
