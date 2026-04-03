@@ -146,7 +146,7 @@ let
       ];
     inherit extraLuaPackages;
     plugins = with pkgs.vimPlugins; [
-      packer-nvim
+      lazy-nvim
       (vimUtils.buildVimPlugin rec {
         pname = "tw-vim-lib";
         version = if (self ? rev) then self.rev else "dirty";

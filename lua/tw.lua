@@ -22,48 +22,28 @@ function Config.setup(user_options)
 	local path = table.concat(options.extra_path, ":") .. ":" .. fn.getenv("PATH")
 	fn.setenv("PATH", path)
 
-	local package_root = table.concat({ fn.stdpath("data"), "site", "pack" }, "/")
-	vim.cmd("set packpath^=" .. package_root)
-
-	local install_path = table.concat({ package_root, "packer", "start", "packer.nvim" }, "/")
-	local compile_path = table.concat({ install_path, "plugin", "packer_compiled.lua" }, "/")
-
-	require("packer").init({
-		package_root = package_root,
-		compile_path = compile_path,
-	})
-
 	if not (options.jdtls_home == nil or options.jdtls_home == "") then
 		vim.g.jdtls_home = options.jdtls_home
 	end
 
-	require("tw.plugins").install(require("packer").use)
-	require("tw.vim-options").setup()
+	-- Store options for lazy spec config callbacks
+	require("tw.config").set(options)
 
+	require("lazy").setup({
+		spec = { import = "tw.plugins" },
+		install = {
+			missing = true,
+			colorscheme = { "catppuccin" },
+		},
+		performance = {
+			rtp = { reset = false }, -- preserve Nix-managed rtp
+		},
+	})
+
+	require("tw.vim-options").setup()
 	require("tw.augroups").setup()
 	require("tw.commands").setup()
-
-	require("tw.ai").setup()
-	require("tw.appearance").setup()
 	require("tw.agent").setup()
-	require("tw.dap").setup(options.dap_configs)
-	require("tw.formatting").setup()
-	require("tw.git").setup()
-	require("tw.nvim-cmp").setup()
-	require("tw.nvim-tree").setup()
-	require("tw.telescope").setup()
-	require("tw.testing").setup()
-	require("tw.treesitter").setup()
-	require("tw.trouble").setup()
-	require("tw.which-key").setup()
-
-	if options.lsp_support then
-		require("tw.lsp").setup({
-			lua_ls_root = options.lua_ls_root,
-			rocks_tree_root = options.rocks_tree_root,
-			go_build_tags = options.go_build_tags,
-		})
-	end
 end
 
 return Config
