@@ -4,7 +4,6 @@ return {
 		event = "VeryLazy",
 		dependencies = { "tpope/vim-rhubarb" },
 	},
-	{ "tpope/vim-rhubarb", lazy = true },
 	{
 		"lewis6991/gitsigns.nvim",
 		event = { "BufReadPre", "BufNewFile" },

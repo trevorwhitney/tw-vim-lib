@@ -121,10 +121,6 @@ _G.load_config = function()
 	)
 end
 
-if not vim.loop.fs_stat(lazypath) then
-	load_plugins()
-else
-	load_plugins()
-	_G.load_config()
-end
+load_plugins()
+_G.load_config()
 ```
