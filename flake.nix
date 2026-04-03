@@ -40,8 +40,12 @@
             neovim = attrs: import ./nix/packages/neovim
               ({
                 inherit self jdtls;
-                inherit (base) lib fetchFromGitHub vimUtils neovimUtils;
-                pkgs = base // { inherit jdtls claude-code gemini-cli golangci-lint golangci-lint-langserver; };
+                inherit (base) lib fetchFromGitHub;
+                inherit (unstable) vimUtils neovimUtils;
+                pkgs = base // {
+                  inherit jdtls claude-code gemini-cli golangci-lint golangci-lint-langserver;
+                  inherit (unstable) neovim-unwrapped wrapNeovimUnstable;
+                };
               } // attrs);
           };
 
