@@ -843,9 +843,73 @@ function M.get_status()
 	}
 end
 
+--- Persist a worktree description to worktrees.json in the parent directory.
+--- Fire-and-forget: errors are logged but never disrupt the user.
+--- This function runs synchronously on the main loop; blocking I/O is acceptable
+--- because the file is a few hundred bytes at most.
+local function persist_worktree_description(worktree_name, parent_dir, desc)
+	local path = parent_dir .. "/worktrees.json"
+	local tmp_path = parent_dir .. "/worktrees.json.tmp"
+
+	-- Read existing entries
+	local entries = {}
+	local ok, err = pcall(function()
+		local file = io.open(path, "r")
+		if file then
+			local content = file:read("*a")
+			file:close()
+			if content and content ~= "" then
+				local decoded = vim.json.decode(content)
+				if type(decoded) == "table" then
+					entries = decoded
+				else
+					log.warn("persist_worktree_description: decoded non-table type, resetting")
+				end
+			end
+		end
+	end)
+	if not ok then
+		log.warn("persist_worktree_description: read/decode failed: " .. tostring(err))
+		entries = {}
+	end
+
+	-- Upsert
+	entries[worktree_name] = desc
+
+	-- Prune entries whose directories no longer exist.
+	-- This iterates all keys on every write; acceptable because a repo
+	-- typically has only 2-5 worktrees.
+	for key, _ in pairs(entries) do
+		if key ~= worktree_name and vim.fn.isdirectory(parent_dir .. "/" .. key) == 0 then
+			entries[key] = nil
+		end
+	end
+
+	-- Atomic write: tmp file -> rename.
+	-- Concurrent instances may race on read-modify-write (last writer wins),
+	-- but os.rename is atomic on POSIX so the file is never left corrupt.
+	-- Lost entries self-heal on the next prompt from that worktree.
+	local write_ok, write_err = pcall(function()
+		local file = io.open(tmp_path, "w")
+		if not file then
+			error("failed to open tmp file for writing")
+		end
+		file:write(vim.json.encode(entries))
+		file:close()
+		local rename_ok, rename_err = os.rename(tmp_path, path)
+		if not rename_ok then
+			error("rename failed: " .. tostring(rename_err))
+		end
+	end)
+	if not write_ok then
+		log.warn("persist_worktree_description: write failed: " .. tostring(write_err))
+		pcall(os.remove, tmp_path)
+	end
+end
+
 --- Generate a short pane description from prompt text via LLM and set @desc.
 --- Fire-and-forget: errors are logged but never disrupt the user.
-local function generate_pane_description(prompt_text)
+local function generate_pane_description(prompt_text, cwd)
 	if not prompt_text or prompt_text == "" then
 		return
 	end
@@ -867,6 +931,14 @@ local function generate_pane_description(prompt_text)
 		log.debug("generate_pane_description: TMUX_PANE not set, skipping")
 		return
 	end
+
+	-- Derive worktree info for file persistence.
+	-- Must be captured synchronously here, not inside the async callback,
+	-- because the user's cwd could change before the callback fires.
+	local worktree_name = cwd and vim.fn.fnamemodify(cwd, ":t") or nil
+	local parent_dir = cwd and vim.fn.fnamemodify(cwd, ":h") or nil
+	local parent_name = parent_dir and vim.fn.fnamemodify(parent_dir, ":t") or nil
+	local is_main_worktree = (worktree_name == parent_name)
 
 	-- Clear any stale description before the async call
 	vim.system({ "tmux", "set", "-pt", pane_id, "@desc" })
@@ -921,6 +993,11 @@ local function generate_pane_description(prompt_text)
 					return
 				end
 
+				-- Persist description to worktrees.json (fire-and-forget)
+				if worktree_name and parent_dir and not is_main_worktree then
+					persist_worktree_description(worktree_name, parent_dir, desc)
+				end
+
 				log.info("generate_pane_description: @desc = " .. desc)
 				vim.system({ "tmux", "set", "-pt", pane_id, "@desc", desc }, {}, function(tmux_result)
 					vim.schedule(function()
@@ -959,7 +1036,7 @@ function M.WorkmuxPrompt()
 	local prompt_text = table.concat(lines, "\n")
 
 	-- Generate a short pane description asynchronously (fire-and-forget)
-	generate_pane_description(prompt_text)
+	generate_pane_description(prompt_text, cwd)
 
 	-- Clean up all prompt files so they aren't re-sent on restart
 	for _, f in ipairs(prompt_files) do
