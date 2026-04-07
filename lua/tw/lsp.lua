@@ -207,6 +207,25 @@ local function setup_lsp_keymaps()
 	})
 end
 
+-- Restart all LSP clients attached to the current buffer using native vim.lsp API.
+-- This replaces navigator's reload_lsp() which depends on the now-removed LspStop/LspStart commands.
+local function restart_lsp()
+	local clients = vim.lsp.get_clients({ bufnr = 0 })
+	for _, client in ipairs(clients) do
+		vim.lsp.enable(client.name, false)
+	end
+
+	local timer = assert(vim.uv.new_timer())
+	timer:start(500, 0, function()
+		timer:close()
+		vim.schedule(function()
+			for _, client in ipairs(clients) do
+				vim.lsp.enable(client.name)
+			end
+		end)
+	end)
+end
+
 local function setup_navigator(opts)
 	require("navigator").setup({
 		debug = false,
@@ -237,6 +256,10 @@ local function setup_navigator(opts)
 			servers = {},
 		},
 	})
+
+	-- Override navigator's reload_lsp with our native implementation
+	-- so that :LspRestart (from navigator) and direct calls work on Neovim 0.12+
+	require("navigator.lspclient.config").reload_lsp = restart_lsp
 end
 
 local function setup_lspconfig(opts)
@@ -338,14 +361,60 @@ local function setup_lspconfig(opts)
 	vim.lsp.enable("lua_ls")
 end
 
+-- Register LspStop/LspStart/LspRestart commands when nvim-lspconfig doesn't
+-- (Neovim 0.12+ has a builtin :lsp command which causes lspconfig to skip registration)
+local function register_lsp_commands()
+	if vim.fn.exists(":LspStop") == 2 then
+		return -- already registered (e.g., by lspconfig on older Neovim)
+	end
+
+	vim.api.nvim_create_user_command("LspStop", function(info)
+		local client_names = info.fargs
+		if #client_names == 0 then
+			client_names = vim.iter(vim.lsp.get_clients({ bufnr = 0 }))
+				:map(function(c)
+					return c.name
+				end)
+				:totable()
+		end
+		for _, name in ipairs(client_names) do
+			vim.lsp.enable(name, false)
+		end
+	end, { desc = "Disable and stop LSP client(s)", nargs = "?" })
+
+	vim.api.nvim_create_user_command("LspStart", function(info)
+		local servers = info.fargs
+		if #servers == 0 then
+			local ft = vim.bo.filetype
+			for name, _ in pairs(vim.lsp.config._configs or {}) do
+				local filetypes = vim.lsp.config[name].filetypes
+				if filetypes and vim.tbl_contains(filetypes, ft) then
+					table.insert(servers, name)
+				end
+			end
+		end
+		vim.lsp.enable(servers)
+	end, { desc = "Enable and start LSP client(s)", nargs = "?" })
+
+	vim.api.nvim_create_user_command("LspRestart", function()
+		restart_lsp()
+	end, { desc = "Restart LSP client(s) on current buffer", nargs = 0 })
+end
+
 function M.setup(lsp_options)
-	vim.lsp.set_log_level(vim.log.levels.ERROR)
+	-- vim.lsp.set_log_level was deprecated in Neovim 0.12
+	if vim.lsp.log and vim.lsp.log.set_level then
+		vim.lsp.log.set_level(vim.log.levels.ERROR)
+	else
+		vim.lsp.set_log_level(vim.log.levels.ERROR)
+	end
 	lsp_options = lsp_options or {}
 	options = vim.tbl_extend("force", options, lsp_options)
 
 	setup_lsp_keymaps()
 	setup_navigator(options)
 	setup_lspconfig(options)
+	register_lsp_commands()
 	local go = require("tw.languages.go")
 	go.setup_build_tags(options.go_build_tags)
 	go.setup_vim_go(options.go_build_tags)
