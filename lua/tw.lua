@@ -56,6 +56,13 @@ function Config.setup(user_options)
 	-- Also add tw-vim-lib to the rtp after lazy.setup() for ftplugin/, after/, plugin/ dirs
 	vim.opt.rtp:prepend(tw_root)
 
+	-- lazy.nvim sets loadplugins=false, which prevents Neovim from auto-sourcing
+	-- plugin/ files from the packpath. Manually source tw-vim-lib's plugin/ directory.
+	local plugin_dir = tw_root .. "/plugin"
+	for _, file in ipairs(vim.fn.glob(plugin_dir .. "/*", false, true)) do
+		vim.cmd.source(file)
+	end
+
 	require("tw.vim-options").setup()
 	require("tw.augroups").setup()
 	require("tw.commands").setup()
