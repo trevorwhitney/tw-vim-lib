@@ -482,17 +482,33 @@ end
 -- local agent was running. Args are not preserved on restart — git root is
 -- re-derived in start_new_agent_job().
 function M.restart_local_agent()
-	-- Find a running local-mode job by scanning mode-specific fields.
-	-- We can't rely on active_mode because hiding a terminal sets it to "none"
-	-- while the job keeps running.
+	-- Find a running local-mode job. Prefer the active mode if it's local;
+	-- fall back to scanning all local modes (handles hidden-terminal case
+	-- where active_mode is "none" but a job is still running).
 	local local_modes = { "claude", "codex", "opencode" }
 	local running_mode = nil
+
+	-- First: check if active_mode is a running local agent
 	for _, mode in ipairs(local_modes) do
-		local vars = get_mode_vars(mode)
-		local job_id = M[vars.job_key]
-		if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
-			running_mode = mode
+		if M.active_mode == mode then
+			local vars = get_mode_vars(mode)
+			local job_id = M[vars.job_key]
+			if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+				running_mode = mode
+			end
 			break
+		end
+	end
+
+	-- Fallback: scan all local modes for any running job
+	if not running_mode then
+		for _, mode in ipairs(local_modes) do
+			local vars = get_mode_vars(mode)
+			local job_id = M[vars.job_key]
+			if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+				running_mode = mode
+				break
+			end
 		end
 	end
 

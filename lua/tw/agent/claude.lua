@@ -51,7 +51,7 @@ function M.command(args, command_name, context_directories)
 		if context_directories and not vim.tbl_isempty(context_directories) then
 			local dirs = vim.tbl_keys(context_directories)
 			table.sort(dirs)
-			table.insert(command, "--add-dirs=" .. table.concat(dirs, ":"))
+			table.insert(command, vim.fn.shellescape("--add-dirs=" .. table.concat(dirs, ":")))
 		end
 	else
 		if not sandbox_warned then

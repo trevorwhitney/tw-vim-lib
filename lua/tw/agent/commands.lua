@@ -292,14 +292,10 @@ subcommand_handlers.restart = handle_restart
 -- Restart agent after context directory change (used by add-context and remove-context).
 -- Handles both Docker and local/sandbox modes.
 local function restart_agent_with_context(agent_module, action_desc)
-	local mode = agent_module.active_mode
-
 	-- Docker mode: close all docker terminal buffers, then restart container
-	if mode:match("-docker$") or agent_module.container_started then
-		if not agent_module.container_started then
-			vim.notify(action_desc .. " — context will be applied when container starts", vim.log.levels.INFO)
-			return
-		end
+	-- Use container_started as the sole Docker indicator. active_mode is unreliable
+	-- because hiding a terminal sets it to "none" while the container keeps running.
+	if agent_module.container_started then
 		vim.notify("Restarting container — " .. action_desc)
 		-- Close all docker buffer variants (matches handle_restart cleanup logic)
 		local docker_modes = { "claude-docker", "codex-docker", "opencode-docker" }
