@@ -477,6 +477,46 @@ function M.Open(mode, args, window_type)
 	end
 end
 
+-- Restart the active local (sandboxed) agent with updated context_directories.
+-- Used by add-context/remove-context. Returns true if restarted, false if no
+-- local agent was running. Args are not preserved on restart — git root is
+-- re-derived in start_new_agent_job().
+function M.restart_local_agent()
+	-- Find a running local-mode job by scanning mode-specific fields.
+	-- We can't rely on active_mode because hiding a terminal sets it to "none"
+	-- while the job keeps running.
+	local local_modes = { "claude", "codex", "opencode" }
+	local running_mode = nil
+	for _, mode in ipairs(local_modes) do
+		local vars = get_mode_vars(mode)
+		local job_id = M[vars.job_key]
+		if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+			running_mode = mode
+			break
+		end
+	end
+
+	if not running_mode then
+		return false
+	end
+
+	local vars = get_mode_vars(running_mode)
+	local buf = M[vars.buf_key]
+	local job_id = M[vars.job_key]
+	if buf then
+		terminal.close_terminal_buffer(buf, job_id)
+	end
+	M[vars.buf_key] = nil
+	M[vars.job_key] = nil
+	if M.active_mode == running_mode then
+		M.active_buf = nil
+		M.active_job_id = nil
+		M.active_mode = "none"
+	end
+	M.Open(running_mode)
+	return true
+end
+
 function M.Toggle(mode, args, window_type)
 	mode = mode or "claude" -- Default to claude local if not specified
 	args = args or default_args

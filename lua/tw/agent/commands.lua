@@ -289,59 +289,77 @@ local function handle_restart(claude_module, args)
 end
 subcommand_handlers.restart = handle_restart
 
+-- Restart agent after context directory change (used by add-context and remove-context).
+-- Handles both Docker and local/sandbox modes.
+local function restart_agent_with_context(agent_module, action_desc)
+	local mode = agent_module.active_mode
+
+	-- Docker mode: close all docker terminal buffers, then restart container
+	if mode:match("-docker$") or agent_module.container_started then
+		if not agent_module.container_started then
+			vim.notify(action_desc .. " — context will be applied when container starts", vim.log.levels.INFO)
+			return
+		end
+		vim.notify("Restarting container — " .. action_desc)
+		-- Close all docker buffer variants (matches handle_restart cleanup logic)
+		local docker_modes = { "claude-docker", "codex-docker", "opencode-docker" }
+		for _, dmode in ipairs(docker_modes) do
+			local var_name = dmode:gsub("-", "_")
+			local buf_key = var_name .. "_buf"
+			local job_key = var_name .. "_job_id"
+			if agent_module[buf_key] then
+				terminal.close_terminal_buffer(agent_module[buf_key], agent_module[job_key])
+				agent_module[buf_key] = nil
+				agent_module[job_key] = nil
+			end
+		end
+		agent_module.active_buf = nil
+		agent_module.active_job_id = nil
+		agent_module.active_mode = "none"
+		docker.stop_container(agent_module.container_name)
+		agent_module.container_started = false
+		docker.start_container_async(
+			agent_module.container_name,
+			agent_module.auto_build,
+			agent_module.context_directories,
+			function(success)
+				if success then
+					agent_module.container_started = true
+				end
+			end
+		)
+		return
+	end
+
+	-- Local/sandbox mode: restart via public helper
+	local restarted = agent_module.restart_local_agent()
+	if restarted then
+		vim.notify("Restarting agent — " .. action_desc)
+	else
+		vim.notify(action_desc .. " — context will be applied when agent starts", vim.log.levels.INFO)
+	end
+end
+
 -- Add context directory
 local function handle_add_context(claude_module, args)
 	local dir_path = args[1]
 	if not dir_path then
-		vim.notify("Usage: :ClaudeDocker add-context <directory>", vim.log.levels.ERROR)
+		vim.notify("Usage: :AiAgent add-context <directory>", vim.log.levels.ERROR)
 		return
 	end
 	dir_path = vim.fn.expand(dir_path)
-	-- Validate directory exists
 	if vim.fn.isdirectory(dir_path) == 0 then
 		vim.notify("Directory does not exist: " .. dir_path, vim.log.levels.ERROR)
 		return
 	end
-	-- Get absolute path
-	local abs_path = vim.fn.fnamemodify(dir_path, ":p:h") -- :h removes trailing slash
-	-- Check if already added
+	local abs_path = vim.fn.fnamemodify(dir_path, ":p:h")
 	if claude_module.context_directories[abs_path] then
 		vim.notify("Context already added: " .. abs_path, vim.log.levels.INFO)
 		return
 	end
-	-- Add to context directories
 	claude_module.context_directories[abs_path] = true
 	log.info("Added context directory: " .. abs_path)
-	-- Restart container with new mounts
-	if claude_module.container_started then
-		vim.notify("Restarting container with new context: " .. abs_path)
-		-- Close docker buffer if it exists
-		if claude_module.docker_buf then
-			local buf, job = terminal.close_terminal_buffer(claude_module.docker_buf, claude_module.docker_job_id)
-			claude_module.docker_buf = buf
-			claude_module.docker_job_id = job
-			-- Clear legacy pointers if this was the active buffer
-			if claude_module.claude_buf == claude_module.docker_buf then
-				claude_module.claude_buf = nil
-				claude_module.claude_job_id = nil
-				claude_module.active_mode = "none"
-			end
-		end
-		docker.stop_container(claude_module.container_name)
-		claude_module.container_started = false
-		docker.start_container_async(
-			claude_module.container_name,
-			claude_module.auto_build,
-			claude_module.context_directories,
-			function(success)
-				if success then
-					claude_module.container_started = true
-				end
-			end
-		)
-	else
-		vim.notify("Context will be mounted when container starts: " .. abs_path)
-	end
+	restart_agent_with_context(claude_module, "added context: " .. abs_path)
 end
 subcommand_handlers["add-context"] = handle_add_context
 
@@ -349,7 +367,7 @@ subcommand_handlers["add-context"] = handle_add_context
 local function handle_remove_context(claude_module, args)
 	local dir_path = args[1]
 	if not dir_path then
-		vim.notify("Usage: :ClaudeDocker remove-context <directory>", vim.log.levels.ERROR)
+		vim.notify("Usage: :AiAgent remove-context <directory>", vim.log.levels.ERROR)
 		return
 	end
 	dir_path = vim.fn.expand(dir_path)
@@ -358,39 +376,9 @@ local function handle_remove_context(claude_module, args)
 		vim.notify("Context not found: " .. abs_path, vim.log.levels.WARN)
 		return
 	end
-	-- Remove from context directories
 	claude_module.context_directories[abs_path] = nil
 	log.info("Removed context directory: " .. abs_path)
-	-- Restart container if running
-	if claude_module.container_started then
-		vim.notify("Restarting container without context: " .. abs_path)
-		-- Close docker buffer if it exists
-		if claude_module.docker_buf then
-			local buf, job = terminal.close_terminal_buffer(claude_module.docker_buf, claude_module.docker_job_id)
-			claude_module.docker_buf = buf
-			claude_module.docker_job_id = job
-			-- Clear legacy pointers if this was the active buffer
-			if claude_module.claude_buf == claude_module.docker_buf then
-				claude_module.claude_buf = nil
-				claude_module.claude_job_id = nil
-				claude_module.active_mode = "none"
-			end
-		end
-		docker.stop_container(claude_module.container_name)
-		claude_module.container_started = false
-		docker.start_container_async(
-			claude_module.container_name,
-			claude_module.auto_build,
-			claude_module.context_directories,
-			function(success)
-				if success then
-					claude_module.container_started = true
-				end
-			end
-		)
-	else
-		vim.notify("Context removed: " .. abs_path)
-	end
+	restart_agent_with_context(claude_module, "removed context: " .. abs_path)
 end
 subcommand_handlers["remove-context"] = handle_remove_context
 
