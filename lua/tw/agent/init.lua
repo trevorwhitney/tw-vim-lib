@@ -898,6 +898,37 @@ function M.get_status()
 	}
 end
 
+--- Query workmux for the authoritative set of worktree handles.
+--- Returns a set table { [handle] = true, ... } on success, or nil on failure.
+--- Uses io.popen (synchronous) which is acceptable because workmux list is fast
+--- and this runs on the main loop where blocking I/O is already permitted.
+local function get_workmux_handles()
+	if vim.fn.executable("workmux") ~= 1 then
+		return nil
+	end
+	local pipe = io.popen("workmux list --json 2>/dev/null")
+	if not pipe then
+		return nil
+	end
+	local output = pipe:read("*a")
+	pipe:close()
+	if not output or output == "" then
+		return nil
+	end
+	local decode_ok, worktrees = pcall(vim.json.decode, output)
+	if not decode_ok or type(worktrees) ~= "table" then
+		log.warn("get_workmux_handles: failed to decode workmux list output")
+		return nil
+	end
+	local handles = {}
+	for _, wt in ipairs(worktrees) do
+		if type(wt) == "table" and type(wt.handle) == "string" then
+			handles[wt.handle] = true
+		end
+	end
+	return handles
+end
+
 --- Persist a worktree description to worktrees.json in the parent directory.
 --- Fire-and-forget: errors are logged but never disrupt the user.
 --- This function runs synchronously on the main loop; blocking I/O is acceptable
@@ -931,12 +962,18 @@ local function persist_worktree_description(worktree_name, parent_dir, desc)
 	-- Upsert
 	entries[worktree_name] = desc
 
-	-- Prune entries whose directories no longer exist.
-	-- This iterates all keys on every write; acceptable because a repo
-	-- typically has only 2-5 worktrees.
-	for key, _ in pairs(entries) do
-		if key ~= worktree_name and vim.fn.isdirectory(parent_dir .. "/" .. key) == 0 then
-			entries[key] = nil
+	-- Prune entries for worktrees that no longer exist according to workmux.
+	-- Uses `workmux list --json` as the authoritative source instead of
+	-- filesystem checks, which can give false negatives inside containers
+	-- or during concurrent startup races.
+	-- If workmux is unavailable, pruning is skipped entirely (append-only
+	-- fallback) to avoid deleting valid entries we cannot verify.
+	local handles = get_workmux_handles()
+	if handles then
+		for key, _ in pairs(entries) do
+			if key ~= worktree_name and not handles[key] then
+				entries[key] = nil
+			end
 		end
 	end
 
