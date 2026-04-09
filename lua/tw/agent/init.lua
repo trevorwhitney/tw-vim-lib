@@ -305,18 +305,17 @@ local function start_new_agent_job(args, window_type, mode)
 		log.debug("Using docker attach command: " .. command)
 	else
 		log.debug("Local mode enabled for " .. command_name)
-		-- For local mode, skip permissions for all agents
 		local final_args = vim.tbl_extend("force", {}, default_args)
-		if command_name ~= "opencode" then
-			table.insert(final_args, "--dangerously-skip-permissions")
-			log.debug("Added --dangerously-skip-permissions for " .. command_name)
-		end
 		if args and #args > 0 then
 			log.debug("Extending final_args with " .. #args .. " args")
 			vim.list_extend(final_args, args)
 		end
 		log.debug("Final args before command: " .. vim.inspect(final_args))
-		command = claude.command(final_args, command_name)
+		command = claude.command(final_args, command_name, M.context_directories)
+		if not command then
+			log.error("Failed to build command for " .. command_name, true)
+			return
+		end
 		log.debug("Using native command: " .. command)
 	end
 
