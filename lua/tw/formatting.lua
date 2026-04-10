@@ -64,9 +64,6 @@ local function format(bufnr, options)
 end
 
 local function configure()
-	local set = vim.opt
-	set.formatexpr = "v:lua.require'conform'.formatexpr()"
-
 	local formatters_by_ft = {
 		bash = { "shfmt", "shellcheck" },
 		-- these are all broken, do they not work with partial ranges?

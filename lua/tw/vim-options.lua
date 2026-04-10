@@ -42,6 +42,17 @@ local function setOptions()
 	set.undodir = vim.env.HOME .. "/.vim/undodir"
 	set.encoding = "utf-8"
 	set.spelllang = "en_us"
+	set.textwidth = 80
+
+	-- formatoptions for comment-aware wrapping with gq
+	-- c: auto-wrap comments using textwidth
+	-- r: insert comment leader after hitting Enter in insert mode
+	-- o: insert comment leader after o/O
+	-- q: allow formatting comments with gq
+	-- j: remove comment leader when joining lines
+	-- n: recognize numbered lists
+	-- l: don't break already long lines in insert mode
+	set.formatoptions = "croqjnl"
 	set.guifont = "JetBrainsMono Nerd Font"
 
 	-- TextEdit might fail if hidden is not set.
