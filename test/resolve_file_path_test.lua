@@ -158,6 +158,85 @@ test("diffview URI with no rev component returns nil", function()
     eq(nil, root, "root")
 end)
 
+-- Worktree tests require temporary gitdir files to resolve the worktree root.
+-- Helper to create the necessary directory structure.
+local function setup_worktree_gitdir(main_repo, wt_name, wt_root)
+    local dir = main_repo .. "/.git/worktrees/" .. wt_name
+    os.execute('mkdir -p "' .. dir .. '"')
+    local fh = io.open(dir .. "/gitdir", "w")
+    fh:write(wt_root .. "/.git\n")
+    fh:close()
+    return dir
+end
+
+local function cleanup_worktree_gitdir(main_repo)
+    os.execute('rm -rf "' .. main_repo .. '"')
+end
+
+-- Use /tmp for test fixtures
+local tmp_main = os.tmpname() .. "_main_repo"
+os.remove(tmp_main) -- tmpname creates the file on some systems
+os.execute('mkdir -p "' .. tmp_main .. '/.git"')
+
+test("worktree stage diffview URI resolves to worktree root", function()
+    setup_worktree_gitdir(tmp_main, "gold-pond", "/Users/foo/workspace/gold-pond")
+    local path, root = util.resolve_file_path(
+        "diffview://" .. tmp_main .. "/.git/worktrees/gold-pond/:0:/pkg/dataobj/builder.go"
+    )
+    eq("/Users/foo/workspace/gold-pond/pkg/dataobj/builder.go", path, "path")
+    eq("/Users/foo/workspace/gold-pond", root, "root")
+end)
+
+test("worktree commit diffview URI resolves to worktree root", function()
+    setup_worktree_gitdir(tmp_main, "feature-branch", "/home/user/work/feature-branch")
+    local path, root = util.resolve_file_path(
+        "diffview://" .. tmp_main .. "/.git/worktrees/feature-branch/abc1234def0/src/bar.lua"
+    )
+    eq("/home/user/work/feature-branch/src/bar.lua", path, "path")
+    eq("/home/user/work/feature-branch", root, "root")
+end)
+
+test("worktree stage 2 diffview URI resolves to worktree root", function()
+    setup_worktree_gitdir(tmp_main, "my-wt", "/Users/foo/my-wt")
+    local path, root = util.resolve_file_path(
+        "diffview://" .. tmp_main .. "/.git/worktrees/my-wt/:2:/src/conflict.lua"
+    )
+    eq("/Users/foo/my-wt/src/conflict.lua", path, "path")
+    eq("/Users/foo/my-wt", root, "root")
+end)
+
+test("worktree with deeply nested file path", function()
+    setup_worktree_gitdir(tmp_main, "deep-wt", "/Users/foo/deep-wt")
+    local path, root = util.resolve_file_path(
+        "diffview://" .. tmp_main .. "/.git/worktrees/deep-wt/:0:/lua/tw/agent/init.lua"
+    )
+    eq("/Users/foo/deep-wt/lua/tw/agent/init.lua", path, "path")
+    eq("/Users/foo/deep-wt", root, "root")
+end)
+
+test("worktree fallback to main repo root when gitdir unreadable", function()
+    -- Use a worktree name that has no gitdir file set up
+    local path, root = util.resolve_file_path(
+        "diffview://" .. tmp_main .. "/.git/worktrees/no-gitdir/:0:/src/bar.lua"
+    )
+    eq(tmp_main .. "/src/bar.lua", path, "path")
+    eq(tmp_main, root, "root")
+end)
+
+test("worktree with full SHA in commit URI", function()
+    setup_worktree_gitdir(tmp_main, "sha-wt", "/Users/foo/sha-wt")
+    local path, root = util.resolve_file_path(
+        "diffview://"
+            .. tmp_main
+            .. "/.git/worktrees/sha-wt/abc1234def0abc1234def0abc1234def0abc1234d/src/bar.lua"
+    )
+    eq("/Users/foo/sha-wt/src/bar.lua", path, "path")
+    eq("/Users/foo/sha-wt", root, "root")
+end)
+
+-- Clean up test fixtures
+cleanup_worktree_gitdir(tmp_main)
+
 print()
 print(string.format("Results: %d passed, %d failed, %d total", pass_count, fail_count, pass_count + fail_count))
 

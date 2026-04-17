@@ -75,18 +75,55 @@ function M.resolve_file_path(bufname)
 	--           e.g., /Users/foo/project/.git/abc1234def0/src/bar.lua
 	--   Stage:  /abs/path/to/repo/.git/:<N>:/<rel-path>
 	--           e.g., /Users/foo/project/.git/:0:/src/bar.lua
+	--   Worktree commit: /abs/path/to/main-repo/.git/worktrees/<name>/<sha>/<rel-path>
+	--           e.g., /Users/foo/main/.git/worktrees/feature-branch/abc1234def0/src/bar.lua
+	--   Worktree stage:  /abs/path/to/main-repo/.git/worktrees/<name>/:<N>:/<rel-path>
+	--           e.g., /Users/foo/main/.git/worktrees/feature-branch/:0:/src/bar.lua
 	--   Null:   null (handled above)
 	--
 	-- Source: diffview.nvim/lua/diffview/vcs/file.lua, File:create_buffer()
 	--
 	-- Uses greedy (.*) match so the LAST .git/ in the path is matched,
 	-- handling cases where .git appears in parent directory names.
+	--
+	-- Worktree patterns are tried first because they are more specific;
+	-- the non-worktree commit pattern would incorrectly match worktree
+	-- URIs (treating "worktrees" as a SHA).
 
-	-- Try commit rev pattern: .../<repo-root>/.git/<sha>/<rel-path>
-	local repo_root, rel_path = path:match("^(.*)/%.git/[^/]+/(.+)$")
-	if not rel_path then
-		-- Try stage rev pattern: .../<repo-root>/.git/:<N>:/<rel-path>
-		repo_root, rel_path = path:match("^(.*)/%.git/:%d+:/(.+)$")
+	local repo_root, rel_path
+
+	-- Try worktree commit pattern: .../.git/worktrees/<name>/<sha>/<rel-path>
+	local main_root, wt_name, wt_rel = path:match("^(.*)/%.git/worktrees/([^/]+)/[^/]+/(.+)$")
+	if not wt_rel then
+		-- Try worktree stage pattern: .../.git/worktrees/<name>/:<N>:/<rel-path>
+		main_root, wt_name, wt_rel = path:match("^(.*)/%.git/worktrees/([^/]+)/:%d+:/(.+)$")
+	end
+
+	if main_root and wt_name and wt_rel then
+		-- Resolve the worktree's actual working directory by reading
+		-- <main-repo>/.git/worktrees/<name>/gitdir which contains the
+		-- path to the worktree's .git file (whose parent is the worktree root).
+		local gitdir_file = main_root .. "/.git/worktrees/" .. wt_name .. "/gitdir"
+		local fh = io.open(gitdir_file, "r")
+		if fh then
+			local gitdir_content = fh:read("*a")
+			fh:close()
+			gitdir_content = gitdir_content:gsub("[\n\r%s]*$", "")
+			-- gitdir contains path to <worktree-root>/.git
+			repo_root = gitdir_content:match("^(.+)/%.git$")
+		end
+		-- Fallback: if gitdir couldn't be read or parsed, use main repo root
+		if not repo_root then
+			repo_root = main_root
+		end
+		rel_path = wt_rel
+	else
+		-- Try regular commit rev pattern: .../<repo-root>/.git/<sha>/<rel-path>
+		repo_root, rel_path = path:match("^(.*)/%.git/[^/]+/(.+)$")
+		if not rel_path then
+			-- Try regular stage rev pattern: .../<repo-root>/.git/:<N>:/<rel-path>
+			repo_root, rel_path = path:match("^(.*)/%.git/:%d+:/(.+)$")
+		end
 	end
 
 	if not repo_root or not rel_path then
