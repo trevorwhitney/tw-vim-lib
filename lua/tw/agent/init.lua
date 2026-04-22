@@ -28,7 +28,10 @@ M.pi_buf = nil
 M.pi_job_id = nil
 M.pi_docker_buf = nil
 M.pi_docker_job_id = nil
-M.active_mode = "opencode" -- Track which mode is currently visible: "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", "pi", "pi-docker", or "none"
+-- Single source of truth for the default agent.
+-- Change this value to switch every default (Open, Toggle, WorkmuxPrompt, etc.).
+M.default_mode = "pi"
+M.active_mode = M.default_mode -- currently visible mode, or "none"
 
 -- Active buffer/job_id points to the currently visible buffer
 M.active_buf = nil
@@ -154,7 +157,7 @@ local function close_other_mode_buffers(active_mode)
 end
 
 local function start_new_agent_job(args, window_type, mode)
-	mode = mode or "claude"
+	mode = mode or M.default_mode
 	log.info("Attempting to start new job in " .. mode .. " mode")
 
 	-- Parse mode to get command name and location
@@ -451,7 +454,7 @@ local function confirmOpenAndDo(callback, args, window_type)
 end
 
 function M.Open(mode, args, window_type)
-	mode = mode or "claude" -- Default to claude local mode
+	mode = mode or M.default_mode
 	args = args or default_args
 	window_type = window_type or "vsplit"
 
@@ -539,7 +542,7 @@ function M.restart_local_agent()
 end
 
 function M.Toggle(mode, args, window_type)
-	mode = mode or "claude" -- Default to claude local if not specified
+	mode = mode or M.default_mode
 	args = args or default_args
 	window_type = window_type or "vsplit"
 
@@ -1162,7 +1165,7 @@ function M.WorkmuxPrompt()
 	-- Use "current" window type so opencode fills the whole viewport on boot;
 	-- a BufEnter autocmd will revert it to a vsplit when a file is opened.
 	M.workmux_fullscreen = true
-	M.Open("opencode", { "--prompt", vim.fn.shellescape(prompt_text) }, "current")
+	M.Open(M.default_mode, { "--prompt", vim.fn.shellescape(prompt_text) }, "current")
 end
 
 function M.setup(opts)

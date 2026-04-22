@@ -62,7 +62,8 @@ function M.setup_autocmds(claude_module)
 			claude_module.workmux_fullscreen = false
 
 			-- Find the opencode agent buffer
-			local agent_buf = claude_module.opencode_buf or claude_module.opencode_docker_buf
+			local default_var = claude_module.default_mode:gsub("-", "_")
+			local agent_buf = claude_module[default_var .. "_buf"] or claude_module[default_var .. "_docker_buf"]
 			if not agent_buf or not vim.api.nvim_buf_is_valid(agent_buf) then
 				return
 			end
