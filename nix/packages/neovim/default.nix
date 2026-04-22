@@ -35,6 +35,7 @@ let
 
     claude-code
     gemini-cli
+    pi-coding-agent
     (pkgs.callPackage ../change-background {
       inherit pkgs;
     })

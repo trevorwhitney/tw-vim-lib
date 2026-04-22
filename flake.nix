@@ -13,8 +13,10 @@
     , flake-utils
     , nixpkgs
     , nixpkgs-unstable
-    }: flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-darwin" ]
-      (system:
+    ,
+    }:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-darwin" ] (
+      system:
       let
         unstable = import nixpkgs-unstable {
           inherit system;
@@ -25,28 +27,48 @@
 
         pkgs =
           let
-            base = import nixpkgs
-              {
-                inherit system;
-                config = {
-                  allowUnfree = true;
-                };
+            base = import nixpkgs {
+              inherit system;
+              config = {
+                allowUnfree = true;
               };
+            };
           in
-          base // rec {
-            inherit (unstable) claude-code gemini-cli delve go golangci-lint golangci-lint-langserver gopls;
+          base
+          // rec {
+            inherit (unstable)
+              claude-code
+              delve
+              gemini-cli
+              go
+              golangci-lint
+              golangci-lint-langserver
+              gopls
+              pi-coding-agent
+              ;
             callPackage = base.callPackage;
             jdtls = callPackage ./nix/packages/jdtls { };
-            neovim = attrs: import ./nix/packages/neovim
-              ({
-                inherit self jdtls;
-                inherit (base) lib fetchFromGitHub;
-                inherit (unstable) vimUtils;
-                pkgs = base // {
-                  inherit jdtls claude-code gemini-cli golangci-lint golangci-lint-langserver;
-                  inherit (unstable) neovim-unwrapped wrapNeovimUnstable;
-                };
-              } // attrs);
+            neovim =
+              attrs:
+              import ./nix/packages/neovim (
+                {
+                  inherit self jdtls;
+                  inherit (base) lib fetchFromGitHub;
+                  inherit (unstable) vimUtils;
+                  pkgs = base // {
+                    inherit
+                      jdtls
+                      claude-code
+                      gemini-cli
+                      golangci-lint
+                      golangci-lint-langserver
+                      pi-coding-agent
+                      ;
+                    inherit (unstable) neovim-unwrapped wrapNeovimUnstable;
+                  };
+                }
+                // attrs
+              );
           };
 
         nodeJsPkg = pkgs.nodejs;
@@ -60,7 +82,14 @@
         inherit (pkgs) neovim;
 
         defaultPackage = pkgs.neovim {
-          inherit goPkg nodeJsPkg delvePkg golangciLintPkg golangciLintLangServerPkg goplsPkg;
+          inherit
+            goPkg
+            nodeJsPkg
+            delvePkg
+            golangciLintPkg
+            golangciLintLangServerPkg
+            goplsPkg
+            ;
           withLspSupport = true;
         };
 
@@ -77,48 +106,49 @@
                 golangciLintPkg
                 golangciLintLangServerPkg
                 goplsPkg
-                nodeJsPkg;
+                nodeJsPkg
+                ;
               withLspSupport = true;
             };
           in
 
-          pkgs.mkShell
-            {
-              EDITOR = "nvim";
-              packages = [
-                neovim
-              ] ++ (with pkgs; [
-                # General
-                bashInteractive
-                git
-                gnumake
-                luaPackages.luacheck
-                nixpkgs-fmt
-                statix
-                stylua
-                zip
+          pkgs.mkShell {
+            EDITOR = "nvim";
+            packages = [
+              neovim
+            ]
+            ++ (with pkgs; [
+              # General
+              bashInteractive
+              git
+              gnumake
+              luaPackages.luacheck
+              nixpkgs-fmt
+              statix
+              stylua
+              zip
 
-                goPkg
+              goPkg
 
-                # NodeJS
-                nodeJsPkg
-                (yarn.override {
-                  nodejs = nodeJsPkg;
-                })
+              # NodeJS
+              nodeJsPkg
+              (yarn.override {
+                nodejs = nodeJsPkg;
+              })
 
-                # python with extra packages
-                (
-                  let
-                    extra-python-packages = python-packages:
-                      with python-packages; [
-                        gyp
-                      ];
-                    python-with-packages = python311.withPackages
-                      extra-python-packages;
-                  in
-                  python-with-packages
-                )
-              ]);
-            };
-      });
+              # python with extra packages
+              (
+                let
+                  extra-python-packages =
+                    python-packages: with python-packages; [
+                      gyp
+                    ];
+                  python-with-packages = python311.withPackages extra-python-packages;
+                in
+                python-with-packages
+              )
+            ]);
+          };
+      }
+    );
 }
