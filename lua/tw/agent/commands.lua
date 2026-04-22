@@ -83,7 +83,8 @@ function M.setup_autocmds(claude_module)
 	vim.api.nvim_create_autocmd("BufWinEnter", {
 		callback = function(args)
 			-- Check if this is an agent buffer
-			local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
+			local all_modes =
+				{ "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", "pi", "pi-docker" }
 			for _, mode in ipairs(all_modes) do
 				local var_name = mode:gsub("-", "_")
 				local buf_key = var_name .. "_buf"
@@ -138,7 +139,16 @@ function M.setup_autocmds(claude_module)
 			vim.schedule_wrap(function()
 				-- Only check time if there's an active agent terminal
 				local any_visible = false
-				local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
+				local all_modes = {
+					"claude",
+					"claude-docker",
+					"codex",
+					"codex-docker",
+					"opencode",
+					"opencode-docker",
+					"pi",
+					"pi-docker",
+				}
 				for _, mode in ipairs(all_modes) do
 					local var_name = mode:gsub("-", "_")
 					local buf_key = var_name .. "_buf"
@@ -210,7 +220,7 @@ local function handle_build(claude_module, args)
 		-- Stop current container
 		if claude_module.container_started then
 			-- Close all docker buffer variants if they exist
-			local docker_modes = { "claude-docker", "codex-docker", "opencode-docker" }
+			local docker_modes = { "claude-docker", "codex-docker", "opencode-docker", "pi-docker" }
 			for _, mode in ipairs(docker_modes) do
 				local var_name = mode:gsub("-", "_")
 				local buf_key = var_name .. "_buf"
@@ -254,7 +264,7 @@ local function handle_restart(claude_module, args)
 	-- Stop current container
 	if claude_module.container_started then
 		-- Close all docker buffer variants if they exist
-		local docker_modes = { "claude-docker", "codex-docker", "opencode-docker" }
+		local docker_modes = { "claude-docker", "codex-docker", "opencode-docker", "pi-docker" }
 		for _, mode in ipairs(docker_modes) do
 			local var_name = mode:gsub("-", "_")
 			local buf_key = var_name .. "_buf"
@@ -298,7 +308,7 @@ local function restart_agent_with_context(agent_module, action_desc)
 	if agent_module.container_started then
 		vim.notify("Restarting container — " .. action_desc)
 		-- Close all docker buffer variants (matches handle_restart cleanup logic)
-		local docker_modes = { "claude-docker", "codex-docker", "opencode-docker" }
+		local docker_modes = { "claude-docker", "codex-docker", "opencode-docker", "pi-docker" }
 		for _, dmode in ipairs(docker_modes) do
 			local var_name = dmode:gsub("-", "_")
 			local buf_key = var_name .. "_buf"

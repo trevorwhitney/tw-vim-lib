@@ -154,6 +154,9 @@ RUN npm i -g @openai/codex
 # Install OpenCode
 RUN npm i -g opencode-ai
 
+# Install Pi coding agent
+RUN npm i -g @mariozechner/pi-coding-agent
+
 # Create non-root user permissions
 RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: /usr/local/bin/init-firewall.sh" >> /etc/sudoers
@@ -167,7 +170,7 @@ COPY init-firewall.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/init-firewall.sh
 
 # Set up directories
-RUN mkdir -p /home/node/.claude /home/node/.mcp /home/node/.local/bin /home/node/.config /commandhistory
+RUN mkdir -p /home/node/.claude /home/node/.mcp /home/node/.pi /home/node/.local/bin /home/node/.config /commandhistory
 
 RUN chown -R node:node /home/node /commandhistory
 

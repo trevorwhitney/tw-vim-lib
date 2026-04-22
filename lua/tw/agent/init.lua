@@ -24,7 +24,11 @@ M.opencode_buf = nil
 M.opencode_job_id = nil
 M.opencode_docker_buf = nil
 M.opencode_docker_job_id = nil
-M.active_mode = "opencode" -- Track which mode is currently visible: "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", or "none"
+M.pi_buf = nil
+M.pi_job_id = nil
+M.pi_docker_buf = nil
+M.pi_docker_job_id = nil
+M.active_mode = "opencode" -- Track which mode is currently visible: "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", "pi", "pi-docker", or "none"
 
 -- Active buffer/job_id points to the currently visible buffer
 M.active_buf = nil
@@ -139,7 +143,8 @@ local function close_other_mode_buffers(active_mode)
 		end
 	end
 
-	local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
+	local all_modes =
+		{ "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", "pi", "pi-docker" }
 	for _, mode in ipairs(all_modes) do
 		if mode ~= active_mode then
 			local vars = get_mode_vars(mode)
@@ -485,7 +490,7 @@ function M.restart_local_agent()
 	-- Find a running local-mode job. Prefer the active mode if it's local;
 	-- fall back to scanning all local modes (handles hidden-terminal case
 	-- where active_mode is "none" but a job is still running).
-	local local_modes = { "claude", "codex", "opencode" }
+	local local_modes = { "claude", "codex", "opencode", "pi" }
 	local running_mode = nil
 
 	-- First: check if active_mode is a running local agent
@@ -590,7 +595,8 @@ end
 -- Helper function to hide all agent buffers
 function M.hide_all_agent_buffers()
 	local windows = vim.api.nvim_list_wins()
-	local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
+	local all_modes =
+		{ "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", "pi", "pi-docker" }
 	for _, win in ipairs(windows) do
 		if vim.api.nvim_win_is_valid(win) then
 			local buf = vim.api.nvim_win_get_buf(win)
@@ -784,6 +790,20 @@ local function configureClaudeKeymap()
 				end,
 				desc = "Toggle OpenCode Docker",
 			},
+			{
+				"<leader>cp",
+				function()
+					require("tw.agent").Toggle("pi")
+				end,
+				desc = "Toggle Pi Local",
+			},
+			{
+				"<leader>cP",
+				function()
+					require("tw.agent").Toggle("pi-docker")
+				end,
+				desc = "Toggle Pi Docker",
+			},
 		},
 		{
 			mode = { "n" },
@@ -843,7 +863,8 @@ end
 
 function M.cleanup()
 	-- Clean up all mode buffers and jobs
-	local all_modes = { "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker" }
+	local all_modes =
+		{ "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", "pi", "pi-docker" }
 	for _, mode in ipairs(all_modes) do
 		local vars = get_mode_vars(mode)
 		local job_id = M[vars.job_key]

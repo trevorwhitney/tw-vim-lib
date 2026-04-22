@@ -252,6 +252,8 @@ function M.get_start_container_command(container_name, context_dirs)
 		"-v",
 		vim.fn.expand("~/.config/codex-container") .. ":/home/node/.codex",
 		"-v",
+		vim.fn.expand("~/.config/pi-container") .. ":/home/node/.pi",
+		"-v",
 		"claude-history:/commandhistory",
 		"-v",
 		vim.fn.expand("~/.config/git") .. ":/home/node/.config/git:ro",
@@ -312,6 +314,8 @@ function M.attach_to_container(container_name, args, command, working_dir)
 		cmd_string = "codex --search --full-auto" .. args
 	elseif command == "opencode" then
 		cmd_string = "opencode" .. args
+	elseif command == "pi" then
+		cmd_string = "pi" .. args
 	else
 		cmd_string = "claude --dangerously-skip-permissions" .. args
 	end
