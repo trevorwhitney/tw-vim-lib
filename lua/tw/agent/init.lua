@@ -1159,13 +1159,21 @@ function M.WorkmuxPrompt()
 		vim.fn.delete(f)
 	end
 
-	-- Pass prompt to opencode via --prompt with shellescape for safe shell passing
-	-- shellescape wraps in single quotes, which table.concat in claude.lua joins with spaces
-	-- Result: opencode /project --prompt 'the prompt text'
-	-- Use "current" window type so opencode fills the whole viewport on boot;
+	-- Build prompt args based on the agent mode:
+	-- opencode uses --prompt <text>, while claude/pi take a positional argument.
+	-- shellescape wraps in single quotes, which table.concat in claude.lua joins with spaces.
+	-- Use "current" window type so the agent fills the whole viewport on boot;
 	-- a BufEnter autocmd will revert it to a vsplit when a file is opened.
+	local command_name = parse_mode(M.default_mode)
+	local prompt_args
+	if command_name == "opencode" then
+		prompt_args = { "--prompt", vim.fn.shellescape(prompt_text) }
+	else
+		-- claude, pi, and others accept the prompt as a positional argument
+		prompt_args = { vim.fn.shellescape(prompt_text) }
+	end
 	M.workmux_fullscreen = true
-	M.Open(M.default_mode, { "--prompt", vim.fn.shellescape(prompt_text) }, "current")
+	M.Open(M.default_mode, prompt_args, "current")
 end
 
 function M.setup(opts)
