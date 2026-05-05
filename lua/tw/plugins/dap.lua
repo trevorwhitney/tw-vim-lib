@@ -57,6 +57,6 @@ return {
 	{
 		"microsoft/vscode-js-debug",
 		lazy = true,
-		build = "npm install --legacy-peer-deps --no-save && npx gulp dapDebugServer",
+		build = "npm pkg delete optionalDependencies.microtime && npm install --legacy-peer-deps --no-save && npx gulp dapDebugServer",
 	},
 }
