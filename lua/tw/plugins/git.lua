@@ -13,7 +13,7 @@ return {
 		end,
 	},
 	{
-		"sindrets/diffview.nvim",
+		"dlyongemallo/diffview.nvim",
 		cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewFileHistory" },
 	},
 }
