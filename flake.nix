@@ -44,7 +44,6 @@
               golangci-lint
               golangci-lint-langserver
               gopls
-              pi-coding-agent
               ;
             callPackage = base.callPackage;
             jdtls = callPackage ./nix/packages/jdtls { };
@@ -62,7 +61,6 @@
                       gemini-cli
                       golangci-lint
                       golangci-lint-langserver
-                      pi-coding-agent
                       ;
                     inherit (unstable) neovim-unwrapped wrapNeovimUnstable;
                   };
