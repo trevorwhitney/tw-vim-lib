@@ -14,11 +14,4 @@ return {
 			vim.g.tmux_navigator_no_mappings = 1
 		end,
 	},
-	{
-		"dstein64/vim-win",
-		event = "VeryLazy",
-		init = function()
-			vim.g.win_disable_version_warning = 1
-		end,
-	},
 }

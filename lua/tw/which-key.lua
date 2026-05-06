@@ -472,6 +472,43 @@ local function vimMappings()
 	keymap.set("n", "<C-h>", "<C-W><C-H>", { noremap = true })
 	keymap.set("n", "<C-w>q", ":window close<cr>", { noremap = true })
 
+	-- ====== Repeatable window resize =======
+	-- After pressing <C-w>< (or >, +, -), keep pressing <, >, +, - to keep
+	-- resizing. Any other key exits the loop and is fed back to Neovim.
+	local function resize_loop(initial)
+		local function step(c)
+			if c == "<" then
+				vim.cmd("vertical resize -2")
+			elseif c == ">" then
+				vim.cmd("vertical resize +2")
+			elseif c == "-" then
+				vim.cmd("resize -2")
+			elseif c == "+" or c == "=" then
+				vim.cmd("resize +2")
+			else
+				return false
+			end
+			return true
+		end
+		step(initial)
+		while true do
+			vim.cmd("redraw")
+			local ok, c = pcall(vim.fn.getcharstr)
+			if not ok or c == "" or c == "\27" then
+				return
+			end
+			if not step(c) then
+				vim.api.nvim_feedkeys(c, "n", false)
+				return
+			end
+		end
+	end
+	for _, k in ipairs({ "<", ">", "+", "-" }) do
+		keymap.set("n", "<C-w>" .. k, function()
+			resize_loop(k)
+		end, { noremap = true, desc = "Resize window (repeatable with < > + -)" })
+	end
+
 	-- ====== Readline / RSI =======
 	keymap.set("i", "<c-k>", "<c-o>D", { noremap = true })
 	keymap.set("c", "<c-k>", "<c-\\>e getcmdpos() == 1 ? '' : getcmdline()[:getcmdpos()-2]<cr>", { noremap = true })
