@@ -114,7 +114,7 @@ local function mapKeys(wk)
 		},
 		{
 			"<leader>rr",
-			"<cmd>lua require('telescope').extensions.refactoring.refactors()<CR>",
+			"<cmd>lua require('refactoring').select_refactor()<CR>",
 			desc = "Refactor Menu",
 			remap = false,
 		},
