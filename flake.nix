@@ -23,6 +23,19 @@
           config = {
             allowUnfree = true;
           };
+          overlays = [
+            (_final: prev: {
+              # Upstream nixpkgs-unstable neovim-unwrapped 0.12.x ships flaky
+              # treesitter functional tests (T159 "ignores overlapping injections"
+              # races on the --listen socket and aborts the whole suite). The
+              # failure has nothing to do with this flake, but it blocks the
+              # devShell build entirely, so we skip the upstream test suite.
+              neovim-unwrapped = prev.neovim-unwrapped.overrideAttrs (_old: {
+                doCheck = false;
+                doInstallCheck = false;
+              });
+            })
+          ];
         };
 
         pkgs =

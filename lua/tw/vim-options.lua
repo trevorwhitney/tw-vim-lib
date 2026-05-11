@@ -35,6 +35,7 @@ local function setOptions()
 	set.ignorecase = true -- ignore case only when search term is all lowercase
 	set.smartcase = true -- ignore case only when search term is all lowercase
 	set.mouse = "a" -- enable mouse in all modes
+	set.mousescroll = "ver:1,hor:6"
 	set.scrolloff = 5
 	set.shiftwidth = 2 -- Width of autoindent
 	set.tabstop = 2 -- Tab settings
