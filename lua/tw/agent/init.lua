@@ -45,7 +45,7 @@ M.logs_job_id = nil
 
 -- Workmux fullscreen state: when true, opencode occupies the full viewport
 -- and will revert to a vsplit when a non-terminal buffer is opened.
-M.workmux_fullscreen = false
+M.agent_fullscreen = false
 
 -- Container configuration
 M.auto_build = true -- Auto-build image if missing
@@ -1127,6 +1127,20 @@ local function generate_pane_description(prompt_text, cwd)
 	)
 end
 
+-- Open the agent fullscreen in the current window with no prompt.
+-- Intended for command-line use, e.g.:
+--   nvim +AgentFullscreen
+--   nvim "+AgentFullscreen claude"
+--
+-- Sets agent_fullscreen so the BufEnter autocmd in commands.lua
+-- reverts to a [file] | [agent] vsplit when the user opens a file.
+function M.OpenFullscreen(mode)
+	mode = mode or M.default_mode
+	log.info("OpenFullscreen: starting agent in fullscreen, mode=" .. tostring(mode))
+	M.agent_fullscreen = true
+	M.Open(mode, nil, "current")
+end
+
 function M.WorkmuxPrompt()
 	-- Find .workmux/PROMPT-*.md in cwd
 	local cwd = vim.fn.getcwd()
@@ -1172,7 +1186,7 @@ function M.WorkmuxPrompt()
 		-- claude, pi, and others accept the prompt as a positional argument
 		prompt_args = { vim.fn.shellescape(prompt_text) }
 	end
-	M.workmux_fullscreen = true
+	M.agent_fullscreen = true
 	M.Open(M.default_mode, prompt_args, "current")
 end
 

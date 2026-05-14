@@ -44,11 +44,12 @@ function M.setup_autocmds(claude_module)
 		desc = "Detect and send workmux prompt to agent on startup",
 	})
 
-	-- When workmux opened opencode fullscreen, revert to vsplit layout
+	-- When the agent was opened fullscreen (workmux prompt or :AgentFullscreen),
+	-- revert to a [file] | [agent] vsplit layout
 	-- the first time a non-terminal buffer is entered (e.g. editing a file).
 	vim.api.nvim_create_autocmd("BufEnter", {
 		callback = function(args)
-			if not claude_module.workmux_fullscreen then
+			if not claude_module.agent_fullscreen then
 				return
 			end
 
@@ -59,7 +60,7 @@ function M.setup_autocmds(claude_module)
 			end
 
 			-- Disable the flag so this only fires once
-			claude_module.workmux_fullscreen = false
+			claude_module.agent_fullscreen = false
 
 			-- Find the opencode agent buffer
 			local default_var = claude_module.default_mode:gsub("-", "_")
@@ -77,7 +78,7 @@ function M.setup_autocmds(claude_module)
 			vim.cmd("wincmd p")
 		end,
 		group = group,
-		desc = "Revert workmux fullscreen opencode to vsplit when a file is opened",
+		desc = "Revert fullscreen agent to vsplit when a file is opened",
 	})
 
 	-- Set nowrap for agent buffer windows, which makes code changes look better
@@ -419,6 +420,39 @@ local function handle_list_contexts(claude_module, args)
 end
 subcommand_handlers["list-contexts"] = handle_list_contexts
 
+-- Open agent fullscreen (no prompt required)
+local valid_modes = {
+	"claude",
+	"claude-docker",
+	"codex",
+	"codex-docker",
+	"opencode",
+	"opencode-docker",
+	"pi",
+	"pi-docker",
+}
+local function handle_fullscreen(claude_module, args)
+	local mode = args[1]
+	if mode then
+		local ok = false
+		for _, m in ipairs(valid_modes) do
+			if m == mode then
+				ok = true
+				break
+			end
+		end
+		if not ok then
+			vim.notify(
+				"Invalid agent mode: " .. mode .. "\nValid: " .. table.concat(valid_modes, ", "),
+				vim.log.levels.ERROR
+			)
+			return
+		end
+	end
+	claude_module.OpenFullscreen(mode)
+end
+subcommand_handlers.fullscreen = handle_fullscreen
+
 -- Clear scrollback for active buffer
 local function handle_clear_scrollback(claude_module, args)
 	-- Clear scrollback for the active buffer
@@ -583,7 +617,7 @@ local function handle_aiagent_command(args, agent_module)
 	if not subcommand then
 		vim.notify("Usage: :AiAgent <subcommand> [args]", vim.log.levels.INFO)
 		vim.notify(
-			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall, clear-scrollback, toggle-follow",
+			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall, clear-scrollback, toggle-follow, fullscreen",
 			vim.log.levels.INFO
 		)
 		return
@@ -596,7 +630,7 @@ local function handle_aiagent_command(args, agent_module)
 	else
 		vim.notify("Unknown subcommand: " .. subcommand, vim.log.levels.ERROR)
 		vim.notify(
-			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall, clear-scrollback, toggle-follow",
+			"Available subcommands: build, restart, add-context, remove-context, list-contexts, shell, show-log, container-logs, log-level, check-firewall, clear-scrollback, toggle-follow, fullscreen",
 			vim.log.levels.INFO
 		)
 	end
@@ -628,6 +662,7 @@ function M.setup_user_commands(agent_module)
 					"check-firewall",
 					"clear-scrollback",
 					"toggle-follow",
+					"fullscreen",
 				}
 				return vim.tbl_filter(function(cmd)
 					return cmd:find("^" .. arg_lead)
@@ -655,11 +690,30 @@ function M.setup_user_commands(agent_module)
 				return vim.tbl_filter(function(level)
 					return level:find("^" .. string.upper(arg_lead))
 				end, levels)
+			elseif subcommand == "fullscreen" then
+				return vim.tbl_filter(function(m)
+					return m:find("^" .. arg_lead)
+				end, valid_modes)
 			end
 
 			return {}
 		end,
 		desc = "AI Agent management commands",
+	})
+
+	-- Top-level :AgentFullscreen [mode] for convenient command-line use:
+	--   nvim +AgentFullscreen
+	--   nvim "+AgentFullscreen claude"
+	vim.api.nvim_create_user_command("AgentFullscreen", function(args)
+		handle_fullscreen(agent_module, args.fargs)
+	end, {
+		nargs = "?",
+		complete = function(arg_lead)
+			return vim.tbl_filter(function(m)
+				return m:find("^" .. arg_lead)
+			end, valid_modes)
+		end,
+		desc = "Open AI agent fullscreen in the current window (no prompt required)",
 	})
 end
 

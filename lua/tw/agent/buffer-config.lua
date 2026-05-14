@@ -33,7 +33,7 @@ function M.setup_buffer(buf, opts)
 
 	-- Set buffer options
 	vim.bo[buf].scrollback = config.scrollback
-	vim.bo[buf].filetype = "ClaudeConsole"
+	vim.bo[buf].filetype = "AgentConsole"
 
 	-- Create buffer-local autocmds for this specific buffer
 	local augroup = vim.api.nvim_create_augroup("ClaudeBuffer_" .. buf, { clear = true })
