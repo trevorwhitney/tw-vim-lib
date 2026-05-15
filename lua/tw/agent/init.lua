@@ -1134,11 +1134,37 @@ end
 --
 -- Sets agent_fullscreen so the BufEnter autocmd in commands.lua
 -- reverts to a [file] | [agent] vsplit when the user opens a file.
+--
+-- When invoked from a `+command` startup argument, vim is still finishing
+-- initialization and the UI/PTY isn't fully ready yet; calling termopen
+-- synchronously here causes the spawned agent process to exit immediately.
+-- Defer the work until vim is fully initialized (matches the pattern used
+-- by WorkmuxPrompt, which is dispatched from a VimEnter autocmd).
 function M.OpenFullscreen(mode)
 	mode = mode or M.default_mode
-	log.info("OpenFullscreen: starting agent in fullscreen, mode=" .. tostring(mode))
-	M.agent_fullscreen = true
-	M.Open(mode, nil, "current")
+	log.info("OpenFullscreen: scheduling fullscreen agent start, mode=" .. tostring(mode))
+	local function start()
+		log.info("OpenFullscreen: starting agent in fullscreen, mode=" .. tostring(mode))
+		M.agent_fullscreen = true
+		M.Open(mode, nil, "current")
+	end
+
+	if vim.v.vim_did_enter == 1 then
+		-- Already past startup (e.g. user typed :AgentFullscreen interactively).
+		start()
+	else
+		-- Still in startup (invoked via `nvim +AgentFullscreen ...`). Wait for
+		-- VimEnter so the UI/PTY is ready before we call termopen.
+		vim.api.nvim_create_autocmd("VimEnter", {
+			once = true,
+			callback = function()
+				-- Small additional defer mirrors WorkmuxPrompt's 100ms delay,
+				-- which gives other VimEnter handlers a chance to settle.
+				vim.defer_fn(start, 100)
+			end,
+			desc = "Deferred AgentFullscreen start after VimEnter",
+		})
+	end
 end
 
 function M.WorkmuxPrompt()
