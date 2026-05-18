@@ -53,9 +53,20 @@ function M.setup_autocmds(claude_module)
 				return
 			end
 
-			-- Only act on normal (non-terminal) buffers
+			-- Only act on real file buffers. Skip terminal, prompt (Telescope),
+			-- quickfix, help, nofile, etc. so opening pickers/floats from the
+			-- fullscreen agent doesn't accidentally tear down the layout and
+			-- steal focus from the picker.
 			local buftype = vim.bo[args.buf].buftype
-			if buftype == "terminal" then
+			if buftype ~= "" then
+				return
+			end
+
+			-- Ignore floating windows (e.g. Telescope, lspsaga, noice popups).
+			-- BufEnter for a floating window means the user is interacting with
+			-- a picker, not opening a file in place.
+			local win_config = vim.api.nvim_win_get_config(0)
+			if win_config.relative and win_config.relative ~= "" then
 				return
 			end
 
