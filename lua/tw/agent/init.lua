@@ -126,7 +126,15 @@ local function get_plugin_root()
 end
 
 local function OnExit(mode, idx)
-  return function(_, _, _)
+  return function(exited_job_id, _, _)
+    -- Stale-callback guard: if a newer instance has taken this slot
+    -- (e.g. after restart_local_agent), don't clear it. We're seeing
+    -- the *prior* job's OnExit callback fire after we've already
+    -- spawned and stored a fresh instance at (mode, idx).
+    local inst = get_instance(mode, idx)
+    if not inst or inst.job_id ~= exited_job_id then
+      return
+    end
     clear_instance(mode, idx)
     if M.active_mode == mode and M.active_index == idx then
       M.active_mode   = "none"
@@ -601,6 +609,10 @@ function M.hide_all_agent_buffers()
 			close_buffer_windows(buf)
 		end
 	end
+	M.active_mode = "none"
+	M.active_index = 0
+	M.active_buf = nil
+	M.active_job_id = nil
 end
 
 -- Backwards compatibility alias
@@ -864,6 +876,11 @@ function M.cleanup()
 		end
 	end
 
+	-- Empty the instances tables
+	for mode, _ in pairs(M.instances) do
+		M.instances[mode] = {}
+	end
+
 	-- Clean up active pointers
 	M.active_job_id = nil
 	M.active_buf = nil
@@ -903,6 +920,7 @@ function M.get_status()
 
 	return {
 		mode = M.active_mode,
+		index = M.active_index,
 		container_running = container_running,
 		container_name = container_name,
 	}
@@ -1132,6 +1150,7 @@ function M.OpenFullscreen(mode)
 	local function start()
 		log.info("OpenFullscreen: starting agent in fullscreen, mode=" .. tostring(mode))
 		M.agent_fullscreen = true
+		-- idx defaults to 0; fullscreen always operates on the default instance.
 		M.Open(mode, nil, "current")
 	end
 
@@ -1199,6 +1218,7 @@ function M.WorkmuxPrompt()
 		prompt_args = { vim.fn.shellescape(prompt_text) }
 	end
 	M.agent_fullscreen = true
+	-- Workmux flow always uses the default instance (idx 0).
 	M.Open(M.default_mode, prompt_args, "current")
 end
 
