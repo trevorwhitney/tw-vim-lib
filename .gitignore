@@ -8,3 +8,5 @@ result
 test/vendor
 
 docs/superpowers
+
+tests/.deps/

@@ -1,15 +1,16 @@
-.PHONY: help docker lint lint-lua lint-nix format format-lua format-nix test-lua
+.PHONY: help docker lint lint-lua lint-nix format format-lua format-nix test-lua test-plenary
 
 help:
 	@echo "Available targets:"
-	@echo "  docker     - Build the Claude Docker image"
-	@echo "  lint       - Run all linters (Lua and Nix)"
-	@echo "  lint-lua   - Run luacheck on Lua files"
-	@echo "  lint-nix   - Run statix on Nix files"
-	@echo "  format     - Run all formatters (Lua and Nix)"
-	@echo "  format-lua - Format Lua files with stylua"
-	@echo "  format-nix - Format Nix files with nixpkgs-fmt"
-	@echo "  test-lua  - Run Lua unit tests"
+	@echo "  docker        - Build the Claude Docker image"
+	@echo "  lint          - Run all linters (Lua and Nix)"
+	@echo "  lint-lua      - Run luacheck on Lua files"
+	@echo "  lint-nix      - Run statix on Nix files"
+	@echo "  format        - Run all formatters (Lua and Nix)"
+	@echo "  format-lua    - Format Lua files with stylua"
+	@echo "  format-nix    - Format Nix files with nixpkgs-fmt"
+	@echo "  test-lua      - Run Lua unit tests"
+	@echo "  test-plenary  - Run PlenaryBustedDirectory tests"
 
 docker:
 	docker build -t tw-claude-code:latest -f lua/tw/agent/docker/Dockerfile lua/tw/agent/docker
@@ -59,3 +60,9 @@ format-nix:
 test-lua:
 	@echo "Running Lua tests..."
 	@lua test/resolve_file_path_test.lua
+
+test-plenary:
+	./tests/setup.sh
+	nvim --headless -u tests/minimal_init.lua \
+	  -c "PlenaryBustedDirectory tests/agent/ { minimal_init = 'tests/minimal_init.lua' }" \
+	  -c "qa!"
