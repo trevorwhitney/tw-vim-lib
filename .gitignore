@@ -10,3 +10,5 @@ test/vendor
 docs/superpowers
 
 tests/.deps/
+
+nvim.log
