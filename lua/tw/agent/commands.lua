@@ -24,7 +24,9 @@ end
 local function is_agent_buf(buf)
 	local agent = require("tw.agent")
 	for _, _, b, _ in agent._iter_all_instances() do
-		if b == buf then return true end
+		if b == buf then
+			return true
+		end
 	end
 	return false
 end
@@ -713,6 +715,6 @@ end
 
 -- Expose helpers for testability
 M._resolve_default_agent_buf = resolve_default_agent_buf
-M._is_agent_buf              = is_agent_buf
+M._is_agent_buf = is_agent_buf
 
 return M

@@ -15,7 +15,7 @@ _G.claude_log = log
 -- Change this value to switch every default (Open, Toggle, WorkmuxPrompt, etc.).
 M.default_mode = "opencode"
 M.active_mode = "none" -- currently visible mode, or "none" when no agent is shown
-M.active_index = 0     -- idx of the visible/last-shown instance
+M.active_index = 0 -- idx of the visible/last-shown instance
 
 -- Active buffer/job_id points to the currently visible buffer
 M.active_buf = nil
@@ -50,64 +50,66 @@ M.buffer_config = {
 -- Multi-instance data model
 -- =====================================================================
 M.instances = {
-  pi                  = {},
-  opencode            = {},
-  claude              = {},
-  codex               = {},
-  ["pi-docker"]       = {},
-  ["opencode-docker"] = {},
-  ["claude-docker"]   = {},
-  ["codex-docker"]    = {},
+	pi = {},
+	opencode = {},
+	claude = {},
+	codex = {},
+	["pi-docker"] = {},
+	["opencode-docker"] = {},
+	["claude-docker"] = {},
+	["codex-docker"] = {},
 }
 
 local function get_instance(mode, idx)
-  idx = idx or 0
-  M.instances[mode] = M.instances[mode] or {}
-  return M.instances[mode][idx]
+	idx = idx or 0
+	M.instances[mode] = M.instances[mode] or {}
+	return M.instances[mode][idx]
 end
 
 local function set_instance(mode, idx, buf, job_id)
-  idx = idx or 0
-  M.instances[mode] = M.instances[mode] or {}
-  M.instances[mode][idx] = { buf = buf, job_id = job_id }
+	idx = idx or 0
+	M.instances[mode] = M.instances[mode] or {}
+	M.instances[mode][idx] = { buf = buf, job_id = job_id }
 end
 
 local function clear_instance(mode, idx)
-  idx = idx or 0
-  if M.instances[mode] then
-    M.instances[mode][idx] = nil
-  end
+	idx = idx or 0
+	if M.instances[mode] then
+		M.instances[mode][idx] = nil
+	end
 end
 
 local function iter_all_instances()
-  local modes = vim.tbl_keys(M.instances)
-  table.sort(modes)
-  local mi, idx_keys, ii = 1, nil, 0
-  return function()
-    while mi <= #modes do
-      local mode = modes[mi]
-      if not idx_keys then
-        idx_keys = vim.tbl_keys(M.instances[mode] or {})
-        table.sort(idx_keys)
-        ii = 0
-      end
-      ii = ii + 1
-      if ii <= #idx_keys then
-        local idx = idx_keys[ii]
-        local inst = M.instances[mode][idx]
-        if inst then return mode, idx, inst.buf, inst.job_id end
-      else
-        mi, idx_keys = mi + 1, nil
-      end
-    end
-    return nil
-  end
+	local modes = vim.tbl_keys(M.instances)
+	table.sort(modes)
+	local mi, idx_keys, ii = 1, nil, 0
+	return function()
+		while mi <= #modes do
+			local mode = modes[mi]
+			if not idx_keys then
+				idx_keys = vim.tbl_keys(M.instances[mode] or {})
+				table.sort(idx_keys)
+				ii = 0
+			end
+			ii = ii + 1
+			if ii <= #idx_keys then
+				local idx = idx_keys[ii]
+				local inst = M.instances[mode][idx]
+				if inst then
+					return mode, idx, inst.buf, inst.job_id
+				end
+			else
+				mi, idx_keys = mi + 1, nil
+			end
+		end
+		return nil
+	end
 end
 
 -- Stable internal API for the plenary spec suite. Not for external use.
-M._get_instance       = get_instance
-M._set_instance       = set_instance
-M._clear_instance     = clear_instance
+M._get_instance = get_instance
+M._set_instance = set_instance
+M._clear_instance = clear_instance
 M._iter_all_instances = iter_all_instances
 
 -- Helper function to parse mode into command and location
@@ -126,23 +128,23 @@ local function get_plugin_root()
 end
 
 local function OnExit(mode, idx)
-  return function(exited_job_id, _, _)
-    -- Stale-callback guard: if a newer instance has taken this slot
-    -- (e.g. after restart_local_agent), don't clear it. We're seeing
-    -- the *prior* job's OnExit callback fire after we've already
-    -- spawned and stored a fresh instance at (mode, idx).
-    local inst = get_instance(mode, idx)
-    if not inst or inst.job_id ~= exited_job_id then
-      return
-    end
-    clear_instance(mode, idx)
-    if M.active_mode == mode and M.active_index == idx then
-      M.active_mode   = "none"
-      M.active_index  = 0
-      M.active_buf    = nil
-      M.active_job_id = nil
-    end
-  end
+	return function(exited_job_id, _, _)
+		-- Stale-callback guard: if a newer instance has taken this slot
+		-- (e.g. after restart_local_agent), don't clear it. We're seeing
+		-- the *prior* job's OnExit callback fire after we've already
+		-- spawned and stored a fresh instance at (mode, idx).
+		local inst = get_instance(mode, idx)
+		if not inst or inst.job_id ~= exited_job_id then
+			return
+		end
+		clear_instance(mode, idx)
+		if M.active_mode == mode and M.active_index == idx then
+			M.active_mode = "none"
+			M.active_index = 0
+			M.active_buf = nil
+			M.active_job_id = nil
+		end
+	end
 end
 
 local function close_buffer_windows(buf)
@@ -165,19 +167,19 @@ local function close_buffer_windows(buf)
 end
 
 local function close_other_agent_buffers(target_mode, target_idx)
-  target_idx = target_idx or 0
-  local windows = vim.api.nvim_list_wins()
-  for _, win in ipairs(windows) do
-    if vim.api.nvim_win_is_valid(win) then
-      local win_buf = vim.api.nvim_win_get_buf(win)
-      for mode, idx, buf, _ in iter_all_instances() do
-        if win_buf == buf and not (mode == target_mode and idx == target_idx) then
-          vim.api.nvim_win_close(win, false)
-          break
-        end
-      end
-    end
-  end
+	target_idx = target_idx or 0
+	local windows = vim.api.nvim_list_wins()
+	for _, win in ipairs(windows) do
+		if vim.api.nvim_win_is_valid(win) then
+			local win_buf = vim.api.nvim_win_get_buf(win)
+			for mode, idx, buf, _ in iter_all_instances() do
+				if win_buf == buf and not (mode == target_mode and idx == target_idx) then
+					vim.api.nvim_win_close(win, false)
+					break
+				end
+			end
+		end
+	end
 end
 
 local function start_new_agent_job(args, window_type, mode, idx)
@@ -386,9 +388,9 @@ local function start_new_agent_job(args, window_type, mode, idx)
 	M._apply_agent_updatetime()
 
 	-- Update active state
-	M.active_mode   = mode
-	M.active_index  = idx
-	M.active_buf    = buf
+	M.active_mode = mode
+	M.active_index = idx
+	M.active_buf = buf
 	M.active_job_id = job_id
 
 	vim.defer_fn(function()
@@ -416,10 +418,7 @@ end
 -- count > 9:  notify and return nil
 local function resolve_send_target(count)
 	if count > 9 then
-		vim.notify(
-			string.format("Agent instance index must be 0-9 (got %d)", count),
-			vim.log.levels.WARN
-		)
+		vim.notify(string.format("Agent instance index must be 0-9 (got %d)", count), vim.log.levels.WARN)
 		return nil
 	end
 
@@ -452,12 +451,16 @@ local function confirmOpenAndDo(callback, args, window_type, target_mode, target
 	if target_mode then
 		local inst = get_instance(target_mode, target_idx)
 		local alive = inst
-			and inst.buf and vim.api.nvim_buf_is_valid(inst.buf)
-			and inst.job_id and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1
+			and inst.buf
+			and vim.api.nvim_buf_is_valid(inst.buf)
+			and inst.job_id
+			and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1
 		if not alive then
 			M.Open(target_mode, args, window_type, target_idx)
 			vim.defer_fn(function()
-				if callback then callback() end
+				if callback then
+					callback()
+				end
 			end, 2500)
 			return
 		end
@@ -473,9 +476,11 @@ local function confirmOpenAndDo(callback, args, window_type, target_mode, target
 			close_other_agent_buffers(target_mode, target_idx)
 			terminal.open_buffer_in_new_window(window_type, inst.buf)
 		end
-		M.active_mode, M.active_index  = target_mode, target_idx
-		M.active_buf,  M.active_job_id = inst.buf, inst.job_id
-		if callback then callback() end
+		M.active_mode, M.active_index = target_mode, target_idx
+		M.active_buf, M.active_job_id = inst.buf, inst.job_id
+		if callback then
+			callback()
+		end
 		return
 	end
 
@@ -486,7 +491,7 @@ local function confirmOpenAndDo(callback, args, window_type, target_mode, target
 		-- Active mode may be "none" at startup (or after all agents closed).
 		-- Resolve to default_mode in that case so we don't try to open mode="none".
 		local fallback_mode = (M.active_mode ~= "none") and M.active_mode or M.default_mode
-		local fallback_idx  = (M.active_mode ~= "none") and M.active_index or 0
+		local fallback_idx = (M.active_mode ~= "none") and M.active_index or 0
 		M.Open(fallback_mode, args, window_type, fallback_idx)
 
 		-- Wait a bit for the chat to initialize
@@ -547,31 +552,33 @@ local function confirmOpenAndDo(callback, args, window_type, target_mode, target
 end
 
 function M.Open(mode, args, window_type, idx)
-  mode        = mode or M.default_mode
-  args        = args or default_args
-  window_type = window_type or "vsplit"
-  idx         = idx or 0
+	mode = mode or M.default_mode
+	args = args or default_args
+	window_type = window_type or "vsplit"
+	idx = idx or 0
 
-  local inst = get_instance(mode, idx)
-  local buf, job_id
-  if inst then buf, job_id = inst.buf, inst.job_id end
+	local inst = get_instance(mode, idx)
+	local buf, job_id
+	if inst then
+		buf, job_id = inst.buf, inst.job_id
+	end
 
-  local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
+	local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
 
-  if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
-    close_other_agent_buffers(mode, idx)
-    terminal.open_buffer_in_new_window(window_type, buf)
-    M.active_mode   = mode
-    M.active_index  = idx
-    M.active_buf    = buf
-    M.active_job_id = job_id
-  else
-    if buf and not job_is_running then
-      terminal.close_terminal_buffer(buf, job_id)
-      clear_instance(mode, idx)
-    end
-    start_new_agent_job(args, window_type, mode, idx)
-  end
+	if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
+		close_other_agent_buffers(mode, idx)
+		terminal.open_buffer_in_new_window(window_type, buf)
+		M.active_mode = mode
+		M.active_index = idx
+		M.active_buf = buf
+		M.active_job_id = job_id
+	else
+		if buf and not job_is_running then
+			terminal.close_terminal_buffer(buf, job_id)
+			clear_instance(mode, idx)
+		end
+		start_new_agent_job(args, window_type, mode, idx)
+	end
 end
 
 -- Restart the active local (sandboxed) agent with updated context_directories.
@@ -579,109 +586,110 @@ end
 -- local agent was running. Args are not preserved on restart — git root is
 -- re-derived in start_new_agent_job().
 function M.restart_local_agent()
-  local local_modes = { claude = true, codex = true, opencode = true, pi = true }
-  local target_mode, target_idx
+	local local_modes = { claude = true, codex = true, opencode = true, pi = true }
+	local target_mode, target_idx
 
-  -- (a) Prefer the active instance if it's local and alive
-  if local_modes[M.active_mode] then
-    local inst = get_instance(M.active_mode, M.active_index)
-    if inst and inst.job_id and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1 then
-      target_mode, target_idx = M.active_mode, M.active_index
-    end
-  end
+	-- (a) Prefer the active instance if it's local and alive
+	if local_modes[M.active_mode] then
+		local inst = get_instance(M.active_mode, M.active_index)
+		if inst and inst.job_id and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1 then
+			target_mode, target_idx = M.active_mode, M.active_index
+		end
+	end
 
-  -- (b) Otherwise, deterministic first-live scan via iter_all_instances
-  -- (sorted by mode name then idx ascending)
-  if not target_mode then
-    for m, i, _, j in iter_all_instances() do
-      if local_modes[m] and j and vim.fn.jobwait({ j }, 0)[1] == -1 then
-        target_mode, target_idx = m, i
-        break
-      end
-    end
-  end
+	-- (b) Otherwise, deterministic first-live scan via iter_all_instances
+	-- (sorted by mode name then idx ascending)
+	if not target_mode then
+		for m, i, _, j in iter_all_instances() do
+			if local_modes[m] and j and vim.fn.jobwait({ j }, 0)[1] == -1 then
+				target_mode, target_idx = m, i
+				break
+			end
+		end
+	end
 
-  if not target_mode then return false end
+	if not target_mode then
+		return false
+	end
 
-  local inst = get_instance(target_mode, target_idx)
-  if inst and inst.buf then
-    terminal.close_terminal_buffer(inst.buf, inst.job_id)
-  end
-  clear_instance(target_mode, target_idx)
-  if M.active_mode == target_mode and M.active_index == target_idx then
-    M.active_mode   = "none"
-    M.active_index  = 0
-    M.active_buf    = nil
-    M.active_job_id = nil
-  end
-  M.Open(target_mode, nil, "vsplit", target_idx)
-  return true
+	local inst = get_instance(target_mode, target_idx)
+	if inst and inst.buf then
+		terminal.close_terminal_buffer(inst.buf, inst.job_id)
+	end
+	clear_instance(target_mode, target_idx)
+	if M.active_mode == target_mode and M.active_index == target_idx then
+		M.active_mode = "none"
+		M.active_index = 0
+		M.active_buf = nil
+		M.active_job_id = nil
+	end
+	M.Open(target_mode, nil, "vsplit", target_idx)
+	return true
 end
 
 function M.Toggle(mode, args, window_type, idx)
-  mode        = mode or M.default_mode
-  args        = args or default_args
-  window_type = window_type or "vsplit"
-  idx         = idx or 0
+	mode = mode or M.default_mode
+	args = args or default_args
+	window_type = window_type or "vsplit"
+	idx = idx or 0
 
-  local inst = get_instance(mode, idx)
-  local buf, job_id
-  if inst then buf, job_id = inst.buf, inst.job_id end
+	local inst = get_instance(mode, idx)
+	local buf, job_id
+	if inst then
+		buf, job_id = inst.buf, inst.job_id
+	end
 
-  local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
+	local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
 
-  if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
-    local visible_win
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-      if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
-        visible_win = win
-        break
-      end
-    end
+	if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
+		local visible_win
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
+				visible_win = win
+				break
+			end
+		end
 
-    if visible_win then
-      vim.api.nvim_win_close(visible_win, false)
-      if M.active_mode == mode and M.active_index == idx then
-        M.active_mode   = "none"
-        M.active_index  = 0
-        M.active_buf    = nil
-        M.active_job_id = nil
-      end
-    else
-      close_other_agent_buffers(mode, idx)
-      terminal.open_buffer_in_new_window(window_type, buf)
-      M.active_mode   = mode
-      M.active_index  = idx
-      M.active_buf    = buf
-      M.active_job_id = job_id
-    end
-  else
-    if buf and not job_is_running then
-      terminal.close_terminal_buffer(buf, job_id)
-      clear_instance(mode, idx)
-    end
-    M.Open(mode, args, window_type, idx)
-  end
+		if visible_win then
+			vim.api.nvim_win_close(visible_win, false)
+			if M.active_mode == mode and M.active_index == idx then
+				M.active_mode = "none"
+				M.active_index = 0
+				M.active_buf = nil
+				M.active_job_id = nil
+			end
+		else
+			close_other_agent_buffers(mode, idx)
+			terminal.open_buffer_in_new_window(window_type, buf)
+			M.active_mode = mode
+			M.active_index = idx
+			M.active_buf = buf
+			M.active_job_id = job_id
+		end
+	else
+		if buf and not job_is_running then
+			terminal.close_terminal_buffer(buf, job_id)
+			clear_instance(mode, idx)
+		end
+		M.Open(mode, args, window_type, idx)
+	end
 end
 
 -- Explicit-count entry point used by tests and by _toggle_with_count.
 -- count is passed in directly so callers don't need to manipulate the
 -- read-only vim.v.count.
 function M._toggle_with_count_explicit(mode, count, visual)
-  local idx = visual and 0 or count
-  if idx > 9 then
-    vim.notify(
-      string.format("Agent instance index must be 0-9 (got %d)", idx),
-      vim.log.levels.WARN
-    )
-    return
-  end
-  M.Toggle(mode, nil, "vsplit", idx)
+	local idx = visual and 0 or count
+	if idx > 9 then
+		vim.notify(string.format("Agent instance index must be 0-9 (got %d)", idx), vim.log.levels.WARN)
+		return
+	end
+	M.Toggle(mode, nil, "vsplit", idx)
 end
 
 -- Keymap entry point. Reads vim.v.count then delegates.
 function M._toggle_with_count(mode, visual)
-  M._toggle_with_count_explicit(mode, vim.v.count, visual)
+	M._toggle_with_count_explicit(mode, vim.v.count, visual)
 end
 
 -- Helper function to hide all agent buffers
@@ -720,7 +728,9 @@ end
 function M._send_with_count(fn_name, count, ...)
 	local extra = { ... }
 	local mode, idx = resolve_send_target(count)
-	if not mode then return end
+	if not mode then
+		return
+	end
 
 	confirmOpenAndDo(function()
 		local inst = get_instance(mode, idx)
@@ -736,25 +746,24 @@ function M._send_with_count(fn_name, count, ...)
 			vim.fn.chansend(job_id, "!")
 			vim.defer_fn(function()
 				send(job_id, args)
-				if submit_after then submit(job_id) end
+				if submit_after then
+					submit(job_id)
+				end
 			end, 500)
-
 		elseif fn_name == "SendText" then
 			local args = extra[1]
 			local submit_after = extra[2] or false
 			send(job_id, args)
-			if submit_after then submit(job_id) end
-
+			if submit_after then
+				submit(job_id)
+			end
 		elseif fn_name == "SendSelection" then
 			-- precomputed reference text passed in via extra[1]
 			send(job_id, extra[1])
-
 		elseif fn_name == "SendSymbol" then
-			send(job_id, extra[1])  -- precomputed reference
-
+			send(job_id, extra[1]) -- precomputed reference
 		elseif fn_name == "SendFile" then
-			send(job_id, extra[1])  -- precomputed reference
-
+			send(job_id, extra[1]) -- precomputed reference
 		elseif fn_name == "SendOpenBuffers" then
 			-- Three-line context message; submit after
 			send(job_id, extra[1])
@@ -789,7 +798,7 @@ function M.SendSelection()
 
 	vim.cmd('normal! "sy')
 	local start_line = vim.fn.line("'<")
-	local end_line   = vim.fn.line("'>")
+	local end_line = vim.fn.line("'>")
 	vim.cmd("normal! \027")
 
 	local reference
@@ -811,7 +820,7 @@ function M.SendSymbol()
 	end
 	local git_root = repo_root or util.get_git_root()
 	local rel_path = Path:new(filename):make_relative(git_root)
-	local word     = vim.fn.expand("<cword>")
+	local word = vim.fn.expand("<cword>")
 	local line_num = vim.fn.line(".")
 	local reference = word .. " @" .. rel_path .. ":" .. line_num .. " "
 
@@ -979,7 +988,7 @@ end
 -- start_new_agent_job after the buffer is renamed to agent://...
 -- (Doing this via TermOpen / BufWinEnter autocmds is unreliable because
 -- those events fire before nvim_buf_set_name has been called.)
-M.AGENT_UPDATETIME = 100  -- ms; matches the original optimization value
+M.AGENT_UPDATETIME = 100 -- ms; matches the original optimization value
 M.saved_updatetime = nil
 
 function M._apply_agent_updatetime()
@@ -992,7 +1001,7 @@ end
 function M._restore_agent_updatetime_if_no_agents()
 	for _, _, _, job_id in iter_all_instances() do
 		if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
-			return  -- at least one agent still alive
+			return -- at least one agent still alive
 		end
 	end
 	if M.saved_updatetime ~= nil then
