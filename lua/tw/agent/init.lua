@@ -1,7 +1,6 @@
 local M = {}
 
 local claude = require("tw.agent.claude")
-local docker = require("tw.agent.docker")
 local terminal = require("tw.agent.terminal")
 local util = require("tw.agent.util")
 local log = require("tw.log")
@@ -22,22 +21,14 @@ M.active_buf = nil
 M.active_job_id = nil
 
 M.saved_updatetime = nil
-M.shell_buf = nil
-M.shell_job_id = nil
-M.logs_buf = nil
-M.logs_job_id = nil
+
 
 -- Workmux fullscreen state: when true, opencode occupies the full viewport
 -- and will revert to a vsplit when a non-terminal buffer is opened.
 M.agent_fullscreen = false
 
--- Container configuration
-M.auto_build = true -- Auto-build image if missing
-M.container_started = false -- Track if we started the container
-M.container_name = string.format("claude-code-nvim-%d-%d", vim.fn.getpid(), os.time()) -- More unique container name
 -- Context directories configuration (per-session only)
-M.context_directories = {} -- Table of paths to mount at /context/*
-M.mount_info = nil -- Cached workspace mount info from last container start
+M.context_directories = {} -- Table of paths to mount
 
 -- Buffer configuration
 M.buffer_config = {
@@ -54,10 +45,6 @@ M.instances = {
 	opencode = {},
 	claude = {},
 	codex = {},
-	["pi-docker"] = {},
-	["opencode-docker"] = {},
-	["claude-docker"] = {},
-	["codex-docker"] = {},
 }
 
 local function get_instance(mode, idx)
@@ -111,13 +98,6 @@ M._get_instance = get_instance
 M._set_instance = set_instance
 M._clear_instance = clear_instance
 M._iter_all_instances = iter_all_instances
-
--- Helper function to parse mode into command and location
-local function parse_mode(mode)
-	local is_docker = mode:match("-docker$")
-	local command_name = mode:gsub("-docker$", "") -- Remove -docker suffix if present
-	return command_name, is_docker ~= nil
-end
 
 -- Find the plugin installation path
 local function get_plugin_root()
@@ -187,51 +167,18 @@ local function start_new_agent_job(args, window_type, mode, idx)
 	idx = idx or 0
 	log.info("Attempting to start new job in " .. mode .. " mode")
 
-	-- Parse mode to get command name and location
-	local command_name, is_docker = parse_mode(mode)
-	log.debug("Command: " .. command_name .. ", Docker: " .. tostring(is_docker))
-
 	-- Create a copy of args to avoid mutating the original (especially default_args)
 	args = args and vim.deepcopy(args) or {}
 
 	-- For opencode, always add the project root path
-	if command_name == "opencode" then
+	if mode == "opencode" then
 		log.debug("Processing opencode command")
 		local git_root = util.get_git_root()
 		log.debug("Git root: " .. tostring(git_root))
 		if git_root then
 			log.debug("Initial args count: " .. #args)
-			local project_path
-
-			if is_docker then
-				-- Determine project path based on mount strategy
-				local mi = docker.workspace_mount_info()
-				if mi.is_workspace_mode then
-					-- Git root is accessible under the workspace mount — translate path directly
-					local host_ws = mi.host_workspace
-					local is_git_root_under_ws = git_root == host_ws or git_root:sub(1, #host_ws + 1) == host_ws .. "/"
-					if is_git_root_under_ws then
-						local relative = git_root:sub(#host_ws + 1) -- includes leading "/"
-						project_path = mi.container_workspace .. relative
-					else
-						-- Git root outside workspace — fall back to context dir mount
-						if not M.context_directories[git_root] then
-							M.context_directories[git_root] = true
-							log.info("Auto-added git root to context directories: " .. git_root)
-						end
-						local dir_name = vim.fn.fnamemodify(git_root, ":t")
-						project_path = "/context/" .. dir_name
-					end
-				else
-					-- Fallback mode: git root IS the mounted CWD
-					project_path = mi.container_workspace
-				end
-				log.debug("Docker project path: " .. project_path)
-			else
-				-- In local mode, use the host git root path
-				project_path = git_root
-				log.debug("Local project path: " .. project_path)
-			end
+			local project_path = git_root
+			log.debug("Project path: " .. project_path)
 
 			-- Prepend project path to args if not already present
 			if #args == 0 or args[1] ~= project_path then
@@ -249,112 +196,21 @@ local function start_new_agent_job(args, window_type, mode, idx)
 	local command
 	local buf, job_id
 
-	if is_docker then
-		log.debug(mode .. " mode enabled, checking container status")
-		-- Check if container is running, if not try to start it
-		local is_running, container_id, status = docker.is_container_running(M.container_name)
-		log.debug("Container running check result: " .. tostring(is_running))
-		log.debug("Container ID: " .. (container_id or "none"))
-		log.debug("Container status: " .. (status or "unknown"))
-		log.debug("Container started flag: " .. tostring(M.container_started))
-
-		if not is_running then
-			-- Helper function to start container and wait for completion
-			local function wait_for_container_start(action_name)
-				local success_flag = false
-				local captured_mount_info = nil
-				docker.start_container_async(
-					M.container_name,
-					M.auto_build,
-					M.context_directories,
-					function(success, status, mount_info)
-						if success then
-							M.container_started = true
-							captured_mount_info = mount_info
-							success_flag = true
-						else
-							log.error(
-								"Failed to " .. action_name .. " container: " .. (status or "Unknown error"),
-								true
-							)
-							M.container_started = false
-							success_flag = false
-						end
-					end
-				)
-
-				-- Wait for container with timeout
-				local timeout = 30000 -- 30 seconds
-				local check_interval = 500 -- 0.5 seconds
-				local elapsed = 0
-				while elapsed < timeout do
-					vim.wait(check_interval)
-					elapsed = elapsed + check_interval
-					if success_flag then
-						break
-					end
-					if not success_flag and elapsed >= timeout then
-						log.error("Container " .. action_name .. " timed out", true)
-						M.container_started = false
-						return false
-					end
-				end
-
-				if not success_flag then
-					log.error("Container " .. action_name .. " failed", true)
-					M.container_started = false
-					return false
-				end
-				M.mount_info = captured_mount_info
-				return true
-			end
-			if M.container_started then
-				-- Container was started but isn't running - restart it
-				log.warn("Container was started but is not running, attempting restart", true)
-				docker.ensure_container_stopped(M.container_name)
-				if not wait_for_container_start("restart") then
-					return
-				end
-			else
-				-- Container not started - start it on-demand
-				log.info("Container not running, starting on-demand", true)
-				if not wait_for_container_start("start") then
-					return
-				end
-			end
-		end
-
-		local cmd_args = ""
-		if args and #args > 0 then
-			cmd_args = table.concat(args, " ")
-		end
-		-- Use mount info for working directory (may have been set during container start,
-		-- or compute fresh if container was already running)
-		local working_dir
-		if M.mount_info then
-			working_dir = M.mount_info.container_cwd
-		else
-			working_dir = docker.workspace_mount_info().container_cwd
-		end
-		command = docker.attach_to_container(M.container_name, cmd_args, command_name, working_dir)
-		log.debug("Using docker attach command: " .. command)
-	else
-		log.debug("Local mode enabled for " .. command_name)
-		local final_args = vim.tbl_extend("force", {}, default_args)
-		if args and #args > 0 then
-			log.debug("Extending final_args with " .. #args .. " args")
-			vim.list_extend(final_args, args)
-		end
-		log.debug("Final args before command: " .. vim.inspect(final_args))
-		command = claude.command(final_args, command_name, M.context_directories)
-		if not command then
-			log.error("Failed to build command for " .. command_name, true)
-			return
-		end
-		log.debug("Using native command: " .. command)
+	log.debug("Local mode enabled for " .. mode)
+	local final_args = vim.tbl_extend("force", {}, default_args)
+	if args and #args > 0 then
+		log.debug("Extending final_args with " .. #args .. " args")
+		vim.list_extend(final_args, args)
 	end
+	log.debug("Final args before command: " .. vim.inspect(final_args))
+	command = claude.command(final_args, mode, M.context_directories)
+	if not command then
+		log.error("Failed to build command for " .. mode, true)
+		return
+	end
+	log.debug("Using command: " .. command)
 
-	log.info("Starting " .. command_name .. " with command: " .. command)
+	log.info("Starting " .. mode .. " with command: " .. command)
 
 	-- Hide the other mode's buffer if it's visible before opening new window
 	close_other_agent_buffers(mode, idx)
@@ -365,7 +221,6 @@ local function start_new_agent_job(args, window_type, mode, idx)
 		on_exit = OnExit(mode, idx),
 		-- TODO: make this configurable
 		env = {
-			BUILD_IN_CONTAINER = "false",
 			-- Unset TMUX/STY so child processes emit plain OSC 52 clipboard
 			-- sequences instead of wrapping them in tmux DCS passthrough.
 			-- Neovim's terminal emulator handles plain OSC 52 natively but
@@ -921,28 +776,14 @@ local function configureClaudeKeymap()
 				function()
 					require("tw.agent").Toggle("claude")
 				end,
-				desc = "Toggle Claude Local",
-			},
-			{
-				"<leader>cL",
-				function()
-					require("tw.agent").Toggle("claude-docker")
-				end,
-				desc = "Toggle Claude Docker",
+				desc = "Toggle Claude",
 			},
 			{
 				"<leader>cx",
 				function()
 					require("tw.agent").Toggle("codex")
 				end,
-				desc = "Toggle Codex Local",
-			},
-			{
-				"<leader>cX",
-				function()
-					require("tw.agent").Toggle("codex-docker")
-				end,
-				desc = "Toggle Codex Docker",
+				desc = "Toggle Codex",
 			},
 			{
 				"<leader>co",
@@ -951,14 +792,7 @@ local function configureClaudeKeymap()
 					local is_visual = m == "v" or m == "V" or m == "\22"
 					require("tw.agent")._toggle_with_count("opencode", is_visual)
 				end,
-				desc = "Toggle OpenCode Local (count = instance index, 0 = default)",
-			},
-			{
-				"<leader>cO",
-				function()
-					require("tw.agent").Toggle("opencode-docker")
-				end,
-				desc = "Toggle OpenCode Docker",
+				desc = "Toggle OpenCode (count = instance index, 0 = default)",
 			},
 			{
 				"<leader>cp",
@@ -967,14 +801,7 @@ local function configureClaudeKeymap()
 					local is_visual = m == "v" or m == "V" or m == "\22"
 					require("tw.agent")._toggle_with_count("pi", is_visual)
 				end,
-				desc = "Toggle Pi Local (count = instance index, 0 = default)",
-			},
-			{
-				"<leader>cP",
-				function()
-					require("tw.agent").Toggle("pi-docker")
-				end,
-				desc = "Toggle Pi Docker",
+				desc = "Toggle Pi (count = instance index, 0 = default)",
 			},
 		},
 		{
@@ -1097,14 +924,6 @@ function M.cleanup()
 	M.active_mode = "none"
 	M.active_index = 0
 
-	if M.shell_job_id and vim.fn.jobwait({ M.shell_job_id }, 0)[1] == -1 then
-		vim.fn.jobstop(M.shell_job_id)
-		M.shell_job_id = nil
-	end
-	if M.logs_job_id and vim.fn.jobwait({ M.logs_job_id }, 0)[1] == -1 then
-		vim.fn.jobstop(M.logs_job_id)
-		M.logs_job_id = nil
-	end
 	if M._refresh_timer then
 		M._refresh_timer:stop()
 		M._refresh_timer:close()
@@ -1114,23 +933,9 @@ end
 
 -- Get status for statusline integration
 function M.get_status()
-	local container_running = false
-	local container_name = nil
-
-	-- Check container status
-	if M.container_started then
-		local is_running = docker.is_container_running(M.container_name)
-		if is_running then
-			container_running = true
-			container_name = M.container_name
-		end
-	end
-
 	return {
 		mode = M.active_mode,
 		index = M.active_index,
-		container_running = container_running,
-		container_name = container_name,
 	}
 end
 
@@ -1417,7 +1222,7 @@ function M.WorkmuxPrompt()
 	-- shellescape wraps in single quotes, which table.concat in claude.lua joins with spaces.
 	-- Use "current" window type so the agent fills the whole viewport on boot;
 	-- a BufEnter autocmd will revert it to a vsplit when a file is opened.
-	local command_name = parse_mode(M.default_mode)
+	local command_name = M.default_mode
 	local prompt_args
 	if command_name == "opencode" then
 		prompt_args = { "--prompt", vim.fn.shellescape(prompt_text) }
@@ -1432,10 +1237,6 @@ end
 
 function M.setup(opts)
 	opts = opts or {}
-	M.auto_build = opts.auto_build ~= false
-
-	-- Log the container name for this instance
-	log.info("Neovim instance PID " .. vim.fn.getpid() .. " will use container: " .. M.container_name)
 
 	-- Configure buffer settings
 	if opts.buffer_config then

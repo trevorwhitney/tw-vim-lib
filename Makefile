@@ -1,8 +1,7 @@
-.PHONY: help docker lint lint-lua lint-nix format format-lua format-nix test-lua test-plenary
+.PHONY: help lint lint-lua lint-nix format format-lua format-nix test-lua test-plenary
 
 help:
 	@echo "Available targets:"
-	@echo "  docker        - Build the Claude Docker image"
 	@echo "  lint          - Run all linters (Lua and Nix)"
 	@echo "  lint-lua      - Run luacheck on Lua files"
 	@echo "  lint-nix      - Run statix on Nix files"
@@ -11,9 +10,6 @@ help:
 	@echo "  format-nix    - Format Nix files with nixpkgs-fmt"
 	@echo "  test-lua      - Run Lua unit tests"
 	@echo "  test-plenary  - Run PlenaryBustedDirectory tests"
-
-docker:
-	docker build -t tw-claude-code:latest -f lua/tw/agent/docker/Dockerfile lua/tw/agent/docker
 
 lint: lint-lua lint-nix
 	@echo "All linting complete"

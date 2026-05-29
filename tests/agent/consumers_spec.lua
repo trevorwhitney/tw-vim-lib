@@ -124,12 +124,6 @@ describe("statusline agent indicator", function()
     assert.equals("[opencode#3]", render())
   end)
 
-  it("renders [pi-docker#0] for docker mode", function()
-    agent.active_mode, agent.active_index = "pi-docker", 0
-    local render = statusline.get_agent_component()[1]
-    assert.equals("[pi-docker#0]", render())
-  end)
-
   it("cond function returns true when agent active, false when not", function()
     local component = statusline.get_agent_component()
     if component.cond then

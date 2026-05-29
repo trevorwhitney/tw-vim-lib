@@ -9,7 +9,6 @@ describe("agent instance helpers", function()
   it("declares an instances table for every supported mode", function()
     for _, mode in ipairs({
       "pi", "opencode", "claude", "codex",
-      "pi-docker", "opencode-docker", "claude-docker", "codex-docker",
     }) do
       assert.is_table(agent.instances[mode], "missing instances entry for " .. mode)
     end
