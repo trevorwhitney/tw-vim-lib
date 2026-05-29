@@ -89,3 +89,54 @@ describe("updatetime optimization (direct call + agent:// TermClose)", function(
       "TermClose autocmd should have restored updatetime")
   end)
 end)
+
+describe("statusline agent indicator", function()
+  local helpers = require("tests.agent.spec_helpers")
+  local agent, statusline
+
+  before_each(function()
+    agent = helpers.reset_and_mock(false)
+    package.loaded["tw.statusline"] = nil
+    statusline = require("tw.statusline")
+  end)
+
+  it("get_agent_component exists and returns a lualine-compatible table", function()
+    local component = statusline.get_agent_component()
+    assert.is_table(component)
+    assert.is_function(component[1], "first element should be the render function")
+  end)
+
+  it("renders empty string when no agent is active", function()
+    -- Default state: active_mode = "none"
+    local render = statusline.get_agent_component()[1]
+    assert.equals("", render())
+  end)
+
+  it("renders [pi#0] when pi#0 is active", function()
+    agent.active_mode, agent.active_index = "pi", 0
+    local render = statusline.get_agent_component()[1]
+    assert.equals("[pi#0]", render())
+  end)
+
+  it("renders [opencode#3] when opencode#3 is active", function()
+    agent.active_mode, agent.active_index = "opencode", 3
+    local render = statusline.get_agent_component()[1]
+    assert.equals("[opencode#3]", render())
+  end)
+
+  it("renders [pi-docker#0] for docker mode", function()
+    agent.active_mode, agent.active_index = "pi-docker", 0
+    local render = statusline.get_agent_component()[1]
+    assert.equals("[pi-docker#0]", render())
+  end)
+
+  it("cond function returns true when agent active, false when not", function()
+    local component = statusline.get_agent_component()
+    if component.cond then
+      agent.active_mode = "pi"
+      assert.is_true(component.cond(), "cond should be true when agent is active")
+      agent.active_mode = "none"
+      assert.is_false(not not component.cond(), "cond should be falsy when active_mode is 'none'")
+    end
+  end)
+end)

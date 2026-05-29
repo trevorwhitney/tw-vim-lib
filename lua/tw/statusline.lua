@@ -1,38 +1,20 @@
 local M = {}
 
--- Claude status component for lualine
-local function claude_status()
-	local ok, claude = pcall(require, "tw.claude")
+-- Agent status component for lualine. Renders [<mode>#<idx>] when an
+-- agent instance is active; empty string otherwise.
+local function agent_status()
+	local ok, agent = pcall(require, "tw.agent")
 	if not ok then
 		return ""
 	end
-
-	local status = claude.get_status()
-	if status.mode == "none" then
+	local status = agent.get_status()
+	if not status or status.mode == "none" then
 		return ""
 	end
-
-	-- Always use robot icon 🤖
-	-- Alternative with nerd fonts (uncomment below if you have nerd fonts):
-	-- local icon = ""  -- Robot icon from nerd fonts
-	-- local icon = "󰚩"  -- Flag/marker icon
-	-- local icon = ""  -- Brain icon
-
-	local icon = "🤖" -- Robot emoji for Claude
-	local mode_text = status.mode == "docker" and "Docker" or "Local"
-
-	-- Include container name if in docker mode and running
-	local details = ""
-	if status.mode == "docker" and status.container_running and status.container_name then
-		-- Show abbreviated container name (last 8 chars of the unique ID)
-		local short_name = status.container_name:match("%-(%d+%-?%d*)$") or status.container_name
-		details = " [" .. short_name .. "]"
-	end
-
-	return icon .. " " .. mode_text .. details
+	return string.format("[%s#%d]", status.mode, status.index or 0)
 end
 
--- Setup lualine with Claude status
+-- Setup lualine with the agent status indicator.
 function M.setup_lualine(theme)
 	theme = theme or "auto"
 
@@ -47,7 +29,7 @@ function M.setup_lualine(theme)
 			lualine_b = { "branch", "diff", "diagnostics" },
 			lualine_c = { "filename" },
 			lualine_x = {
-				claude_status, -- Add Claude status here
+				agent_status,
 				"encoding",
 				"fileformat",
 				"filetype",
@@ -68,20 +50,19 @@ function M.setup_lualine(theme)
 	})
 end
 
--- Alternative compact setup if you want a simpler integration
-function M.get_claude_component()
+-- Compact lualine component for callers that want to pick and place the
+-- agent indicator themselves.
+function M.get_agent_component()
 	return {
-		claude_status,
-		-- Optional: add color configuration
-		color = { fg = "#7aa2f7", bg = nil }, -- Blue text
-		-- Optional: add conditions
+		agent_status,
+		color = { fg = "#7aa2f7", bg = nil },
 		cond = function()
-			local ok, claude = pcall(require, "tw.claude")
+			local ok, agent = pcall(require, "tw.agent")
 			if not ok then
 				return false
 			end
-			local status = claude.get_status()
-			return status.mode ~= "none"
+			local status = agent.get_status()
+			return status and status.mode ~= "none"
 		end,
 	}
 end
