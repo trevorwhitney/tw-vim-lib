@@ -1,22 +1,10 @@
 describe("aggregate operations", function()
   local agent, claude_mod
+  local helpers = require("tests.agent.spec_helpers")
 
   before_each(function()
-    package.loaded["tw.agent"]        = nil
-    package.loaded["tw.agent.claude"] = nil
-    package.loaded["tw.log"]          = nil
-    package.loaded["tw.log"] = {
-      info  = function() end,
-      warn  = function() end,
-      error = function() end,
-      debug = function() end,
-    }
-    agent      = require("tw.agent")
-    claude_mod = require("tw.agent.claude")
+    agent, claude_mod = helpers.reset_and_mock(true)
     claude_mod.command = function() return "sleep 30" end
-    for mode, _ in pairs(agent.instances) do agent.instances[mode] = {} end
-    agent.active_mode, agent.active_index = "none", 0
-    agent.active_buf, agent.active_job_id = nil, nil
   end)
 
   after_each(function()
@@ -25,19 +13,12 @@ describe("aggregate operations", function()
     end
   end)
 
-  local function buf_visible(buf)
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-      if vim.api.nvim_win_get_buf(win) == buf then return true end
-    end
-    return false
-  end
-
   it("hide_all_agent_buffers hides every instance's window and resets active state", function()
     agent.Toggle("pi", nil, "vsplit", 0)
     agent.Toggle("pi", nil, "vsplit", 1)
     agent.hide_all_agent_buffers()
     for _, _, buf, _ in agent._iter_all_instances() do
-      assert.is_false(buf_visible(buf))
+      assert.is_false(helpers.buf_visible(buf))
     end
     assert.equals("none", agent.active_mode)
     assert.equals(0, agent.active_index)

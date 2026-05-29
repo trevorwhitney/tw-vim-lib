@@ -1,26 +1,10 @@
 describe("agent instance lifecycle (Open / Toggle / close_other_agent_buffers)", function()
   local agent, claude_mod
+  local helpers = require("tests.agent.spec_helpers")
 
   before_each(function()
-    package.loaded["tw.agent"]        = nil
-    package.loaded["tw.agent.claude"] = nil
-    package.loaded["tw.log"]          = nil
-    -- Mock tw.log so requiring tw.agent and tw.agent.claude doesn't hit the real log setup
-    -- (which can fail to create its cache directory in the test sandbox).
-    package.loaded["tw.log"] = {
-      info  = function() end,
-      warn  = function() end,
-      error = function() end,
-      debug = function() end,
-    }
-    agent      = require("tw.agent")
-    claude_mod = require("tw.agent.claude")
-    -- Stub the agent command so jobstart spawns a benign long-running process
+    agent, claude_mod = helpers.reset_and_mock(true)
     claude_mod.command = function() return "sleep 30" end
-    -- Reset state explicitly (active_mode now initializes to "none")
-    for mode, _ in pairs(agent.instances) do agent.instances[mode] = {} end
-    agent.active_mode, agent.active_index = "none", 0
-    agent.active_buf, agent.active_job_id = nil, nil
   end)
 
   after_each(function()
@@ -28,13 +12,6 @@ describe("agent instance lifecycle (Open / Toggle / close_other_agent_buffers)",
       if job_id then pcall(vim.fn.jobstop, job_id) end
     end
   end)
-
-  local function buf_visible(buf)
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-      if vim.api.nvim_win_get_buf(win) == buf then return true end
-    end
-    return false
-  end
 
   it("Open writes to instances[mode][idx]", function()
     agent.Open("pi", nil, "vsplit", 0)
@@ -70,14 +47,14 @@ describe("agent instance lifecycle (Open / Toggle / close_other_agent_buffers)",
     agent.Toggle("pi", nil, "vsplit", 0)
     local inst = agent._get_instance("pi", 0)
     assert.is_table(inst)
-    assert.is_true(buf_visible(inst.buf))
+    assert.is_true(helpers.buf_visible(inst.buf))
   end)
 
   it("Toggle on a visible instance hides it and resets active state", function()
     agent.Toggle("pi", nil, "vsplit", 0)
     local inst = agent._get_instance("pi", 0)
     agent.Toggle("pi", nil, "vsplit", 0)
-    assert.is_false(buf_visible(inst.buf))
+    assert.is_false(helpers.buf_visible(inst.buf))
     assert.equals("none", agent.active_mode)
     assert.equals(0, agent.active_index)
     assert.is_table(agent._get_instance("pi", 0), "instance should still exist in background")
@@ -88,7 +65,7 @@ describe("agent instance lifecycle (Open / Toggle / close_other_agent_buffers)",
     local inst = agent._get_instance("pi", 0)
     agent.Toggle("pi", nil, "vsplit", 0)  -- hide
     agent.Toggle("pi", nil, "vsplit", 0)  -- show
-    assert.is_true(buf_visible(inst.buf))
+    assert.is_true(helpers.buf_visible(inst.buf))
     assert.equals("pi", agent.active_mode)
     assert.equals(0, agent.active_index)
   end)
@@ -98,8 +75,8 @@ describe("agent instance lifecycle (Open / Toggle / close_other_agent_buffers)",
     local p0 = agent._get_instance("pi", 0)
     agent.Toggle("pi", nil, "vsplit", 1)
     local p1 = agent._get_instance("pi", 1)
-    assert.is_false(buf_visible(p0.buf))
-    assert.is_true(buf_visible(p1.buf))
+    assert.is_false(helpers.buf_visible(p0.buf))
+    assert.is_true(helpers.buf_visible(p1.buf))
     assert.equals(1, agent.active_index)
   end)
 
@@ -107,7 +84,7 @@ describe("agent instance lifecycle (Open / Toggle / close_other_agent_buffers)",
     agent.Toggle("opencode", nil, "vsplit", 0)
     local oc = agent._get_instance("opencode", 0)
     agent.Toggle("pi", nil, "vsplit", 0)
-    assert.is_false(buf_visible(oc.buf))
+    assert.is_false(helpers.buf_visible(oc.buf))
   end)
 
   it("OnExit clears the instance and resets active state if it was active", function()

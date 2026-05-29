@@ -395,29 +395,90 @@ local function start_new_agent_job(args, window_type, mode, idx)
 	end, 500)
 end
 
-local function send(args)
+local function send(job_id, args)
+	if not job_id then
+		log.warn("No job to send to")
+		return
+	end
 	local text = ""
 	if type(args) == "string" then
-		-- Handle string argument
 		text = args
 	elseif type(args) == "table" and args and #args > 0 then
-		-- Handle table argument
 		text = table.concat(args, " ")
 	end
-	-- Send to the active job
-	local job_id = M.active_job_id
-	if job_id then
-		vim.fn.chansend(job_id, text)
-	else
-		log.warn("No active job to send to")
-	end
+	vim.fn.chansend(job_id, text)
 end
 
-local function confirmOpenAndDo(callback, args, window_type)
+-- Resolve the (mode, idx) target for a send command based on a count value.
+-- count == 0: use active instance, or spawn default_mode#0 if no active
+-- count > 0:  use (active_mode || default_mode, count), spawn-and-show if missing
+-- count > 9:  notify and return nil
+local function resolve_send_target(count)
+	if count > 9 then
+		vim.notify(
+			string.format("Agent instance index must be 0-9 (got %d)", count),
+			vim.log.levels.WARN
+		)
+		return nil
+	end
+
+	if count == 0 then
+		if M.active_mode ~= "none" then
+			return M.active_mode, M.active_index
+		end
+		M.Open(M.default_mode, nil, "vsplit", 0)
+		return M.default_mode, 0
+	end
+
+	-- count > 0: explicit ternary — literal "none" is truthy in Lua, so plain
+	-- `M.active_mode or M.default_mode` would not fall through.
+	local mode = (M.active_mode ~= "none") and M.active_mode or M.default_mode
+	local inst = get_instance(mode, count)
+	local alive = inst and inst.job_id and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1
+	if not alive then
+		M.Open(mode, nil, "vsplit", count)
+	end
+	return mode, count
+end
+
+M._resolve_send_target = resolve_send_target
+
+local function confirmOpenAndDo(callback, args, window_type, target_mode, target_idx)
 	args = args or default_args
 	window_type = window_type or "vsplit"
 
-	-- Determine which buffer to use (default to claude local if none active)
+	-- Explicit target path: route to a specific (mode, idx) instance.
+	if target_mode then
+		local inst = get_instance(target_mode, target_idx)
+		local alive = inst
+			and inst.buf and vim.api.nvim_buf_is_valid(inst.buf)
+			and inst.job_id and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1
+		if not alive then
+			M.Open(target_mode, args, window_type, target_idx)
+			vim.defer_fn(function()
+				if callback then callback() end
+			end, 2500)
+			return
+		end
+		-- Ensure the target buf is visible
+		local visible = false
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			if vim.api.nvim_win_get_buf(win) == inst.buf then
+				visible = true
+				break
+			end
+		end
+		if not visible then
+			close_other_agent_buffers(target_mode, target_idx)
+			terminal.open_buffer_in_new_window(window_type, inst.buf)
+		end
+		M.active_mode, M.active_index  = target_mode, target_idx
+		M.active_buf,  M.active_job_id = inst.buf, inst.job_id
+		if callback then callback() end
+		return
+	end
+
+	-- Legacy fallback: no explicit target, fall back to active state.
 	local active_buf = M.active_buf
 	if not active_buf or not vim.api.nvim_buf_is_valid(active_buf) then
 		-- No active buffer, use active_mode (or fall back to claude)
@@ -618,38 +679,77 @@ end
 -- Backwards compatibility alias
 M.hide_all_claude_buffers = M.hide_all_agent_buffers
 
-local function submit()
+local function submit(job_id)
 	vim.defer_fn(function()
-		local job_id = M.active_job_id
 		if job_id then
 			vim.fn.chansend(job_id, "\r")
 		else
-			log.warn("No active job to submit to")
+			log.warn("No job to submit to")
 		end
 	end, 500)
 end
 
-function M.SendCommand(args, submit_after)
-	submit_after = submit_after or false
+-- Internal dispatcher: resolves target via resolve_send_target, ensures the
+-- target instance is alive and visible, then runs the named send function's
+-- logic with an explicit job_id (no reliance on M.active_job_id).
+--
+-- Exposed as M._send_with_count so tests and keymap wrappers can call it
+-- with an explicit count (vim.v.count is read-only and can't be set from
+-- Lua, so tests pass count directly).
+function M._send_with_count(fn_name, count, ...)
+	local extra = { ... }
+	local mode, idx = resolve_send_target(count)
+	if not mode then return end
+
 	confirmOpenAndDo(function()
-		vim.fn.chansend(M.active_job_id, "!")
-		vim.defer_fn(function()
-			send(args)
-			if submit_after then
-				submit()
-			end
-		end, 500)
-	end)
+		local inst = get_instance(mode, idx)
+		if not inst or not inst.job_id then
+			log.warn(string.format("Send target %s#%d has no job_id", mode, idx))
+			return
+		end
+		local job_id = inst.job_id
+
+		if fn_name == "SendCommand" then
+			local args = extra[1]
+			local submit_after = extra[2] or false
+			vim.fn.chansend(job_id, "!")
+			vim.defer_fn(function()
+				send(job_id, args)
+				if submit_after then submit(job_id) end
+			end, 500)
+
+		elseif fn_name == "SendText" then
+			local args = extra[1]
+			local submit_after = extra[2] or false
+			send(job_id, args)
+			if submit_after then submit(job_id) end
+
+		elseif fn_name == "SendSelection" then
+			-- precomputed reference text passed in via extra[1]
+			send(job_id, extra[1])
+
+		elseif fn_name == "SendSymbol" then
+			send(job_id, extra[1])  -- precomputed reference
+
+		elseif fn_name == "SendFile" then
+			send(job_id, extra[1])  -- precomputed reference
+
+		elseif fn_name == "SendOpenBuffers" then
+			-- Three-line context message; submit after
+			send(job_id, extra[1])
+			submit(job_id)
+		else
+			log.warn("Unknown send function: " .. tostring(fn_name))
+		end
+	end, nil, "vsplit", mode, idx)
+end
+
+function M.SendCommand(args, submit_after)
+	M._send_with_count("SendCommand", vim.v.count, args, submit_after or false)
 end
 
 function M.SendText(args, submit_after)
-	submit_after = submit_after or false
-	confirmOpenAndDo(function()
-		send(args)
-		if submit_after then
-			submit()
-		end
-	end)
+	M._send_with_count("SendText", vim.v.count, args, submit_after or false)
 end
 
 function M.VimTestStrategy(cmd)
@@ -658,26 +758,19 @@ end
 
 function M.SendSelection()
 	local Path = require("plenary.path")
-	-- Resolve file path FIRST — bail before any side effects if unresolvable
 	local filename, repo_root = util.resolve_file_path()
 	if not filename then
 		vim.notify("Cannot resolve file path in this buffer", vim.log.levels.WARN)
 		return
 	end
-
 	local git_root = repo_root or util.get_git_root()
 	local rel_path = Path:new(filename):make_relative(git_root)
 
-	-- Yank sets the '< and '> marks reliably
 	vim.cmd('normal! "sy')
-
 	local start_line = vim.fn.line("'<")
-	local end_line = vim.fn.line("'>")
+	local end_line   = vim.fn.line("'>")
+	vim.cmd("normal! \027")
 
-	-- Exit visual mode before opening agent
-	vim.cmd("normal! \027") -- \027 is escape key
-
-	-- Format: @filename:start-end
 	local reference
 	if start_line == end_line then
 		reference = "@" .. rel_path .. ":" .. start_line .. " "
@@ -685,9 +778,7 @@ function M.SendSelection()
 		reference = "@" .. rel_path .. ":" .. start_line .. "-" .. end_line .. " "
 	end
 
-	confirmOpenAndDo(function()
-		M.SendText({ reference })
-	end)
+	M._send_with_count("SendSelection", vim.v.count, reference)
 end
 
 function M.SendSymbol()
@@ -697,16 +788,13 @@ function M.SendSymbol()
 		vim.notify("Cannot resolve file path in this buffer", vim.log.levels.WARN)
 		return
 	end
-
 	local git_root = repo_root or util.get_git_root()
 	local rel_path = Path:new(filename):make_relative(git_root)
-	local word = vim.fn.expand("<cword>")
+	local word     = vim.fn.expand("<cword>")
 	local line_num = vim.fn.line(".")
-	confirmOpenAndDo(function()
-		M.SendText({
-			word .. " @" .. rel_path .. ":" .. line_num .. " ",
-		})
-	end)
+	local reference = word .. " @" .. rel_path .. ":" .. line_num .. " "
+
+	M._send_with_count("SendSymbol", vim.v.count, reference)
 end
 
 function M.SendFile()
@@ -716,14 +804,11 @@ function M.SendFile()
 		vim.notify("Cannot resolve file path in this buffer", vim.log.levels.WARN)
 		return
 	end
-
 	local git_root = repo_root or util.get_git_root()
 	local rel_path = Path:new(filename):make_relative(git_root)
-	confirmOpenAndDo(function()
-		M.SendText({
-			"@" .. rel_path .. " ",
-		})
-	end)
+	local reference = "@" .. rel_path .. " "
+
+	M._send_with_count("SendFile", vim.v.count, reference)
 end
 
 function M.SendOpenBuffers()
@@ -734,13 +819,13 @@ function M.SendOpenBuffers()
 		return
 	end
 
-	confirmOpenAndDo(function()
-		M.SendText({
-			"For context, please load the following files:\n",
-			table.concat(files, " ") .. "\n",
-			"Load the files then wait for my instructions.",
-		}, true)
-	end)
+	local message = table.concat({
+		"For context, please load the following files:\n",
+		table.concat(files, " ") .. "\n",
+		"Load the files then wait for my instructions.",
+	})
+
+	M._send_with_count("SendOpenBuffers", vim.v.count, message)
 end
 
 function M.StartClaude()

@@ -1,19 +1,9 @@
 describe("agent instance helpers", function()
   local agent
+  local helpers = require("tests.agent.spec_helpers")
 
   before_each(function()
-    package.loaded["tw.agent"] = nil
-    package.loaded["tw.log"]   = nil
-    -- Mock tw.log so requiring tw.agent doesn't hit the real log setup
-    -- (which can fail to create its cache directory in the test sandbox).
-    package.loaded["tw.log"] = {
-      info  = function() end,
-      warn  = function() end,
-      error = function() end,
-      debug = function() end,
-    }
-    agent = require("tw.agent")
-    for mode, _ in pairs(agent.instances) do agent.instances[mode] = {} end
+    agent = helpers.reset_and_mock(false)
   end)
 
   it("declares an instances table for every supported mode", function()
