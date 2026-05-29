@@ -13,7 +13,7 @@ local default_args = {}
 _G.claude_log = log
 -- Single source of truth for the default agent.
 -- Change this value to switch every default (Open, Toggle, WorkmuxPrompt, etc.).
-M.default_mode = "pi"
+M.default_mode = "opencode"
 M.active_mode = "none" -- currently visible mode, or "none" when no agent is shown
 M.active_index = 0 -- idx of the visible/last-shown instance
 
