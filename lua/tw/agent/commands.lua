@@ -223,17 +223,15 @@ local function handle_build(claude_module, args)
 			for _, mode in ipairs(docker_modes) do
 				local inst = claude_module._get_instance(mode, 0)
 				if inst and inst.buf then
-					local buf, job = terminal.close_terminal_buffer(inst.buf, inst.job_id)
-					if buf then
-						claude_module._set_instance(mode, 0, buf, job)
-					else
-						claude_module._clear_instance(mode, 0)
-					end
-					-- Clear active pointers if this was the active buffer
-					if claude_module.active_buf == buf then
+					-- Capture the original buf BEFORE closing so we can compare against active_buf
+					local original_buf = inst.buf
+					terminal.close_terminal_buffer(inst.buf, inst.job_id)
+					claude_module._clear_instance(mode, 0)
+					if claude_module.active_buf == original_buf then
 						claude_module.active_buf = nil
 						claude_module.active_job_id = nil
 						claude_module.active_mode = "none"
+						claude_module.active_index = 0
 					end
 				end
 			end
@@ -268,17 +266,15 @@ local function handle_restart(claude_module, args)
 		for _, mode in ipairs(docker_modes) do
 			local inst = claude_module._get_instance(mode, 0)
 			if inst and inst.buf then
-				local buf, job = terminal.close_terminal_buffer(inst.buf, inst.job_id)
-				if buf then
-					claude_module._set_instance(mode, 0, buf, job)
-				else
-					claude_module._clear_instance(mode, 0)
-				end
-				-- Clear active pointers if this was the active buffer
-				if claude_module.active_buf == buf then
+				-- Capture the original buf BEFORE closing so we can compare against active_buf
+				local original_buf = inst.buf
+				terminal.close_terminal_buffer(inst.buf, inst.job_id)
+				claude_module._clear_instance(mode, 0)
+				if claude_module.active_buf == original_buf then
 					claude_module.active_buf = nil
 					claude_module.active_job_id = nil
 					claude_module.active_mode = "none"
+					claude_module.active_index = 0
 				end
 			end
 		end
@@ -320,6 +316,7 @@ local function restart_agent_with_context(agent_module, action_desc)
 		agent_module.active_buf = nil
 		agent_module.active_job_id = nil
 		agent_module.active_mode = "none"
+		agent_module.active_index = 0
 		docker.stop_container(agent_module.container_name)
 		agent_module.container_started = false
 		docker.start_container_async(

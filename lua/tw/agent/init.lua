@@ -13,7 +13,7 @@ local default_args = {}
 _G.claude_log = log
 -- Single source of truth for the default agent.
 -- Change this value to switch every default (Open, Toggle, WorkmuxPrompt, etc.).
-M.default_mode = "opencode"
+M.default_mode = "pi"
 M.active_mode = "none" -- currently visible mode, or "none" when no agent is shown
 M.active_index = 0 -- idx of the visible/last-shown instance
 
@@ -787,6 +787,7 @@ function M.VimTestStrategy(cmd)
 end
 
 function M.SendSelection()
+	local count = vim.v.count -- Snapshot BEFORE any normal! commands clobber it
 	local Path = require("plenary.path")
 	local filename, repo_root = util.resolve_file_path()
 	if not filename then
@@ -808,7 +809,7 @@ function M.SendSelection()
 		reference = "@" .. rel_path .. ":" .. start_line .. "-" .. end_line .. " "
 	end
 
-	M._send_with_count("SendSelection", vim.v.count, reference)
+	M._send_with_count("SendSelection", count, reference)
 end
 
 function M.SendSymbol()
