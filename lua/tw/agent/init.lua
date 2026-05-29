@@ -13,7 +13,7 @@ local default_args = {}
 _G.claude_log = log
 -- Single source of truth for the default agent.
 -- Change this value to switch every default (Open, Toggle, WorkmuxPrompt, etc.).
-M.default_mode = "pi"
+M.default_mode = "opencode"
 M.active_mode = "none" -- currently visible mode, or "none" when no agent is shown
 M.active_index = 0     -- idx of the visible/last-shown instance
 
@@ -663,6 +663,26 @@ function M.Toggle(mode, args, window_type, idx)
   end
 end
 
+-- Explicit-count entry point used by tests and by _toggle_with_count.
+-- count is passed in directly so callers don't need to manipulate the
+-- read-only vim.v.count.
+function M._toggle_with_count_explicit(mode, count, visual)
+  local idx = visual and 0 or count
+  if idx > 9 then
+    vim.notify(
+      string.format("Agent instance index must be 0-9 (got %d)", idx),
+      vim.log.levels.WARN
+    )
+    return
+  end
+  M.Toggle(mode, nil, "vsplit", idx)
+end
+
+-- Keymap entry point. Reads vim.v.count then delegates.
+function M._toggle_with_count(mode, visual)
+  M._toggle_with_count_explicit(mode, vim.v.count, visual)
+end
+
 -- Helper function to hide all agent buffers
 function M.hide_all_agent_buffers()
 	for _, _, buf, _ in iter_all_instances() do
@@ -868,9 +888,11 @@ local function configureClaudeKeymap()
 			{
 				"<leader>co",
 				function()
-					require("tw.agent").Toggle("opencode")
+					local m = vim.fn.mode()
+					local is_visual = m == "v" or m == "V" or m == "\22"
+					require("tw.agent")._toggle_with_count("opencode", is_visual)
 				end,
-				desc = "Toggle OpenCode Local",
+				desc = "Toggle OpenCode Local (count = instance index, 0 = default)",
 			},
 			{
 				"<leader>cO",
@@ -882,9 +904,11 @@ local function configureClaudeKeymap()
 			{
 				"<leader>cp",
 				function()
-					require("tw.agent").Toggle("pi")
+					local m = vim.fn.mode()
+					local is_visual = m == "v" or m == "V" or m == "\22"
+					require("tw.agent")._toggle_with_count("pi", is_visual)
 				end,
-				desc = "Toggle Pi Local",
+				desc = "Toggle Pi Local (count = instance index, 0 = default)",
 			},
 			{
 				"<leader>cP",

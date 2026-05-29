@@ -112,3 +112,56 @@ describe("agent instance lifecycle (Open / Toggle / close_other_agent_buffers)",
     assert.equals(1, agent.active_index, "active index should still be 1")
   end)
 end)
+
+describe("toggle_with_count wrappers", function()
+  local helpers = require("tests.agent.spec_helpers")
+  local agent, claude_mod
+
+  before_each(function()
+    agent, claude_mod = helpers.reset_and_mock(true)
+    claude_mod.command = function() return "sleep 30" end
+  end)
+
+  after_each(function()
+    for _, _, _, job_id in agent._iter_all_instances() do
+      if job_id then pcall(vim.fn.jobstop, job_id) end
+    end
+  end)
+
+  it("_toggle_with_count_explicit(pi, 0, false) toggles pi#0", function()
+    agent._toggle_with_count_explicit("pi", 0, false)
+    assert.is_table(agent._get_instance("pi", 0))
+    assert.equals("pi", agent.active_mode)
+    assert.equals(0, agent.active_index)
+  end)
+
+  it("_toggle_with_count_explicit(pi, 3, false) toggles pi#3", function()
+    agent._toggle_with_count_explicit("pi", 3, false)
+    assert.is_table(agent._get_instance("pi", 3))
+    assert.equals(3, agent.active_index)
+  end)
+
+  it("_toggle_with_count_explicit(pi, 10, false) notifies and does nothing", function()
+    local notified
+    local original = vim.notify
+    vim.notify = function(msg, _) notified = msg end
+    agent._toggle_with_count_explicit("pi", 10, false)
+    vim.notify = original
+    assert.is_nil(agent._get_instance("pi", 10))
+    assert.is_string(notified)
+    assert.is_truthy(notified:find("0%-9"))
+  end)
+
+  it("_toggle_with_count_explicit in visual mode forces idx 0", function()
+    agent._toggle_with_count_explicit("pi", 5, true)
+    assert.is_table(agent._get_instance("pi", 0))
+    assert.is_nil(agent._get_instance("pi", 5))
+  end)
+
+  it("_toggle_with_count_explicit(opencode, 2, false) toggles opencode#2", function()
+    agent._toggle_with_count_explicit("opencode", 2, false)
+    assert.is_table(agent._get_instance("opencode", 2))
+    assert.equals("opencode", agent.active_mode)
+    assert.equals(2, agent.active_index)
+  end)
+end)
