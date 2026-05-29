@@ -115,7 +115,7 @@ local function create_picker(opts)
 
 					local cmd
 					if #selections == 1 then
-						cmd = "DiffviewOpen " .. selections[1].value .. "..HEAD"
+						cmd = "DiffviewOpen " .. selections[1].value
 					else
 						-- Sort by index: higher index = older (further down the log)
 						table.sort(selections, function(a, b)
