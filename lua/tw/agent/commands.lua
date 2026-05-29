@@ -5,6 +5,30 @@ local terminal = require("tw.agent.terminal")
 local buffer_config = require("tw.agent.buffer-config")
 local log = require("tw.log")
 
+-- Internal helpers for instance-aware buffer/buf_id lookups. Exposed on M for testability.
+-- These call require("tw.agent") to look up the agent module, allowing tests to reset
+-- package.loaded["tw.agent"] and get the fresh mock module.
+
+local function resolve_default_agent_buf()
+	local agent = require("tw.agent")
+	local default = agent.default_mode or "claude"
+	for _, mode in ipairs({ default, default .. "-docker" }) do
+		local inst = agent._get_instance(mode, 0)
+		if inst and inst.buf and vim.api.nvim_buf_is_valid(inst.buf) then
+			return inst.buf
+		end
+	end
+	return nil
+end
+
+local function is_agent_buf(buf)
+	local agent = require("tw.agent")
+	for _, _, b, _ in agent._iter_all_instances() do
+		if b == buf then return true end
+	end
+	return false
+end
+
 -- Timer for checking file changes
 local refresh_timer = nil
 
@@ -73,9 +97,7 @@ function M.setup_autocmds(claude_module)
 			-- Disable the flag so this only fires once
 			claude_module.agent_fullscreen = false
 
-			-- Find the opencode agent buffer
-			local default_var = claude_module.default_mode:gsub("-", "_")
-			local agent_buf = claude_module[default_var .. "_buf"] or claude_module[default_var .. "_docker_buf"]
+			local agent_buf = resolve_default_agent_buf()
 			if not agent_buf or not vim.api.nvim_buf_is_valid(agent_buf) then
 				return
 			end
@@ -95,17 +117,8 @@ function M.setup_autocmds(claude_module)
 	-- Set nowrap for agent buffer windows, which makes code changes look better
 	vim.api.nvim_create_autocmd("BufWinEnter", {
 		callback = function(args)
-			-- Check if this is an agent buffer
-			local all_modes =
-				{ "claude", "claude-docker", "codex", "codex-docker", "opencode", "opencode-docker", "pi", "pi-docker" }
-			for _, mode in ipairs(all_modes) do
-				local var_name = mode:gsub("-", "_")
-				local buf_key = var_name .. "_buf"
-				if claude_module[buf_key] and args.buf == claude_module[buf_key] then
-					-- Set nowrap for the window displaying this buffer
-					vim.wo[0].wrap = false
-					break
-				end
+			if is_agent_buf(args.buf) then
+				vim.wo[0].wrap = false
 			end
 		end,
 		group = group,
@@ -150,22 +163,8 @@ function M.setup_autocmds(claude_module)
 			0,
 			1000, -- milliseconds
 			vim.schedule_wrap(function()
-				-- Only check time if there's an active agent terminal
 				local any_visible = false
-				local all_modes = {
-					"claude",
-					"claude-docker",
-					"codex",
-					"codex-docker",
-					"opencode",
-					"opencode-docker",
-					"pi",
-					"pi-docker",
-				}
-				for _, mode in ipairs(all_modes) do
-					local var_name = mode:gsub("-", "_")
-					local buf_key = var_name .. "_buf"
-					local buf = claude_module[buf_key]
+				for _, _, buf, _ in claude_module._iter_all_instances() do
 					if buf and vim.api.nvim_buf_is_valid(buf) and #vim.fn.win_findbuf(buf) > 0 then
 						any_visible = true
 						break
@@ -192,31 +191,16 @@ function M.setup_autocmds(claude_module)
 	})
 
 	-- Set a shorter updatetime while Claude Code is open
-	vim.api.nvim_create_autocmd("TermOpen", {
-		group = refresh_group,
-		pattern = "*",
-		callback = function()
-			local buf = vim.api.nvim_get_current_buf()
-			local buf_name = vim.api.nvim_buf_get_name(buf)
-			if buf_name:match("claude%-code$") then
-				claude_module.saved_updatetime = vim.o.updatetime
-				vim.o.updatetime = 100
-			end
-		end,
-		desc = "Set shorter updatetime when Claude Code is open",
-	})
-
-	-- When Claude Code closes, restore normal updatetime
 	vim.api.nvim_create_autocmd("TermClose", {
 		group = refresh_group,
 		pattern = "*",
-		callback = function()
-			local buf_name = vim.api.nvim_buf_get_name(0)
-			if buf_name:match("claude%-code$") then
-				vim.o.updatetime = claude_module.saved_updatetime
+		callback = function(args)
+			local buf_name = vim.api.nvim_buf_get_name(args.buf)
+			if buf_name:match("^agent://") then
+				claude_module._restore_agent_updatetime_if_no_agents()
 			end
 		end,
-		desc = "Restore normal updatetime when Claude Code is closed",
+		desc = "Restore updatetime when an agent terminal closes (if no agents remain)",
 	})
 end
 
@@ -235,13 +219,14 @@ local function handle_build(claude_module, args)
 			-- Close all docker buffer variants if they exist
 			local docker_modes = { "claude-docker", "codex-docker", "opencode-docker", "pi-docker" }
 			for _, mode in ipairs(docker_modes) do
-				local var_name = mode:gsub("-", "_")
-				local buf_key = var_name .. "_buf"
-				local job_key = var_name .. "_job_id"
-				if claude_module[buf_key] then
-					local buf, job = terminal.close_terminal_buffer(claude_module[buf_key], claude_module[job_key])
-					claude_module[buf_key] = buf
-					claude_module[job_key] = job
+				local inst = claude_module._get_instance(mode, 0)
+				if inst and inst.buf then
+					local buf, job = terminal.close_terminal_buffer(inst.buf, inst.job_id)
+					if buf then
+						claude_module._set_instance(mode, 0, buf, job)
+					else
+						claude_module._clear_instance(mode, 0)
+					end
 					-- Clear active pointers if this was the active buffer
 					if claude_module.active_buf == buf then
 						claude_module.active_buf = nil
@@ -279,13 +264,14 @@ local function handle_restart(claude_module, args)
 		-- Close all docker buffer variants if they exist
 		local docker_modes = { "claude-docker", "codex-docker", "opencode-docker", "pi-docker" }
 		for _, mode in ipairs(docker_modes) do
-			local var_name = mode:gsub("-", "_")
-			local buf_key = var_name .. "_buf"
-			local job_key = var_name .. "_job_id"
-			if claude_module[buf_key] then
-				local buf, job = terminal.close_terminal_buffer(claude_module[buf_key], claude_module[job_key])
-				claude_module[buf_key] = buf
-				claude_module[job_key] = job
+			local inst = claude_module._get_instance(mode, 0)
+			if inst and inst.buf then
+				local buf, job = terminal.close_terminal_buffer(inst.buf, inst.job_id)
+				if buf then
+					claude_module._set_instance(mode, 0, buf, job)
+				else
+					claude_module._clear_instance(mode, 0)
+				end
 				-- Clear active pointers if this was the active buffer
 				if claude_module.active_buf == buf then
 					claude_module.active_buf = nil
@@ -323,13 +309,10 @@ local function restart_agent_with_context(agent_module, action_desc)
 		-- Close all docker buffer variants (matches handle_restart cleanup logic)
 		local docker_modes = { "claude-docker", "codex-docker", "opencode-docker", "pi-docker" }
 		for _, dmode in ipairs(docker_modes) do
-			local var_name = dmode:gsub("-", "_")
-			local buf_key = var_name .. "_buf"
-			local job_key = var_name .. "_job_id"
-			if agent_module[buf_key] then
-				terminal.close_terminal_buffer(agent_module[buf_key], agent_module[job_key])
-				agent_module[buf_key] = nil
-				agent_module[job_key] = nil
+			local inst = agent_module._get_instance(dmode, 0)
+			if inst and inst.buf then
+				terminal.close_terminal_buffer(inst.buf, inst.job_id)
+				agent_module._clear_instance(dmode, 0)
 			end
 		end
 		agent_module.active_buf = nil
@@ -727,5 +710,9 @@ function M.setup_user_commands(agent_module)
 		desc = "Open AI agent fullscreen in the current window (no prompt required)",
 	})
 end
+
+-- Expose helpers for testability
+M._resolve_default_agent_buf = resolve_default_agent_buf
+M._is_agent_buf              = is_agent_buf
 
 return M

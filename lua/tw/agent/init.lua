@@ -383,6 +383,7 @@ local function start_new_agent_job(args, window_type, mode, idx)
 	-- Set the agent:// buffer name for identification (must happen BEFORE
 	-- any consumer reads the name)
 	pcall(vim.api.nvim_buf_set_name, buf, string.format("agent://%s#%d", mode, idx))
+	M._apply_agent_updatetime()
 
 	-- Update active state
 	M.active_mode   = mode
@@ -972,6 +973,32 @@ local function configureClaudeKeymap()
 
 	local wk = require("which-key")
 	wk.add(keymap)
+end
+
+-- Shorten updatetime while any agent terminal is open. Called directly from
+-- start_new_agent_job after the buffer is renamed to agent://...
+-- (Doing this via TermOpen / BufWinEnter autocmds is unreliable because
+-- those events fire before nvim_buf_set_name has been called.)
+M.AGENT_UPDATETIME = 100  -- ms; matches the original optimization value
+M.saved_updatetime = nil
+
+function M._apply_agent_updatetime()
+	if M.saved_updatetime == nil then
+		M.saved_updatetime = vim.o.updatetime
+		vim.o.updatetime = M.AGENT_UPDATETIME
+	end
+end
+
+function M._restore_agent_updatetime_if_no_agents()
+	for _, _, _, job_id in iter_all_instances() do
+		if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+			return  -- at least one agent still alive
+		end
+	end
+	if M.saved_updatetime ~= nil then
+		vim.o.updatetime = M.saved_updatetime
+		M.saved_updatetime = nil
+	end
 end
 
 function M.cleanup()
