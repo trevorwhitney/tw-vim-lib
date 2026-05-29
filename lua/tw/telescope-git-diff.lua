@@ -115,7 +115,7 @@ local function create_picker(opts)
 
 					local cmd
 					if #selections == 1 then
-						cmd = "DiffviewOpen " .. selections[1].value
+						cmd = "DiffviewOpen " .. selections[1].value .. "~1"
 					else
 						-- Sort by index: higher index = older (further down the log)
 						table.sort(selections, function(a, b)
@@ -123,7 +123,7 @@ local function create_picker(opts)
 						end)
 						local older = selections[1].value
 						local newer = selections[2].value
-						cmd = "DiffviewOpen " .. older .. ".." .. newer
+						cmd = "DiffviewOpen " .. older .. "~1.." .. newer
 					end
 
 					if current_file_path then
