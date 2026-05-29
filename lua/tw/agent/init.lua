@@ -692,6 +692,54 @@ function M._toggle_with_count(mode, visual)
 	M._toggle_with_count_explicit(mode, vim.v.count, visual)
 end
 
+--- Cycle through alive sessions of default_mode.
+--- direction: 1 for next, -1 for previous.
+function M.CycleSession(direction)
+	local mode = M.default_mode
+	local tbl = M.instances[mode] or {}
+
+	-- Collect indices of alive instances
+	local indices = {}
+	for idx, inst in pairs(tbl) do
+		local alive = inst
+			and inst.buf
+			and vim.api.nvim_buf_is_valid(inst.buf)
+			and inst.job_id
+			and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1
+		if alive then
+			table.insert(indices, idx)
+		end
+	end
+	table.sort(indices)
+
+	if #indices == 0 then
+		vim.notify("No " .. mode .. " sessions running", vim.log.levels.INFO)
+		return
+	end
+
+	-- Find current position in sorted list
+	local current_idx = (M.active_mode == mode) and M.active_index or -1
+	local pos = nil
+	for i, idx in ipairs(indices) do
+		if idx == current_idx then
+			pos = i
+			break
+		end
+	end
+
+	-- Calculate next position (wrapping)
+	local next_pos
+	if pos then
+		next_pos = ((pos - 1 + direction) % #indices) + 1
+	else
+		-- Not currently on a session of this mode; jump to first or last
+		next_pos = (direction == 1) and 1 or #indices
+	end
+
+	local target_idx = indices[next_pos]
+	M.Open(mode, nil, "vsplit", target_idx)
+end
+
 -- Helper function to hide all agent buffers
 function M.hide_all_agent_buffers()
 	for _, _, buf, _ in iter_all_instances() do
@@ -931,6 +979,20 @@ local function configureClaudeKeymap()
 		},
 		{
 			mode = { "n" },
+			{
+				"<leader>c]",
+				function()
+					require("tw.agent").CycleSession(1)
+				end,
+				desc = "Next Agent Session",
+			},
+			{
+				"<leader>c[",
+				function()
+					require("tw.agent").CycleSession(-1)
+				end,
+				desc = "Previous Agent Session",
+			},
 			{
 				"<leader>tc",
 				":w<cr> :TestNearest -strategy=claude<cr>",
