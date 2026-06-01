@@ -137,6 +137,22 @@ describe("status.detect — OpenCode pattern scraping", function()
     vim.fn.jobwait = orig
     vim.api.nvim_buf_delete(buf2, { force = true })
   end)
+
+  it("prioritizes waiting over working when both patterns appear", function()
+    -- Simulates a buffer where 'Thinking...' is leftover from a prior turn
+    -- and 'press enter to send the message' is the current idle prompt.
+    local buf = helpers.mock_terminal_buffer({
+      "(earlier output)",
+      "Thinking...",
+      "(more output)",
+      "press enter to send the message",
+    })
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    assert.equals("waiting", status.detect(make_instance(buf)))
+    vim.fn.jobwait = orig
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
 end)
 
 describe("status.detect — timing heuristic for non-opencode modes", function()

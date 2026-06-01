@@ -8,8 +8,8 @@ local CACHE_MS = 500
 local WORKING_STALE_MS = 30000
 
 -- Patterns matched against the last 20 lines of terminal buffer content,
--- after ANSI stripping. Working patterns checked first; if any match, the
--- status is "working". Otherwise the waiting pattern is checked.
+-- after ANSI stripping. Waiting pattern checked first; if it matches, the
+-- status is "waiting". Otherwise working patterns are checked.
 local OPENCODE_PATTERNS = {
 	working = {
 		"Thinking%.%.%.",
@@ -73,11 +73,14 @@ local function detect_opencode(buf)
 		return last_known[buf] or "waiting"
 	end
 	local joined = strip_ansi(table.concat(lines, "\n"))
-	if any_match(joined, OPENCODE_PATTERNS.working) then
-		return "working"
-	end
+	-- Waiting is the definitive idle-state indicator. Check it first so that
+	-- a stale working pattern from an earlier turn in the trailing buffer
+	-- doesn't mask the current idle prompt.
 	if any_match(joined, OPENCODE_PATTERNS.waiting) then
 		return "waiting"
+	end
+	if any_match(joined, OPENCODE_PATTERNS.working) then
+		return "working"
 	end
 	return last_known[buf] or "waiting"
 end
