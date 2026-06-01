@@ -66,7 +66,7 @@ function Config.setup(user_options)
 	require("tw.vim-options").setup()
 	require("tw.augroups").setup()
 	require("tw.commands").setup()
-	require("tw.agent").setup()
+	require("tw.agent").setup(vim.g.tw_agent or {})
 end
 
 return Config

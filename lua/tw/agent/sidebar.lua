@@ -53,8 +53,27 @@ function M.setup(opts)
 	state.config = merge_defaults(opts or {})
 	state.ns = vim.api.nvim_create_namespace("tw_agent_sidebar")
 	if state.config.enabled == false then
+		-- Clear the augroup in case a previous setup() registered handlers.
+		pcall(vim.api.nvim_del_augroup_by_name, "tw_agent_sidebar")
 		return
 	end
+
+	-- Clear=true makes repeated setup() calls idempotent.
+	local augroup = vim.api.nvim_create_augroup("tw_agent_sidebar", { clear = true })
+	vim.api.nvim_create_autocmd("TermClose", {
+		group = augroup,
+		pattern = "agent://*",
+		callback = function(args)
+			pcall(function()
+				local status = require("tw.agent.status")
+				if status and status.invalidate then
+					status.invalidate(args.buf)
+				end
+			end)
+			pcall(M.refresh)
+		end,
+		desc = "Refresh sidebar on agent terminal close",
+	})
 end
 
 local function create_buffer()

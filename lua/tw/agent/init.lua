@@ -434,6 +434,12 @@ function M.Open(mode, args, window_type, idx)
 		end
 		start_new_agent_job(args, window_type, mode, idx)
 	end
+	pcall(function()
+		local sidebar = require("tw.agent.sidebar")
+		if sidebar and sidebar.refresh then
+			sidebar.refresh()
+		end
+	end)
 end
 
 -- Restart the active local (sandboxed) agent with updated context_directories.
@@ -528,6 +534,12 @@ function M.Toggle(mode, args, window_type, idx)
 		end
 		M.Open(mode, args, window_type, idx)
 	end
+	pcall(function()
+		local sidebar = require("tw.agent.sidebar")
+		if sidebar and sidebar.refresh then
+			sidebar.refresh()
+		end
+	end)
 end
 
 -- Explicit-count entry point used by tests and by _toggle_with_count.
@@ -593,6 +605,12 @@ function M.CycleSession(direction)
 
 	local target_idx = indices[next_pos]
 	M.Open(mode, nil, "vsplit", target_idx)
+	pcall(function()
+		local sidebar = require("tw.agent.sidebar")
+		if sidebar and sidebar.refresh then
+			sidebar.refresh()
+		end
+	end)
 end
 
 -- Helper function to hide all agent buffers
@@ -821,6 +839,16 @@ local function configureClaudeKeymap()
 				desc = "Previous Agent Session",
 			},
 			{
+				"<leader>cv",
+				function()
+					local ok, sidebar = pcall(require, "tw.agent.sidebar")
+					if ok and sidebar and sidebar.toggle then
+						sidebar.toggle()
+					end
+				end,
+				desc = "Toggle agent session sidebar",
+			},
+			{
 				"<leader>tc",
 				":w<cr> :TestNearest -strategy=claude<cr>",
 				desc = "Test Nearest (claude)",
@@ -929,6 +957,12 @@ function M.cleanup()
 		M._refresh_timer:close()
 		M._refresh_timer = nil
 	end
+	pcall(function()
+		local sidebar = require("tw.agent.sidebar")
+		if sidebar and sidebar.close then
+			sidebar.close()
+		end
+	end)
 end
 
 -- Get status for statusline integration
@@ -1249,6 +1283,12 @@ function M.setup(opts)
 		log.set_level(opts.log_level)
 	end
 	configureClaudeKeymap()
+
+	-- Sidebar
+	local sidebar_ok, sidebar_mod = pcall(require, "tw.agent.sidebar")
+	if sidebar_ok and sidebar_mod and sidebar_mod.setup then
+		sidebar_mod.setup(opts.sidebar or {})
+	end
 
 	-- Setup autocmds and user commands
 	commands.setup_autocmds(M)

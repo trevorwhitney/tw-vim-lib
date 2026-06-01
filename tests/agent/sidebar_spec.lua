@@ -286,6 +286,52 @@ describe("sidebar interaction", function()
 end)
 
 describe("sidebar cursor preservation", function()
+   local sidebar, agent
+
+   before_each(function()
+     package.loaded["tw.agent.sidebar"] = nil
+     package.loaded["tw.agent.status"] = nil
+     package.loaded["tw.log"] = {
+       info = function() end, warn = function() end,
+       error = function() end, debug = function() end,
+     }
+     agent = helpers.reset_and_mock(false)
+     sidebar = require("tw.agent.sidebar")
+     sidebar.setup({})
+     pcall(sidebar.close)
+   end)
+   after_each(function() pcall(sidebar.close) end)
+
+   it("preserves cursor on the same (mode, idx) when entries reorder", function()
+     local buf1 = vim.api.nvim_create_buf(false, true)
+     local buf2 = vim.api.nvim_create_buf(false, true)
+     agent._set_instance("opencode", 0, buf1, 9001)
+     agent._set_instance("claude", 0, buf2, 9002)
+
+     local orig = vim.fn.jobwait
+     vim.fn.jobwait = function() return { -1 } end
+
+     sidebar.open()
+     sidebar.refresh()
+     local data_start = sidebar._state().data_start_line
+     -- Cursor lands on the second data row (claude)
+     vim.api.nvim_win_set_cursor(sidebar._state().win, { data_start + 1, 0 })
+
+     -- User is focused on the sidebar window
+     vim.api.nvim_set_current_win(sidebar._state().win)
+
+     -- Remove opencode; claude shifts to the first data row
+     agent.instances.opencode = {}
+     sidebar.refresh()
+
+     local new_cursor = vim.api.nvim_win_get_cursor(sidebar._state().win)
+     assert.equals(data_start, new_cursor[1])
+
+     vim.fn.jobwait = orig
+   end)
+end)
+
+describe("sidebar TermClose autocmd", function()
   local sidebar, agent
 
   before_each(function()
@@ -302,31 +348,30 @@ describe("sidebar cursor preservation", function()
   end)
   after_each(function() pcall(sidebar.close) end)
 
-  it("preserves cursor on the same (mode, idx) when entries reorder", function()
-    local buf1 = vim.api.nvim_create_buf(false, true)
-    local buf2 = vim.api.nvim_create_buf(false, true)
-    agent._set_instance("opencode", 0, buf1, 9001)
-    agent._set_instance("claude", 0, buf2, 9002)
+  it("registers a TermClose autocmd in the tw_agent_sidebar augroup", function()
+    local autocmds = vim.api.nvim_get_autocmds({
+      group = "tw_agent_sidebar",
+      event = "TermClose",
+    })
+    assert.is_true(#autocmds >= 1)
+    local has_agent_pattern = false
+    for _, a in ipairs(autocmds) do
+      if a.pattern == "agent://*" then has_agent_pattern = true end
+    end
+    assert.is_true(has_agent_pattern)
+  end)
 
-    local orig = vim.fn.jobwait
-    vim.fn.jobwait = function() return { -1 } end
-
-    sidebar.open()
-    sidebar.refresh()
-    local data_start = sidebar._state().data_start_line
-    -- Cursor lands on the second data row (claude)
-    vim.api.nvim_win_set_cursor(sidebar._state().win, { data_start + 1, 0 })
-
-    -- User is focused on the sidebar window
-    vim.api.nvim_set_current_win(sidebar._state().win)
-
-    -- Remove opencode; claude shifts to the first data row
-    agent.instances.opencode = {}
-    sidebar.refresh()
-
-    local new_cursor = vim.api.nvim_win_get_cursor(sidebar._state().win)
-    assert.equals(data_start, new_cursor[1])
-
-    vim.fn.jobwait = orig
+  it("does NOT register autocmds when enabled=false", function()
+    sidebar.close()
+    package.loaded["tw.agent.sidebar"] = nil
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({ enabled = false })
+    local ok, autocmds = pcall(vim.api.nvim_get_autocmds, {
+      group = "tw_agent_sidebar",
+      event = "TermClose",
+    })
+    if ok then
+      assert.equals(0, #autocmds)
+    end
   end)
 end)
