@@ -8,6 +8,20 @@ local commands = require("tw.agent.commands")
 local buffer_config = require("tw.agent.buffer-config")
 local default_args = {}
 
+-- Notify the sidebar that something in the instance/active state changed.
+-- pcall-guarded so the sidebar module is fully optional.
+local function notify_sidebar_refresh()
+	pcall(function()
+		require("tw.agent.sidebar").refresh()
+	end)
+end
+
+local function notify_sidebar_close()
+	pcall(function()
+		require("tw.agent.sidebar").close()
+	end)
+end
+
 -- Expose log module globally for claude.lua to use
 _G.claude_log = log
 -- Single source of truth for the default agent.
@@ -434,12 +448,7 @@ function M.Open(mode, args, window_type, idx)
 		end
 		start_new_agent_job(args, window_type, mode, idx)
 	end
-	pcall(function()
-		local sidebar = require("tw.agent.sidebar")
-		if sidebar and sidebar.refresh then
-			sidebar.refresh()
-		end
-	end)
+	notify_sidebar_refresh()
 end
 
 -- Restart the active local (sandboxed) agent with updated context_directories.
@@ -534,12 +543,6 @@ function M.Toggle(mode, args, window_type, idx)
 		end
 		M.Open(mode, args, window_type, idx)
 	end
-	pcall(function()
-		local sidebar = require("tw.agent.sidebar")
-		if sidebar and sidebar.refresh then
-			sidebar.refresh()
-		end
-	end)
 end
 
 -- Explicit-count entry point used by tests and by _toggle_with_count.
@@ -605,12 +608,6 @@ function M.CycleSession(direction)
 
 	local target_idx = indices[next_pos]
 	M.Open(mode, nil, "vsplit", target_idx)
-	pcall(function()
-		local sidebar = require("tw.agent.sidebar")
-		if sidebar and sidebar.refresh then
-			sidebar.refresh()
-		end
-	end)
 end
 
 -- Helper function to hide all agent buffers
@@ -957,12 +954,7 @@ function M.cleanup()
 		M._refresh_timer:close()
 		M._refresh_timer = nil
 	end
-	pcall(function()
-		local sidebar = require("tw.agent.sidebar")
-		if sidebar and sidebar.close then
-			sidebar.close()
-		end
-	end)
+	notify_sidebar_close()
 end
 
 -- Get status for statusline integration

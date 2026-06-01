@@ -17,7 +17,6 @@ local DEFAULTS = {
 		pi = "pi",
 	},
 	show_dead = false,
-	keymap = "<leader>cv",
 }
 
 -- Internal state, exposed via M._state() for tests.
@@ -30,7 +29,6 @@ local state = {
 	line_to_entry = {},
 	data_start_line = 3,
 	config = nil,
-	user_cursor_idx = nil,
 }
 
 function M._state()
@@ -295,7 +293,7 @@ local function collect_entries()
 		table.sort(indices)
 		for _, idx in ipairs(indices) do
 			local inst = instances[idx]
-			if inst and inst.buf and inst.job_id then
+			if inst and inst.buf and vim.api.nvim_buf_is_valid(inst.buf) and inst.job_id then
 				local s = status.detect({
 					mode = mode,
 					idx = idx,
