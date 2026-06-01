@@ -103,6 +103,25 @@ function M.setup_buffer(buf, opts)
 		table.insert(M.buffer_autocmds[buf], follow_autocmd)
 	end
 
+	-- Record last text change timestamp for status detection.
+	-- TextChangedT fires on terminal output; TextChanged covers normal-mode edits.
+	-- Uses vim.uv.now() (monotonic milliseconds) deliberately — consumers
+	-- compute elapsed time deltas, which require millisecond resolution and
+	-- a monotonic clock. Distinct from the other timestamps in this module
+	-- which use os.time() (epoch seconds).
+	local change_autocmd = vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedT" }, {
+		group = augroup,
+		buffer = buf,
+		callback = function()
+			local state = M.buffer_states[buf]
+			if state then
+				state.last_change_at = vim.uv.now()
+			end
+		end,
+		desc = "Record last_change_at for agent status detection",
+	})
+	table.insert(M.buffer_autocmds[buf], change_autocmd)
+
 	log.debug("Claude buffer " .. buf .. " configured with scrollback=" .. config.scrollback)
 end
 
