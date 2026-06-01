@@ -217,3 +217,116 @@ describe("sidebar rendering", function()
     assert.is_nil(map[2])
   end)
 end)
+
+describe("sidebar interaction", function()
+  local sidebar
+  local agent
+
+  before_each(function()
+    package.loaded["tw.agent.sidebar"] = nil
+    package.loaded["tw.agent.status"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    agent = helpers.reset_and_mock(false)
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({})
+    pcall(sidebar.close)
+  end)
+  after_each(function() pcall(sidebar.close) end)
+
+  it("open() starts a refresh timer", function()
+    sidebar.open()
+    assert.is_not_nil(sidebar._state().timer)
+  end)
+
+  it("close() stops and clears the timer", function()
+    sidebar.open()
+    sidebar.close()
+    assert.is_nil(sidebar._state().timer)
+  end)
+
+  it("<CR> on a data row calls agent.Open with the entry's mode and idx", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    agent._set_instance("opencode", 0, buf, 9001)
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    local captured = {}
+    local orig_open = agent.Open
+    agent.Open = function(mode, args, window_type, idx)
+      captured = { mode = mode, args = args, window_type = window_type, idx = idx }
+    end
+
+    sidebar.open()
+    sidebar.refresh()
+    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    sidebar._activate_under_cursor()
+
+    agent.Open = orig_open
+    vim.fn.jobwait = orig
+
+    assert.equals("opencode", captured.mode)
+    assert.equals("vsplit", captured.window_type)
+    assert.equals(0, captured.idx)
+  end)
+
+  it("<CR> on a non-data row is a no-op", function()
+    sidebar.open()
+    sidebar.refresh()
+    vim.api.nvim_win_set_cursor(sidebar._state().win, { 1, 0 })
+    local called = false
+    local orig_open = agent.Open
+    agent.Open = function() called = true end
+    sidebar._activate_under_cursor()
+    agent.Open = orig_open
+    assert.is_false(called)
+  end)
+end)
+
+describe("sidebar cursor preservation", function()
+  local sidebar, agent
+
+  before_each(function()
+    package.loaded["tw.agent.sidebar"] = nil
+    package.loaded["tw.agent.status"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    agent = helpers.reset_and_mock(false)
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({})
+    pcall(sidebar.close)
+  end)
+  after_each(function() pcall(sidebar.close) end)
+
+  it("preserves cursor on the same (mode, idx) when entries reorder", function()
+    local buf1 = vim.api.nvim_create_buf(false, true)
+    local buf2 = vim.api.nvim_create_buf(false, true)
+    agent._set_instance("opencode", 0, buf1, 9001)
+    agent._set_instance("claude", 0, buf2, 9002)
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    sidebar.open()
+    sidebar.refresh()
+    local data_start = sidebar._state().data_start_line
+    -- Cursor lands on the second data row (claude)
+    vim.api.nvim_win_set_cursor(sidebar._state().win, { data_start + 1, 0 })
+
+    -- User is focused on the sidebar window
+    vim.api.nvim_set_current_win(sidebar._state().win)
+
+    -- Remove opencode; claude shifts to the first data row
+    agent.instances.opencode = {}
+    sidebar.refresh()
+
+    local new_cursor = vim.api.nvim_win_get_cursor(sidebar._state().win)
+    assert.equals(data_start, new_cursor[1])
+
+    vim.fn.jobwait = orig
+  end)
+end)

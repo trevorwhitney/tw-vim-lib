@@ -89,24 +89,6 @@ local function set_window_options(win)
 	vim.wo[win].foldcolumn = "0"
 end
 
-function M.open()
-	if not state.config or state.config.enabled == false then
-		return
-	end
-	if state.win and vim.api.nvim_win_is_valid(state.win) then
-		return
-	end
-	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
-		state.buf = create_buffer()
-	end
-	state.win = open_window(state.buf, state.config.position, state.config.width)
-	set_window_options(state.win)
-	-- Static placeholder; replaced by refresh() once rendering is in place.
-	vim.bo[state.buf].modifiable = true
-	vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, { "⌬ Agents", "─────────", "(loading)" })
-	vim.bo[state.buf].modifiable = false
-end
-
 function M.close()
 	if state.timer then
 		pcall(state.timer.stop, state.timer)
@@ -123,6 +105,148 @@ function M.close()
 	state.buf = nil
 end
 
+-- The four local agent modes shown in the sidebar; docker variants are
+-- intentionally excluded.
+local LOCAL_MODES = { "opencode", "claude", "codex", "pi" }
+
+-- Helper functions for navigation and keymaps.
+local function find_next_data_row(direction)
+	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+		return nil
+	end
+	local cursor = vim.api.nvim_win_get_cursor(state.win)
+	local row = cursor[1]
+	local line_count = vim.api.nvim_buf_line_count(state.buf)
+	-- Scan in direction until we land on a data row; wraps at top/bottom.
+	for _ = 1, line_count do
+		row = row + direction
+		if row < 1 then
+			row = line_count
+		end
+		if row > line_count then
+			row = 1
+		end
+		if state.line_to_entry[row] then
+			return row
+		end
+	end
+	return nil
+end
+
+local function move_cursor(direction)
+	local row = find_next_data_row(direction)
+	if row then
+		vim.api.nvim_win_set_cursor(state.win, { row, 0 })
+	end
+end
+
+local function first_data_row()
+	for r = state.data_start_line, vim.api.nvim_buf_line_count(state.buf) do
+		if state.line_to_entry[r] then
+			return r
+		end
+	end
+	return nil
+end
+
+local function last_data_row()
+	local last = nil
+	for r = state.data_start_line, vim.api.nvim_buf_line_count(state.buf) do
+		if state.line_to_entry[r] then
+			last = r
+		end
+	end
+	return last
+end
+
+local function set_buffer_keymaps(buf)
+	local map = function(lhs, rhs, desc)
+		vim.keymap.set("n", lhs, rhs, { buffer = buf, silent = true, desc = desc })
+	end
+	map("j", function()
+		move_cursor(1)
+	end, "Sidebar: next session")
+	map("k", function()
+		move_cursor(-1)
+	end, "Sidebar: previous session")
+	map("<CR>", function()
+		M._activate_under_cursor()
+	end, "Sidebar: activate session")
+	map("o", function()
+		M._activate_under_cursor()
+	end, "Sidebar: activate session")
+	map("q", function()
+		M.close()
+	end, "Sidebar: close")
+	map("<Esc>", function()
+		M.close()
+	end, "Sidebar: close")
+	map("r", function()
+		M.refresh()
+	end, "Sidebar: force refresh")
+	map("gg", function()
+		local r = first_data_row()
+		if r then
+			vim.api.nvim_win_set_cursor(state.win, { r, 0 })
+		end
+	end, "Sidebar: first session")
+	map("G", function()
+		local r = last_data_row()
+		if r then
+			vim.api.nvim_win_set_cursor(state.win, { r, 0 })
+		end
+	end, "Sidebar: last session")
+end
+
+function M.open()
+	if not state.config or state.config.enabled == false then
+		return
+	end
+	if state.win and vim.api.nvim_win_is_valid(state.win) then
+		return
+	end
+	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
+		state.buf = create_buffer()
+	end
+	state.win = open_window(state.buf, state.config.position, state.config.width)
+	set_window_options(state.win)
+
+	set_buffer_keymaps(state.buf)
+
+	-- BufWinLeave catches the user closing the sidebar via :q. Schedule the
+	-- close call so we don't try to delete a window inside its own event.
+	vim.api.nvim_create_autocmd("BufWinLeave", {
+		buffer = state.buf,
+		once = true,
+		callback = function()
+			vim.schedule(function()
+				M.close()
+			end)
+		end,
+	})
+
+	-- Initial render so the user doesn't see a blank window.
+	M.refresh()
+
+	-- Periodic refresh.
+	state.timer = vim.uv.new_timer()
+	if state.timer then
+		state.timer:start(
+			state.config.refresh_ms,
+			state.config.refresh_ms,
+			vim.schedule_wrap(function()
+				local ok, err = pcall(M.refresh)
+				if not ok then
+					local log_ok, log = pcall(require, "tw.log")
+					if log_ok and log and log.warn then
+						log.warn("sidebar refresh failed: " .. tostring(err))
+					end
+				end
+			end)
+		)
+	end
+end
+
 function M.toggle()
 	if state.win and vim.api.nvim_win_is_valid(state.win) then
 		M.close()
@@ -130,10 +254,6 @@ function M.toggle()
 		M.open()
 	end
 end
-
--- The four local agent modes shown in the sidebar; docker variants are
--- intentionally excluded.
-local LOCAL_MODES = { "opencode", "claude", "codex", "pi" }
 
 -- Highlight groups applied to each status. Defined later in the module
 -- (define_highlights) so they exist before any caller calls refresh().
@@ -226,6 +346,27 @@ local function build_line_to_entry(entries)
 	return map
 end
 
+function M._activate_under_cursor()
+	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+		return
+	end
+	local cursor = vim.api.nvim_win_get_cursor(state.win)
+	local row = cursor[1]
+	local entry_idx = state.line_to_entry[row]
+	if not entry_idx then
+		return
+	end
+	local entry = state.entries[entry_idx]
+	if not entry then
+		return
+	end
+	local ok, agent = pcall(require, "tw.agent")
+	if not ok then
+		return
+	end
+	agent.Open(entry.mode, nil, "vsplit", entry.idx)
+end
+
 function M.refresh()
 	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
 		return
@@ -233,6 +374,22 @@ function M.refresh()
 	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
 		return
 	end
+
+	-- Only preserve cursor when the user is actually focused on the sidebar
+	-- window; otherwise the default positioning logic applies.
+	local cursor_target = nil
+	if vim.api.nvim_get_current_win() == state.win then
+		local cursor = vim.api.nvim_win_get_cursor(state.win)
+		local row = cursor[1]
+		local prev_idx = state.line_to_entry[row]
+		if prev_idx and state.entries[prev_idx] then
+			cursor_target = {
+				mode = state.entries[prev_idx].mode,
+				idx = state.entries[prev_idx].idx,
+			}
+		end
+	end
+
 	local entries = collect_entries()
 	local lines = render_lines(entries)
 	vim.bo[state.buf].modifiable = true
@@ -241,6 +398,27 @@ function M.refresh()
 	state.entries = entries
 	state.line_to_entry = build_line_to_entry(entries)
 	apply_highlights(state.buf, entries)
+
+	-- Restore cursor to the same (mode, idx) if it still exists.
+	if cursor_target then
+		for i, e in ipairs(entries) do
+			if e.mode == cursor_target.mode and e.idx == cursor_target.idx then
+				vim.api.nvim_win_set_cursor(state.win, { state.data_start_line + (i - 1), 0 })
+				return
+			end
+		end
+	end
+
+	-- Default positioning: the active entry, then the first entry.
+	for i, e in ipairs(entries) do
+		if e.is_active then
+			vim.api.nvim_win_set_cursor(state.win, { state.data_start_line + (i - 1), 0 })
+			return
+		end
+	end
+	if #entries > 0 then
+		vim.api.nvim_win_set_cursor(state.win, { state.data_start_line, 0 })
+	end
 end
 
 local function define_highlights()
