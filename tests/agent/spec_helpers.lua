@@ -33,4 +33,15 @@ function M.buf_visible(buf)
   return false
 end
 
+-- Create a scratch buffer pre-filled with the given lines.
+-- Useful for status-detection tests that need to scrape terminal-style
+-- buffer contents without actually starting a job.
+function M.mock_terminal_buffer(lines)
+  local buf = vim.api.nvim_create_buf(false, true)
+  if lines and #lines > 0 then
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  end
+  return buf
+end
+
 return M

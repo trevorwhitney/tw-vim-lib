@@ -44,3 +44,25 @@ describe("buffer-config last_change_at tracking", function()
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 end)
+
+describe("spec_helpers.mock_terminal_buffer", function()
+  local helpers = require("tests.agent.spec_helpers")
+
+  it("creates a scratch buffer with the given content", function()
+    local content = { "line one", "line two", "line three" }
+    local buf = helpers.mock_terminal_buffer(content)
+    assert.is_true(vim.api.nvim_buf_is_valid(buf))
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    assert.same(content, lines)
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("accepts an empty content table", function()
+    local buf = helpers.mock_terminal_buffer({})
+    assert.is_true(vim.api.nvim_buf_is_valid(buf))
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    -- Empty buffer has a single empty line by default
+    assert.same({ "" }, lines)
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+end)
