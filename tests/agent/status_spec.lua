@@ -138,3 +138,131 @@ describe("status.detect — OpenCode pattern scraping", function()
     vim.api.nvim_buf_delete(buf2, { force = true })
   end)
 end)
+
+describe("status.detect — timing heuristic for non-opencode modes", function()
+  local status
+
+  before_each(function()
+    package.loaded["tw.agent.status"] = nil
+    package.loaded["tw.agent.buffer-config"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    status = require("tw.agent.status")
+    status.reset()
+  end)
+
+  local function make_instance(buf, mode)
+    return {
+      mode = mode or "claude",
+      idx = 0,
+      buf = buf,
+      job_id = 9999,
+    }
+  end
+
+  it("returns 'working' when last_change_at is within 30s", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local buffer_config = require("tw.agent.buffer-config")
+    buffer_config.setup_buffer(buf, {})
+    buffer_config.buffer_states[buf].last_change_at = vim.uv.now() - 5000
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    assert.equals("working", status.detect(make_instance(buf, "claude")))
+    vim.fn.jobwait = orig
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("returns 'waiting' when last_change_at is older than 30s", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local buffer_config = require("tw.agent.buffer-config")
+    buffer_config.setup_buffer(buf, {})
+    buffer_config.buffer_states[buf].last_change_at = vim.uv.now() - 31000
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    assert.equals("waiting", status.detect(make_instance(buf, "claude")))
+    vim.fn.jobwait = orig
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("returns 'waiting' when last_change_at is nil", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local buffer_config = require("tw.agent.buffer-config")
+    buffer_config.setup_buffer(buf, {})
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    assert.equals("waiting", status.detect(make_instance(buf, "pi")))
+    vim.fn.jobwait = orig
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("returns 'dead' when job_id is nil regardless of last_change_at", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local buffer_config = require("tw.agent.buffer-config")
+    buffer_config.setup_buffer(buf, {})
+    buffer_config.buffer_states[buf].last_change_at = vim.uv.now()
+    assert.equals("dead", status.detect({
+      mode = "claude", idx = 0, buf = buf, job_id = nil,
+    }))
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("returns 'dead' when jobwait returns non-negative-one", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local buffer_config = require("tw.agent.buffer-config")
+    buffer_config.setup_buffer(buf, {})
+    buffer_config.buffer_states[buf].last_change_at = vim.uv.now()
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { 0 } end -- exited cleanly
+    assert.equals("dead", status.detect(make_instance(buf, "codex")))
+    vim.fn.jobwait = orig
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("falls back to 'waiting' when buffer-config cannot be loaded", function()
+    -- Force require to fail for tw.agent.buffer-config by replacing its
+    -- package.preload entry with a function that errors. The pcall inside
+    -- detect_timing will catch this and fall through to the safe default.
+    package.loaded["tw.agent.buffer-config"] = nil
+    package.preload["tw.agent.buffer-config"] = function()
+      error("simulated require failure")
+    end
+
+    local buf = vim.api.nvim_create_buf(false, true)
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    -- With no last_known entry and require failing, the result must be "waiting".
+    assert.equals("waiting", status.detect(make_instance(buf, "claude")))
+
+    vim.fn.jobwait = orig
+    package.preload["tw.agent.buffer-config"] = nil
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("treats last_change_at exactly 30000ms ago as 'waiting' (boundary)", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local buffer_config = require("tw.agent.buffer-config")
+    buffer_config.setup_buffer(buf, {})
+
+    -- Pin "now" via stubbing vim.uv.now so the delta is exactly WORKING_STALE_MS.
+    local now = vim.uv.now()
+    local orig_now = vim.uv.now
+    vim.uv.now = function() return now end
+    buffer_config.buffer_states[buf].last_change_at = now - 30000
+
+    local orig_jobwait = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    -- detect's own jobwait-cached timestamp also uses vim.uv.now(), so the
+    -- stub stays consistent throughout the call.
+    assert.equals("waiting", status.detect(make_instance(buf, "claude")))
+
+    vim.fn.jobwait = orig_jobwait
+    vim.uv.now = orig_now
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+end)

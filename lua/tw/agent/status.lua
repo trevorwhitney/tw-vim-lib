@@ -1,6 +1,11 @@
 local M = {}
 
 local CACHE_MS = 500
+-- An agent terminal that has produced output in the last 30 seconds is
+-- considered "working"; older than that, it's assumed to be waiting for
+-- user input. Threshold is generous to accommodate agents that pause to
+-- think before producing visible output.
+local WORKING_STALE_MS = 30000
 
 -- Patterns matched against the last 20 lines of terminal buffer content,
 -- after ANSI stripping. Working patterns checked first; if any match, the
@@ -88,6 +93,21 @@ local function is_dead(instance)
 	return result[1] ~= -1
 end
 
+local function detect_timing(buf)
+	local ok, buffer_config = pcall(require, "tw.agent.buffer-config")
+	if not ok or not buffer_config or not buffer_config.buffer_states then
+		return last_known[buf] or "waiting"
+	end
+	local state = buffer_config.buffer_states[buf]
+	if not state or not state.last_change_at then
+		return last_known[buf] or "waiting"
+	end
+	if (vim.uv.now() - state.last_change_at) < WORKING_STALE_MS then
+		return "working"
+	end
+	return "waiting"
+end
+
 function M.detect(instance)
 	if not instance or not instance.buf then
 		return "dead"
@@ -105,9 +125,7 @@ function M.detect(instance)
 	elseif instance.mode == "opencode" then
 		status = detect_opencode(buf)
 	else
-		-- Non-opencode modes will gain a timing heuristic; for now default to
-		-- waiting so callers always get a usable value.
-		status = "waiting"
+		status = detect_timing(buf)
 	end
 
 	cache[buf] = { status = status, checked_at = vim.uv.now() }
