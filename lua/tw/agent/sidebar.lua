@@ -131,7 +131,133 @@ function M.toggle()
 	end
 end
 
--- Real rendering replaces this stub.
-function M.refresh() end
+-- The four local agent modes shown in the sidebar; docker variants are
+-- intentionally excluded.
+local LOCAL_MODES = { "opencode", "claude", "codex", "pi" }
+
+-- Highlight groups applied to each status. Defined later in the module
+-- (define_highlights) so they exist before any caller calls refresh().
+local STATUS_HL = {
+	working = "TwAgentSidebarWorking",
+	waiting = "TwAgentSidebarWaiting",
+	dead = "TwAgentSidebarDead",
+}
+
+local function collect_entries()
+	local agent = require("tw.agent")
+	local status = require("tw.agent.status")
+	local entries = {}
+	for _, mode in ipairs(LOCAL_MODES) do
+		local instances = agent.instances[mode] or {}
+		local indices = {}
+		for idx, _ in pairs(instances) do
+			table.insert(indices, idx)
+		end
+		table.sort(indices)
+		for _, idx in ipairs(indices) do
+			local inst = instances[idx]
+			if inst and inst.buf and inst.job_id then
+				local s = status.detect({
+					mode = mode,
+					idx = idx,
+					buf = inst.buf,
+					job_id = inst.job_id,
+				})
+				if s ~= "dead" or state.config.show_dead then
+					table.insert(entries, {
+						mode = mode,
+						idx = idx,
+						status = s,
+						buf = inst.buf,
+						is_active = (mode == agent.active_mode and idx == agent.active_index),
+					})
+				end
+			end
+		end
+	end
+	return entries
+end
+
+local function render_lines(entries)
+	local lines = { "⌬ Agents", "─────────" }
+	if #entries == 0 then
+		table.insert(lines, "(no active sessions)")
+		return lines
+	end
+	local icons = state.config.icons
+	local abbrev = state.config.mode_abbrev
+	for _, e in ipairs(entries) do
+		local icon = icons[e.status] or "?"
+		local mode_short = abbrev[e.mode] or e.mode
+		table.insert(lines, string.format("%s %s#%d  %s", icon, mode_short, e.idx, e.status))
+	end
+	return lines
+end
+
+local function apply_highlights(buf, entries)
+	vim.api.nvim_buf_clear_namespace(buf, state.ns, 0, -1)
+	local header_line = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] or ""
+	vim.api.nvim_buf_set_extmark(buf, state.ns, 0, 0, {
+		end_col = #header_line,
+		hl_group = "TwAgentSidebarHeader",
+	})
+	for i, e in ipairs(entries) do
+		local row = state.data_start_line - 1 + (i - 1)
+		local hl = STATUS_HL[e.status] or "Comment"
+		vim.api.nvim_buf_set_extmark(buf, state.ns, row, 0, {
+			end_row = row + 1,
+			end_col = 0,
+			hl_group = hl,
+			hl_eol = false,
+		})
+		if e.is_active then
+			vim.api.nvim_buf_set_extmark(buf, state.ns, row, 0, {
+				line_hl_group = "TwAgentSidebarActive",
+			})
+		end
+	end
+end
+
+local function build_line_to_entry(entries)
+	local map = {}
+	for i = 1, #entries do
+		map[state.data_start_line + (i - 1)] = i
+	end
+	return map
+end
+
+function M.refresh()
+	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+		return
+	end
+	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
+		return
+	end
+	local entries = collect_entries()
+	local lines = render_lines(entries)
+	vim.bo[state.buf].modifiable = true
+	vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
+	vim.bo[state.buf].modifiable = false
+	state.entries = entries
+	state.line_to_entry = build_line_to_entry(entries)
+	apply_highlights(state.buf, entries)
+end
+
+local function define_highlights()
+	local groups = {
+		TwAgentSidebarHeader = "Title",
+		TwAgentSidebarWorking = "String",
+		TwAgentSidebarWaiting = "WarningMsg",
+		TwAgentSidebarDead = "ErrorMsg",
+		TwAgentSidebarActive = "Visual",
+	}
+	for name, link in pairs(groups) do
+		vim.api.nvim_set_hl(0, name, { link = link, default = true })
+	end
+end
+
+-- Define highlight groups at module load so they're available even
+-- before setup() is called.
+define_highlights()
 
 return M
