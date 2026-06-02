@@ -19,19 +19,23 @@ describe("status.detect — OpenCode pattern scraping", function()
     }
   end
 
-  it("returns 'working' when 'Thinking...' is present", function()
+  it("does NOT treat conversation text like 'Thinking...' as working", function()
+    -- Regression: the old heuristic matched prose like "Thinking..." and got
+    -- stuck reporting "working". Only the interrupt hint means working now.
     local buf = helpers.mock_terminal_buffer({ "some preamble", "Thinking..." })
     local inst = make_instance(buf)
-    -- Stub jobwait to return -1 (alive)
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
-    assert.equals("working", status.detect(inst))
+    assert.equals("waiting", status.detect(inst))
     vim.fn.jobwait = orig
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 
-  it("returns 'working' for 'Generating...'", function()
-    local buf = helpers.mock_terminal_buffer({ "Generating..." })
+  it("returns 'working' when the 'esc interrupt' hint is present", function()
+    local buf = helpers.mock_terminal_buffer({
+      "Some streaming output",
+      "esc interrupt",
+    })
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
     assert.equals("working", status.detect(make_instance(buf)))
@@ -39,10 +43,20 @@ describe("status.detect — OpenCode pattern scraping", function()
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 
-  it("returns 'waiting' when 'press enter to send the message' is present", function()
+  it("returns 'working' for the 'esc again to interrupt' variant", function()
+    local buf = helpers.mock_terminal_buffer({ "esc again to interrupt" })
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    assert.equals("working", status.detect(make_instance(buf)))
+    vim.fn.jobwait = orig
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("returns 'waiting' when no interrupt hint is present (idle)", function()
+    -- A finished turn: the input box is empty and the interrupt hint is gone.
     local buf = helpers.mock_terminal_buffer({
-      "Some prior output",
-      "press enter to send the message",
+      "Here's what I found. Which do you want?",
+      "ctrl+p commands",
     })
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
@@ -52,7 +66,7 @@ describe("status.detect — OpenCode pattern scraping", function()
   end)
 
   it("strips ANSI escape sequences before matching", function()
-    local ansi_line = "\27[31m\27[1mThinking...\27[0m"
+    local ansi_line = "\27[31m\27[1mesc interrupt\27[0m"
     local buf = helpers.mock_terminal_buffer({ ansi_line })
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
@@ -61,26 +75,25 @@ describe("status.detect — OpenCode pattern scraping", function()
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 
-  it("returns last known status when no pattern matches", function()
-    -- First call: working
-    local buf = helpers.mock_terminal_buffer({ "Thinking..." })
+  it("re-runs detection after invalidate (no stale stickiness)", function()
+    -- First call: working (interrupt hint present)
+    local buf = helpers.mock_terminal_buffer({ "esc interrupt" })
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
     assert.equals("working", status.detect(make_instance(buf)))
 
-    -- Replace with ambiguous content (no patterns), invalidate cache so it
-    -- actually re-runs detection
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "ambiguous garbage" })
+    -- Turn finishes: interrupt hint gone. Invalidate cache so detection
+    -- re-runs. It must flip to waiting, NOT stick on "working".
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "all done. which one?" })
     status.invalidate(buf)
-    -- Should keep last known: working
-    assert.equals("working", status.detect(make_instance(buf)))
+    assert.equals("waiting", status.detect(make_instance(buf)))
 
     vim.fn.jobwait = orig
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 
   it("caches within 500ms window", function()
-    local buf = helpers.mock_terminal_buffer({ "Thinking..." })
+    local buf = helpers.mock_terminal_buffer({ "esc interrupt" })
     local orig = vim.fn.jobwait
     local jobwait_calls = 0
     vim.fn.jobwait = function() jobwait_calls = jobwait_calls + 1; return { -1 } end
@@ -97,7 +110,7 @@ describe("status.detect — OpenCode pattern scraping", function()
 
   it("strips OSC sequences terminated by ESC backslash (ST)", function()
     -- OSC 0 (set window title) with ST terminator: ESC ] 0 ; title ESC \
-    local line = "\27]0;some title\27\\Thinking..."
+    local line = "\27]0;some title\27\\esc interrupt"
     local buf = helpers.mock_terminal_buffer({ line })
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
@@ -108,7 +121,7 @@ describe("status.detect — OpenCode pattern scraping", function()
 
   it("strips CSI sequences with private modifiers (e.g. cursor hide)", function()
     -- ESC [ ? 2 5 l = hide cursor; should be stripped before pattern match
-    local line = "\27[?25lThinking..."
+    local line = "\27[?25lesc interrupt"
     local buf = helpers.mock_terminal_buffer({ line })
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
@@ -118,38 +131,35 @@ describe("status.detect — OpenCode pattern scraping", function()
   end)
 
   it("BufWipeout autocmd clears cache for the wiped buffer", function()
-    local buf = helpers.mock_terminal_buffer({ "Thinking..." })
+    local buf = helpers.mock_terminal_buffer({ "esc interrupt" })
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
     status.detect(make_instance(buf))
-    -- Confirm something was cached (we re-detect; if it was cached, jobwait won't be called again)
-    -- But more directly: wipe and verify subsequent detect of a NEW buffer reuses the same buf number
-    -- without inheriting old status.
     vim.api.nvim_buf_delete(buf, { force = true })
 
     -- Now create a new buffer; Neovim may reuse the same buffer number.
-    -- If the BufWipeout autocmd worked, last_known[buf] is nil.
+    -- If the BufWipeout autocmd worked, no stale cache entry remains, so
+    -- detection re-runs on the new content.
     local buf2 = helpers.mock_terminal_buffer({ "ambiguous garbage" })
     status.invalidate(buf2) -- ensure no cache hit
     local result = status.detect(make_instance(buf2))
-    -- With ambiguous content and no last_known entry, default is "waiting"
+    -- No interrupt hint -> waiting.
     assert.equals("waiting", result)
     vim.fn.jobwait = orig
     vim.api.nvim_buf_delete(buf2, { force = true })
   end)
 
-  it("prioritizes waiting over working when both patterns appear", function()
-    -- Simulates a buffer where 'Thinking...' is leftover from a prior turn
-    -- and 'press enter to send the message' is the current idle prompt.
+  it("reports working whenever the interrupt hint appears, even amid prose", function()
+    -- Leftover conversation text plus the live interrupt hint: the hint wins.
     local buf = helpers.mock_terminal_buffer({
       "(earlier output)",
-      "Thinking...",
+      "I'll keep going...",
       "(more output)",
-      "press enter to send the message",
+      "esc interrupt",
     })
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
-    assert.equals("waiting", status.detect(make_instance(buf)))
+    assert.equals("working", status.detect(make_instance(buf)))
     vim.fn.jobwait = orig
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
@@ -251,7 +261,7 @@ describe("status.detect — timing heuristic for non-opencode modes", function()
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
 
-    -- With no last_known entry and require failing, the result must be "waiting".
+    -- With require failing, the result must be the safe default.
     assert.equals("waiting", status.detect(make_instance(buf, "claude")))
 
     vim.fn.jobwait = orig

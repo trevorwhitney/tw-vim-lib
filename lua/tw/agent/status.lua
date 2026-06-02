@@ -2,36 +2,24 @@ local M = {}
 
 local CACHE_MS = 500
 -- An agent terminal that has produced output in the last 30 seconds is
--- considered "working"; older than that, it's assumed to be waiting for
--- user input. Threshold is generous to accommodate agents that pause to
--- think before producing visible output.
+-- considered "working"; older than that, it's assumed the turn is done and
+-- the agent is "waiting" for the user. Threshold is generous to accommodate
+-- agents that pause to think before producing visible output. Used only for
+-- non-opencode modes (claude/codex/pi), which lack a reliable TUI marker.
 local WORKING_STALE_MS = 30000
 
 -- Patterns matched against the last 20 lines of terminal buffer content,
--- after ANSI stripping. Waiting pattern checked first; if it matches, the
--- status is "waiting". Otherwise working patterns are checked.
-local OPENCODE_PATTERNS = {
-	working = {
-		"Thinking%.%.%.",
-		"Generating%.%.%.",
-		"Building tool call%.%.%.",
-		"Waiting for tool response%.%.%.",
-		"Preparing prompt%.%.%.",
-		"Building command%.%.%.",
-		"Preparing edit%.%.%.",
-		"Finding files%.%.%.",
-		"Searching content%.%.%.",
-		"Reading file%.%.%.",
-		"Preparing write%.%.%.",
-		"Preparing patch%.%.%.",
-		"Listing directory%.%.%.",
-		"Searching code%.%.%.",
-		-- Generic fallback; matched only after the specific patterns above.
-		"Working%.%.%.",
-	},
-	waiting = {
-		"press enter to send the message",
-	},
+-- after ANSI stripping.
+--
+-- The OpenCode TUI shows an interrupt hint ("esc interrupt" / "esc again to
+-- interrupt", and during provider retries) below the input box ONLY while it
+-- is generating. When the turn finishes and it's idle/waiting for the user,
+-- that hint disappears. So the presence of the word "interrupt" is the single
+-- reliable "working" signal; its absence means the agent is "waiting". The
+-- trailing word "interrupt" is a hardcoded literal in the TUI (only the "esc"
+-- key prefix is user-configurable), so it's stable to match.
+local OPENCODE_WORKING = {
+	"interrupt",
 }
 
 -- Per-buffer cache: { [buf] = { status, checked_at = ms } }.
@@ -39,9 +27,6 @@ local OPENCODE_PATTERNS = {
 -- buffer-config records last_change_at that way: elapsed-time
 -- comparisons need monotonic, millisecond-resolution time.
 local cache = {}
--- Last known status per buffer; used when pattern matching is ambiguous
--- (transient terminal redraws) so callers don't see status flicker.
-local last_known = {}
 
 local function strip_ansi(s)
 	-- CSI: ESC [ <params/intermediates> <final-byte>
@@ -70,19 +55,17 @@ end
 local function detect_opencode(buf)
 	local ok, lines = pcall(vim.api.nvim_buf_get_lines, buf, -20, -1, false)
 	if not ok or not lines then
-		return last_known[buf] or "waiting"
-	end
-	local joined = strip_ansi(table.concat(lines, "\n"))
-	-- Waiting is the definitive idle-state indicator. Check it first so that
-	-- a stale working pattern from an earlier turn in the trailing buffer
-	-- doesn't mask the current idle prompt.
-	if any_match(joined, OPENCODE_PATTERNS.waiting) then
+		-- Can't read the buffer; report "waiting" rather than silently
+		-- reporting "working" for something we can't see.
 		return "waiting"
 	end
-	if any_match(joined, OPENCODE_PATTERNS.working) then
+	local joined = strip_ansi(table.concat(lines, "\n"))
+	-- The interrupt hint is shown only while generating. If it's present the
+	-- agent is working; otherwise the turn is done and it's waiting for input.
+	if any_match(joined, OPENCODE_WORKING) then
 		return "working"
 	end
-	return last_known[buf] or "waiting"
+	return "waiting"
 end
 
 local function is_dead(instance)
@@ -99,11 +82,11 @@ end
 local function detect_timing(buf)
 	local ok, buffer_config = pcall(require, "tw.agent.buffer-config")
 	if not ok or not buffer_config or not buffer_config.buffer_states then
-		return last_known[buf] or "waiting"
+		return "waiting"
 	end
 	local state = buffer_config.buffer_states[buf]
 	if not state or not state.last_change_at then
-		return last_known[buf] or "waiting"
+		return "waiting"
 	end
 	if (vim.uv.now() - state.last_change_at) < WORKING_STALE_MS then
 		return "working"
@@ -132,9 +115,6 @@ function M.detect(instance)
 	end
 
 	cache[buf] = { status = status, checked_at = vim.uv.now() }
-	if status ~= "dead" then
-		last_known[buf] = status
-	end
 	return status
 end
 
@@ -144,7 +124,6 @@ end
 
 function M.reset()
 	cache = {}
-	last_known = {}
 end
 
 -- Automatically clear per-buffer state when a buffer is wiped. Prevents
@@ -154,7 +133,6 @@ vim.api.nvim_create_autocmd("BufWipeout", {
 	group = augroup,
 	callback = function(args)
 		cache[args.buf] = nil
-		last_known[args.buf] = nil
 	end,
 	desc = "Drop status cache for wiped buffers",
 })

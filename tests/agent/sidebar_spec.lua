@@ -120,7 +120,9 @@ describe("sidebar rendering", function()
   it("refresh() renders one row per alive instance", function()
     local buf1, job1 = setup_alive_instance("opencode", 0)
     local buf2, job2 = setup_alive_instance("claude", 0)
-    vim.api.nvim_buf_set_lines(buf1, 0, -1, false, { "press enter to send the message" })
+    -- No interrupt hint -> opencode instance needs attention. The claude
+    -- instance has no recent change either, so it also needs attention.
+    vim.api.nvim_buf_set_lines(buf1, 0, -1, false, { "all done, which one?" })
 
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function(jobs)
