@@ -45,7 +45,7 @@ function Config.setup(user_options)
 		spec = { import = "tw.plugins" },
 		install = {
 			missing = true,
-			colorscheme = { "catppuccin" },
+			colorscheme = { "kanagawa" },
 		},
 		performance = {
 			reset_packpath = false, -- preserve Nix-managed packpath (contains lazy.nvim itself)
