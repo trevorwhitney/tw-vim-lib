@@ -12,7 +12,7 @@ function Typescript.debug()
 	end
 end
 
-local function get_name(path, patterns)
+local function get_name(path, _patterns)
 	local filename_modifier = vim.g["test#filename_modifier"] or ":."
 	local position = {}
 	position["file"] = vim.fn["fnamemodify"](path, filename_modifier)

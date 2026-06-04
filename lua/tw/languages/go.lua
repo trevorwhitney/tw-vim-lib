@@ -21,15 +21,16 @@ function Go.configure_lsp(go_build_tags)
 				},
 			},
 			on_new_config = function(new_config, new_root_dir)
-				local res = run_sync({ "go", "list", "-m" }, {
+				local res = vim.system({ "go", "list", "-m" }, {
 					cwd = new_root_dir,
-				})
-				if res.status_code ~= 0 then
+					text = true,
+				}):wait()
+				if res.code ~= 0 then
 					print("go list failed")
 					return
 				end
 
-				new_config.settings.gopls["local"] = res.stdout
+				new_config.settings.gopls["local"] = vim.trim(res.stdout or "")
 			end,
 		}
 	end
@@ -173,7 +174,7 @@ function Go.setup_build_tags(go_build_tags)
 	vim.g["go_build_tags"] = go_build_tags
 end
 
-function Go.setup_vim_go(go_build_tags)
+function Go.setup_vim_go(_go_build_tags)
 	vim.g["go_code_completion_enabled"] = 0
 	vim.g["go_def_mapping_enabled"] = 0
 	vim.g["go_textobj_enabled"] = 0

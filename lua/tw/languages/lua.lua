@@ -25,7 +25,7 @@ function Lua.configureLsp(lua_ls_root, nix_rocks_tree)
 
 		local function addLibrary(lib)
 			for _, p in pairs(vim.fn.expand(lib, false, true)) do
-				if not p == nil then
+				if p ~= nil then
 					p = vim.uv.fs_realpath(p)
 					library[p] = true
 				end

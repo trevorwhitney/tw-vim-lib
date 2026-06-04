@@ -36,7 +36,6 @@ M.active_job_id = nil
 
 M.saved_updatetime = nil
 
-
 -- Workmux fullscreen state: when true, opencode occupies the full viewport
 -- and will revert to a vsplit when a non-terminal buffer is opened.
 M.agent_fullscreen = false
@@ -114,7 +113,7 @@ M._clear_instance = clear_instance
 M._iter_all_instances = iter_all_instances
 
 -- Find the plugin installation path
-local function get_plugin_root()
+local function _get_plugin_root()
 	local source = debug.getinfo(1, "S").source
 	local file_path = string.sub(source, 2) -- Remove the '@' prefix
 	local plugin_root = string.match(file_path, "(.-)/lua/tw/agent/init%.lua$")

@@ -179,7 +179,7 @@ function M.clear_scrollback(buf)
 end
 
 -- Toggle follow mode for a buffer
-function M.toggle_follow_mode(buf)
+function M.toggle_follow_mode(_buf)
 	if not M.config.follow_output then
 		M.config.follow_output = true
 		log.info("Claude follow mode enabled")

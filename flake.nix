@@ -133,6 +133,7 @@
               bashInteractive
               git
               gnumake
+              lua5_3
               luaPackages.luacheck
               nixpkgs-fmt
               statix

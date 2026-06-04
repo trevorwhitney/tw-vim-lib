@@ -247,7 +247,7 @@ end
 subcommand_handlers["remove-context"] = handle_remove_context
 
 -- List context directories
-local function handle_list_contexts(claude_module, args)
+local function handle_list_contexts(claude_module, _args)
 	if vim.tbl_isempty(claude_module.context_directories) then
 		vim.notify("No context directories mounted", vim.log.levels.INFO)
 		return
@@ -292,7 +292,7 @@ end
 subcommand_handlers.fullscreen = handle_fullscreen
 
 -- Clear scrollback for active buffer
-local function handle_clear_scrollback(claude_module, args)
+local function handle_clear_scrollback(claude_module, _args)
 	-- Clear scrollback for the active buffer
 	local buf = claude_module.active_buf
 	if not buf or not vim.api.nvim_buf_is_valid(buf) then
@@ -305,7 +305,7 @@ end
 subcommand_handlers["clear-scrollback"] = handle_clear_scrollback
 
 -- Toggle follow mode for active buffer
-local function handle_toggle_follow(claude_module, args)
+local function handle_toggle_follow(claude_module, _args)
 	-- Toggle follow mode for active buffer
 	local buf = claude_module.active_buf
 	if not buf or not vim.api.nvim_buf_is_valid(buf) then
@@ -318,7 +318,7 @@ end
 subcommand_handlers["toggle-follow"] = handle_toggle_follow
 
 -- Show log file
-local function handle_show_log(claude_module, args)
+local function handle_show_log(_claude_module, _args)
 	local log_file = log.get_log_file()
 	if vim.fn.filereadable(log_file) == 1 then
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
@@ -332,7 +332,7 @@ end
 subcommand_handlers["show-log"] = handle_show_log
 
 -- Set or show log level
-local function handle_log_level(claude_module, args)
+local function handle_log_level(_claude_module, args)
 	local level_map = {
 		TRACE = vim.log.levels.TRACE,
 		DEBUG = vim.log.levels.DEBUG,
@@ -392,7 +392,7 @@ function M.setup_user_commands(agent_module)
 		handle_aiagent_command(args, agent_module)
 	end, {
 		nargs = "+",
-		complete = function(arg_lead, cmd_line, cursor_pos)
+		complete = function(arg_lead, cmd_line, _cursor_pos)
 			local parts = vim.split(cmd_line, "%s+")
 			local num_args = #parts - 1 -- Subtract 1 for the command itself
 

@@ -1,6 +1,6 @@
 local M = {}
 
-local function configureSupermaven()
+local function _configureSupermaven()
 	local lspkind = require("lspkind")
 	local supermaven = require("supermaven-nvim")
 	supermaven.setup({
@@ -16,7 +16,7 @@ local function configureSupermaven()
 	vim.api.nvim_set_hl(0, "CmpItemKindSupermaven", { fg = "#6CC644" })
 end
 
-local function configureSupermavenKeymap()
+local function _configureSupermavenKeymap()
 	local completion_preview = require("supermaven-nvim.completion_preview")
 
 	local keymap = {
@@ -60,8 +60,8 @@ local function configureCopilot()
 end
 
 function M.setup()
-	-- configureSupermaven()
-	-- configureSupermavenKeymap()
+	-- _configureSupermaven()
+	-- _configureSupermavenKeymap()
 	configureCopilot()
 end
 

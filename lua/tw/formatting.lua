@@ -55,7 +55,7 @@ local function format(bufnr, options)
 			}, opts)
 
 			conform_format(opt, function(err, _)
-				if not err == nil then
+				if err == nil then
 					vim.lsp.buf.format({ range = range })
 				end
 			end)

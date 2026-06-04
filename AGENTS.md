@@ -3,12 +3,14 @@
 ## Project Structure & Module Organization
 - Core Lua sources live under `lua/`, grouped by feature (`lua/tw/agent`, `lua/tw/formatting`, etc.). Neovim runtime hooks are in `after/`, `ftplugin/`, and `plugin/`.
 - Nix definitions live in `nix/`, while reusable prompts and templates are in `prompts/`.
-- Go-based integration tests sit in `test/`; vendored helpers are isolated within `test/vendor/`.
+- Standalone Lua unit tests sit in `test/` (`test/*_test.lua`, run in plain `lua` with stubbed `vim`); Plenary/busted specs live in `tests/` (`tests/**/*_spec.lua`, run under headless Neovim).
+- Go-based tests also sit in `test/`. They serve as a template/harness for testing Go-based Neovim plugins. Dependencies are vendored on demand into `test/vendor/` via `go mod vendor`; that directory is gitignored (not committed) and `go test` also works from the module cache.
 
 ## Build, Test, and Development Commands
 - `make lint` (or the granular `make lint-lua` / `make lint-nix`) runs `luacheck` and `statix` to catch style and configuration issues.
 - `make format` formats Lua and Nix files via `stylua` and `nixpkgs-fmt`.
-- `go test ./...` (run from the `test/` directory) executes the Go integration suite; use `go test ./... -run Test_Name` to target a specific case.
+- `make test` runs the full suite: standalone Lua (`make test-lua`), Plenary specs (`make test-plenary`), and Go (`make test-go`). Run individual targets while iterating.
+- `make test-go` (or `go test ./...` from the `test/` directory) executes the Go harness; use `go test ./... -run Test_Name` to target a specific case. The Go suite is a template, not run on CI.
 
 ## Coding Style & Naming Conventions
 - Run `make format` before committing; the repo relies on `stylua` defaults (4-space indentation, double-quoted strings) and `nixpkgs-fmt`.

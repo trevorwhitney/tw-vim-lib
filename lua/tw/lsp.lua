@@ -4,7 +4,7 @@ local M = {}
 local keymaps_set = {}
 
 -- Use an on_attach function for server-specific configuration
-function M.on_attach(client, bufnr)
+function M.on_attach(_client, bufnr)
 	-- Enable completion triggered by <c-x><c-o>
 	vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc"
 
@@ -35,7 +35,7 @@ local function setup_lsp_keymaps()
 		group = group,
 		callback = function(args)
 			local bufnr = args.buf
-			local client = vim.lsp.get_client_by_id(args.data.client_id)
+			local _client = vim.lsp.get_client_by_id(args.data.client_id)
 
 			-- Only set keymaps once per buffer, even if multiple LSP servers attach
 			if keymaps_set[bufnr] then
@@ -226,7 +226,7 @@ local function restart_lsp()
 	end)
 end
 
-local function setup_navigator(opts)
+local function setup_navigator(_opts)
 	require("navigator").setup({
 		debug = false,
 		default_mapping = false,
