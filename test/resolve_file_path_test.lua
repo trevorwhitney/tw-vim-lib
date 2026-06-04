@@ -53,32 +53,8 @@ package.path = "lua/?.lua;lua/?/init.lua;" .. package.path
 
 local util = require("tw.agent.util")
 
-local pass_count = 0
-local fail_count = 0
-
-local function test(name, fn)
-    local ok, err = pcall(fn)
-    if ok then
-        pass_count = pass_count + 1
-        print("  PASS: " .. name)
-    else
-        fail_count = fail_count + 1
-        print("  FAIL: " .. name)
-        print("        " .. tostring(err))
-    end
-end
-
-local function eq(expected, actual, msg)
-    if expected ~= actual then
-        error(
-            (msg or "")
-                .. " expected: "
-                .. tostring(expected)
-                .. ", got: "
-                .. tostring(actual)
-        )
-    end
-end
+local H = dofile("test/harness.lua")
+local test, eq = H.test, H.eq
 
 print("resolve_file_path tests:")
 print()
@@ -237,9 +213,4 @@ end)
 -- Clean up test fixtures
 cleanup_worktree_gitdir(tmp_main)
 
-print()
-print(string.format("Results: %d passed, %d failed, %d total", pass_count, fail_count, pass_count + fail_count))
-
-if fail_count > 0 then
-    os.exit(1)
-end
+H.finish()
