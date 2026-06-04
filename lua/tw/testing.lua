@@ -1,6 +1,10 @@
 local M = {}
 
-local function get_test_project_root()
+-- Resolve the project root for the current buffer's filetype by searching
+-- upward for language-specific marker files, falling back to the cwd.
+-- Exposed on M so it can be unit-tested (also used as vim's
+-- `test#project_root` callback).
+function M.get_test_project_root()
 	local ft = vim.bo.filetype
 	local markers = {}
 
@@ -39,7 +43,7 @@ local function configure_vim_test()
 	vim.g["test#go#gotest#options"] = "-v"
 	vim.g["test#javascript#jest#options"] = "--no-coverage"
 	-- Custom project root function for better test runner detection
-	vim.g["test#project_root"] = get_test_project_root
+	vim.g["test#project_root"] = M.get_test_project_root
 end
 
 function M.setup()
