@@ -384,15 +384,18 @@ describe("sidebar drawer layout", function()
   -- Track windows/buffers we create so after_each can clean them up.
   local created_wins = {}
 
-  -- Open a real split window whose buffer has filetype=nerdtree, to stand in
-  -- for NERDTree. Returns the window handle.
+  -- Open a window whose buffer has filetype=nerdtree, to stand in for
+  -- NERDTree. Uses nvim_open_win directly (no :vsplit side effects) and wipes
+  -- the buffer when the window closes.
   local function open_fake_nerdtree()
-    vim.cmd("topleft vsplit")
-    local win = vim.api.nvim_get_current_win()
     local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_win_set_buf(win, buf)
+    vim.bo[buf].bufhidden = "wipe"
     vim.bo[buf].filetype = "nerdtree"
-    vim.api.nvim_win_set_width(win, 30)
+    local win = vim.api.nvim_open_win(buf, false, {
+      split = "left",
+      win = -1,
+      width = 30,
+    })
     table.insert(created_wins, win)
     return win
   end
@@ -472,6 +475,42 @@ describe("sidebar drawer layout", function()
     assert.is_true(vim.wo[win].winfixheight)
   end)
 
+  it("position='right' does NOT stack below NERDTree", function()
+    package.loaded["tw.agent.sidebar"] = nil
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({ position = "right" })
+    open_fake_nerdtree()
+    sidebar.open()
+    local win = sidebar._state().win
+    assert.is_true(vim.api.nvim_win_is_valid(win))
+    -- Right-positioned sidebar must not stack: full-height, no winfixheight.
+    assert.is_true(vim.api.nvim_win_get_height(win) > sidebar._stacked_height())
+    assert.is_false(vim.wo[win].winfixheight)
+  end)
+
+  it("falls back to full-height when the stacked open fails", function()
+    open_fake_nerdtree()
+    local real_open_win = vim.api.nvim_open_win
+    -- Force only the stacked ("below") open to fail; let other opens through.
+    vim.api.nvim_open_win = function(buf, enter, cfg)
+      if cfg and cfg.split == "below" then
+        error("simulated stacked open failure")
+      end
+      return real_open_win(buf, enter, cfg)
+    end
+
+    local ok = pcall(sidebar.open)
+
+    vim.api.nvim_open_win = real_open_win
+
+    assert.is_true(ok, "open() should not propagate the stacked failure")
+    local win = sidebar._state().win
+    assert.is_true(vim.api.nvim_win_is_valid(win))
+    -- Fallback is the full-height path: taller than stacked, no winfixheight.
+    assert.is_true(vim.api.nvim_win_get_height(win) > sidebar._stacked_height())
+    assert.is_false(vim.wo[win].winfixheight)
+  end)
+
   it("does NOT reposition when NERDTree opens after the sidebar (known limitation)", function()
     -- Sidebar opens full-height first (no NERDTree). Repositioning is
     -- open-time only by design, so opening NERDTree afterwards must NOT
@@ -486,5 +525,36 @@ describe("sidebar drawer layout", function()
     -- Same window handle, height unchanged: no reflow occurred.
     assert.equals(win, sidebar._state().win)
     assert.equals(before, vim.api.nvim_win_get_height(sidebar._state().win))
+  end)
+
+  it("calling open() twice with NERDTree present creates only one agents window", function()
+    open_fake_nerdtree()
+    sidebar.open()
+    sidebar.open() -- second call must be a no-op
+    local buf = sidebar._state().buf
+    local count = 0
+    for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.api.nvim_win_get_buf(w) == buf then
+        count = count + 1
+      end
+    end
+    assert.equals(1, count)
+  end)
+
+  it("toggle close then reopen with NERDTree re-stacks at fixed height", function()
+    local nt = open_fake_nerdtree()
+    sidebar.toggle() -- open
+    assert.equals(sidebar._stacked_height(), vim.api.nvim_win_get_height(sidebar._state().win))
+    sidebar.toggle() -- close
+    assert.is_nil(sidebar._state().win)
+    sidebar.toggle() -- reopen
+    local win = sidebar._state().win
+    assert.is_true(vim.api.nvim_win_is_valid(win))
+    local nt_pos = vim.api.nvim_win_get_position(nt)
+    local ag_pos = vim.api.nvim_win_get_position(win)
+    assert.equals(nt_pos[2], ag_pos[2])
+    assert.is_true(ag_pos[1] > nt_pos[1])
+    assert.equals(sidebar._stacked_height(), vim.api.nvim_win_get_height(win))
+    assert.is_true(vim.wo[win].winfixheight)
   end)
 end)

@@ -257,15 +257,28 @@ function M.open()
 		state.buf = create_buffer()
 	end
 	local nt_win = find_nerdtree_win()
-	local stacked = nt_win ~= nil
+	-- Only stack below NERDTree when the sidebar is configured on the left;
+	-- a right-positioned sidebar must honour its own position.
+	local stacked = nt_win ~= nil and state.config.position == "left"
 	if stacked then
 		-- Stack the agents window below NERDTree, forming one left drawer.
 		-- No width is passed: the split inherits NERDTree's column width.
-		state.win = vim.api.nvim_open_win(state.buf, true, {
+		local ok, win = pcall(vim.api.nvim_open_win, state.buf, true, {
 			split = "below",
 			win = nt_win,
 			height = _STACKED_HEIGHT,
 		})
+		if ok then
+			state.win = win
+		else
+			-- NERDTree window vanished mid-open; fall back to full height.
+			local log_ok, log = pcall(require, "tw.log")
+			if log_ok and log and log.warn then
+				log.warn("sidebar stacked open failed, falling back: " .. tostring(win))
+			end
+			stacked = false
+			state.win = open_window(state.buf, state.config.position, state.config.width)
+		end
 	else
 		state.win = open_window(state.buf, state.config.position, state.config.width)
 	end
