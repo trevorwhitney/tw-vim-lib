@@ -433,4 +433,58 @@ describe("sidebar drawer layout", function()
     table.insert(created_wins, w)
     assert.is_nil(sidebar._find_nerdtree_win())
   end)
+
+  it("no NERDTree -> full-height split (taller than stacked height)", function()
+    sidebar.open()
+    local win = sidebar._state().win
+    assert.is_true(vim.api.nvim_win_is_valid(win))
+    -- A full-height split must be taller than the stacked height. The test
+    -- editor (headless) is taller than that.
+    assert.is_true(
+      vim.api.nvim_win_get_height(win) > sidebar._stacked_height(),
+      "full-height window should exceed stacked height"
+    )
+    -- Not stacked: winfixheight must NOT be set on the full-height path.
+    assert.is_false(vim.wo[win].winfixheight)
+  end)
+
+  it("NERDTree present -> agents stacked below at fixed height", function()
+    local nt = open_fake_nerdtree()
+    sidebar.open()
+    local win = sidebar._state().win
+    assert.is_true(vim.api.nvim_win_is_valid(win))
+
+    local nt_pos = vim.api.nvim_win_get_position(nt)   -- { row, col }
+    local ag_pos = vim.api.nvim_win_get_position(win)
+
+    -- Same left column: identical starting column.
+    assert.equals(nt_pos[2], ag_pos[2])
+    -- Agents below NERDTree: strictly greater row.
+    assert.is_true(ag_pos[1] > nt_pos[1], "agents window should be below nerdtree")
+    -- Fixed height exactly the stacked height (winfixheight makes this exact).
+    assert.equals(sidebar._stacked_height(), vim.api.nvim_win_get_height(win))
+  end)
+
+  it("stacked window sets winfixheight", function()
+    open_fake_nerdtree()
+    sidebar.open()
+    local win = sidebar._state().win
+    assert.is_true(vim.wo[win].winfixheight)
+  end)
+
+  it("does NOT reposition when NERDTree opens after the sidebar (known limitation)", function()
+    -- Sidebar opens full-height first (no NERDTree). Repositioning is
+    -- open-time only by design, so opening NERDTree afterwards must NOT
+    -- move/reflow the already-open agents window.
+    sidebar.open()
+    local win = sidebar._state().win
+    local before = vim.api.nvim_win_get_height(win)
+    assert.is_true(before > sidebar._stacked_height()) -- full-height path
+
+    open_fake_nerdtree()
+
+    -- Same window handle, height unchanged: no reflow occurred.
+    assert.equals(win, sidebar._state().win)
+    assert.equals(before, vim.api.nvim_win_get_height(sidebar._state().win))
+  end)
 end)

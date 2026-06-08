@@ -95,7 +95,7 @@ local function open_window(buf, position, width)
 	})
 end
 
-local function set_window_options(win)
+local function set_window_options(win, stacked)
 	vim.wo[win].number = false
 	vim.wo[win].relativenumber = false
 	vim.wo[win].signcolumn = "no"
@@ -104,6 +104,11 @@ local function set_window_options(win)
 	vim.wo[win].winfixwidth = true
 	vim.wo[win].list = false
 	vim.wo[win].foldcolumn = "0"
+	-- Stacked under NERDTree: pin the height so window resizing elsewhere
+	-- doesn't grow/shrink the agents pane.
+	if stacked then
+		vim.wo[win].winfixheight = true
+	end
 end
 
 -- Fixed height (in lines) of the agents window when stacked below NERDTree:
@@ -126,6 +131,10 @@ end
 
 function M._find_nerdtree_win()
 	return find_nerdtree_win()
+end
+
+function M._stacked_height()
+	return _STACKED_HEIGHT
 end
 
 function M.close()
@@ -247,8 +256,20 @@ function M.open()
 	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
 		state.buf = create_buffer()
 	end
-	state.win = open_window(state.buf, state.config.position, state.config.width)
-	set_window_options(state.win)
+	local nt_win = find_nerdtree_win()
+	local stacked = nt_win ~= nil
+	if stacked then
+		-- Stack the agents window below NERDTree, forming one left drawer.
+		-- No width is passed: the split inherits NERDTree's column width.
+		state.win = vim.api.nvim_open_win(state.buf, true, {
+			split = "below",
+			win = nt_win,
+			height = _STACKED_HEIGHT,
+		})
+	else
+		state.win = open_window(state.buf, state.config.position, state.config.width)
+	end
+	set_window_options(state.win, stacked)
 
 	set_buffer_keymaps(state.buf)
 
