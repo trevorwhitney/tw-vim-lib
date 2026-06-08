@@ -106,6 +106,28 @@ local function set_window_options(win)
 	vim.wo[win].foldcolumn = "0"
 end
 
+-- Fixed height (in lines) of the agents window when stacked below NERDTree:
+-- 2 header lines + 10 agent rows (indices 0-9) + 1 padding line.
+local _STACKED_HEIGHT = 13
+
+-- Return the first window in the CURRENT tabpage whose buffer has
+-- filetype "nerdtree", or nil. Uses nvim_tabpage_list_wins (not
+-- nvim_list_wins, which spans all tabpages) so NERDTree in another tab is
+-- ignored.
+local function find_nerdtree_win()
+	for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+		local buf = vim.api.nvim_win_get_buf(win)
+		if vim.bo[buf].filetype == "nerdtree" then
+			return win
+		end
+	end
+	return nil
+end
+
+function M._find_nerdtree_win()
+	return find_nerdtree_win()
+end
+
 function M.close()
 	if state.timer then
 		pcall(state.timer.stop, state.timer)

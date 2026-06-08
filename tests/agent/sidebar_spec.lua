@@ -377,3 +377,60 @@ describe("sidebar TermClose autocmd", function()
     end
   end)
 end)
+
+describe("sidebar drawer layout", function()
+   local sidebar
+
+  -- Track windows/buffers we create so after_each can clean them up.
+  local created_wins = {}
+
+  -- Open a real split window whose buffer has filetype=nerdtree, to stand in
+  -- for NERDTree. Returns the window handle.
+  local function open_fake_nerdtree()
+    vim.cmd("topleft vsplit")
+    local win = vim.api.nvim_get_current_win()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_win_set_buf(win, buf)
+    vim.bo[buf].filetype = "nerdtree"
+    vim.api.nvim_win_set_width(win, 30)
+    table.insert(created_wins, win)
+    return win
+  end
+
+  before_each(function()
+    created_wins = {}
+    package.loaded["tw.agent.sidebar"] = nil
+    package.loaded["tw.agent.status"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    helpers.reset_and_mock(false)
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({})
+    pcall(sidebar.close)
+  end)
+
+  after_each(function()
+    pcall(sidebar.close)
+    for _, w in ipairs(created_wins) do
+      if vim.api.nvim_win_is_valid(w) then
+        pcall(vim.api.nvim_win_close, w, true)
+      end
+    end
+  end)
+
+  it("_find_nerdtree_win detects a nerdtree-filetype window", function()
+    assert.is_nil(sidebar._find_nerdtree_win())
+    local nt = open_fake_nerdtree()
+    assert.equals(nt, sidebar._find_nerdtree_win())
+  end)
+
+  it("_find_nerdtree_win returns nil when no nerdtree window exists", function()
+    -- A plain split with a normal buffer must not be detected.
+    vim.cmd("vsplit")
+    local w = vim.api.nvim_get_current_win()
+    table.insert(created_wins, w)
+    assert.is_nil(sidebar._find_nerdtree_win())
+  end)
+end)
