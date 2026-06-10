@@ -821,18 +821,22 @@ local function configureClaudeKeymap()
 		{
 			mode = { "n" },
 			{
-				"<leader>c]",
+				"]g",
 				function()
 					require("tw.agent").CycleSession(1)
 				end,
 				desc = "Next Agent Session",
+				nowait = true,
+				remap = false,
 			},
 			{
-				"<leader>c[",
+				"[g",
 				function()
 					require("tw.agent").CycleSession(-1)
 				end,
 				desc = "Previous Agent Session",
+				nowait = true,
+				remap = false,
 			},
 			{
 				"<leader>cv",
