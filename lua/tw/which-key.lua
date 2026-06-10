@@ -50,8 +50,10 @@ local function mapKeys(wk)
 		},
 		{
 			"<leader>\\",
-			"<cmd>NvimTreeToggle<cr>",
-			desc = "NvimTree",
+			function()
+				require("tw.agent.drawer").toggle()
+			end,
+			desc = "Toggle file tree + agent drawer",
 			remap = false,
 		},
 		{

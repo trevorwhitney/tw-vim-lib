@@ -1281,6 +1281,12 @@ function M.setup(opts)
 		sidebar_mod.setup(opts.sidebar or {})
 	end
 
+	-- Drawer (unified file-tree + agent sidebar), toggled by <leader>\.
+	local drawer_ok, drawer_mod = pcall(require, "tw.agent.drawer")
+	if drawer_ok and drawer_mod and drawer_mod.setup then
+		drawer_mod.setup(opts.drawer or {})
+	end
+
 	-- Setup autocmds and user commands
 	commands.setup_autocmds(M)
 	commands.setup_user_commands(M)
