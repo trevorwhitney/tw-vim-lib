@@ -115,14 +115,23 @@ end
 -- 2 header lines + 10 agent rows (indices 0-9) + 1 padding line.
 local _STACKED_HEIGHT = 13
 
--- Return the first window in the CURRENT tabpage whose buffer has
--- filetype "nerdtree", or nil. Uses nvim_tabpage_list_wins (not
--- nvim_list_wins, which spans all tabpages) so NERDTree in another tab is
--- ignored.
+-- Filetypes of the file-explorer plugins we stack the agents pane beneath.
+-- Matched case-insensitively so "NvimTree" and "nvimtree" both qualify.
+local FILE_TREE_FILETYPES = {
+	nvimtree = true, -- nvim-tree.lua
+	nerdtree = true, -- NERDTree
+	["neo-tree"] = true, -- neo-tree.nvim
+}
+
+-- Return the first window in the CURRENT tabpage whose buffer is a known
+-- file-explorer (nvim-tree, NERDTree, neo-tree), or nil. Uses
+-- nvim_tabpage_list_wins (not nvim_list_wins, which spans all tabpages) so a
+-- file tree in another tab is ignored.
 local function find_nerdtree_win()
 	for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
 		local buf = vim.api.nvim_win_get_buf(win)
-		if vim.bo[buf].filetype == "nerdtree" then
+		local ft = vim.bo[buf].filetype
+		if ft and FILE_TREE_FILETYPES[ft:lower()] then
 			return win
 		end
 	end

@@ -384,13 +384,14 @@ describe("sidebar drawer layout", function()
   -- Track windows/buffers we create so after_each can clean them up.
   local created_wins = {}
 
-  -- Open a window whose buffer has filetype=nerdtree, to stand in for
-  -- NERDTree. Uses nvim_open_win directly (no :vsplit side effects) and wipes
-  -- the buffer when the window closes.
-  local function open_fake_nerdtree()
+  -- Open a window standing in for a file-explorer plugin. Defaults to
+  -- nvim-tree's filetype (the explorer this config actually uses). Uses
+  -- nvim_open_win directly (no :vsplit side effects) and wipes the buffer
+  -- when the window closes.
+  local function open_fake_nerdtree(filetype)
     local buf = vim.api.nvim_create_buf(false, true)
     vim.bo[buf].bufhidden = "wipe"
-    vim.bo[buf].filetype = "nerdtree"
+    vim.bo[buf].filetype = filetype or "NvimTree"
     local win = vim.api.nvim_open_win(buf, false, {
       split = "left",
       win = -1,
@@ -423,10 +424,18 @@ describe("sidebar drawer layout", function()
     end
   end)
 
-  it("_find_nerdtree_win detects a nerdtree-filetype window", function()
+  it("_find_nerdtree_win detects a nvim-tree (NvimTree) window", function()
     assert.is_nil(sidebar._find_nerdtree_win())
-    local nt = open_fake_nerdtree()
+    local nt = open_fake_nerdtree("NvimTree")
     assert.equals(nt, sidebar._find_nerdtree_win())
+  end)
+
+  it("_find_nerdtree_win detects supported file-tree filetypes", function()
+    for _, ft in ipairs({ "NvimTree", "nerdtree", "neo-tree" }) do
+      local nt = open_fake_nerdtree(ft)
+      assert.equals(nt, sidebar._find_nerdtree_win(), "should detect filetype=" .. ft)
+      pcall(vim.api.nvim_win_close, nt, true)
+    end
   end)
 
   it("_find_nerdtree_win returns nil when no nerdtree window exists", function()
