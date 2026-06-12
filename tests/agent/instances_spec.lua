@@ -111,6 +111,52 @@ describe("agent instance lifecycle (Open / Toggle / close_other_agent_buffers)",
     assert.equals("pi", agent.active_mode, "active mode should still be pi")
     assert.equals(1, agent.active_index, "active index should still be 1")
   end)
+
+  it("switching agents preserves a fixed-width left drawer window", function()
+    vim.cmd("only")
+    -- Pre-spawn a second background agent, then hide it: the sidebar only ever
+    -- switches between already-running instances.
+    agent.Open("pi", nil, "vsplit", 1)
+    local pi1 = agent._get_instance("pi", 1)
+    helpers.hide_buffer(pi1.buf)
+
+    -- Build a left "drawer": a fixed-width vsplit on the far left. With only
+    -- one window to the right of it, closing+resplitting that right window
+    -- collapses the drawer to fill the screen, then a botright vsplit halves
+    -- it. The agent swap must reuse the existing window in place.
+    vim.cmd("only")
+    vim.cmd("topleft vsplit")
+    local drawer_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_width(drawer_win, 30)
+    vim.wo[drawer_win].winfixwidth = true
+    vim.api.nvim_win_set_buf(drawer_win, vim.api.nvim_create_buf(false, true))
+    -- Focus the right (editor) window before showing the first agent.
+    vim.cmd("wincmd l")
+
+    -- Show pi#0 as the single non-fixed column on the right.
+    agent.Open("pi", nil, "vsplit", 0)
+    local pi0 = agent._get_instance("pi", 0)
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      local b = vim.api.nvim_win_get_buf(win)
+      if win ~= drawer_win and b ~= pi0.buf then
+        pcall(vim.api.nvim_win_close, win, false)
+      end
+    end
+    local width_before = vim.api.nvim_win_get_width(drawer_win)
+    assert.equals(30, width_before, "drawer should start at its fixed width")
+
+    -- Switch to the other (already-running) agent instance, as the sidebar does.
+    agent.Open("pi", nil, "vsplit", 1)
+
+    assert.equals(
+      width_before,
+      vim.api.nvim_win_get_width(drawer_win),
+      "drawer width must not change when switching agents"
+    )
+    -- The new agent must actually be visible.
+    assert.is_true(helpers.buf_visible(pi1.buf))
+    vim.cmd("only")
+  end)
 end)
 
 describe("toggle_with_count wrappers", function()

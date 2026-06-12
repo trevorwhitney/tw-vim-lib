@@ -175,6 +175,41 @@ local function close_other_agent_buffers(target_mode, target_idx)
 	end
 end
 
+-- Return the first window in the current tabpage showing any agent instance
+-- buffer, or nil. Used to reuse an existing agent window in place rather than
+-- closing and re-splitting (which collapses neighbouring fixed-width drawers).
+local function find_agent_window()
+	for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+		if vim.api.nvim_win_is_valid(win) then
+			local win_buf = vim.api.nvim_win_get_buf(win)
+			for _, _, buf, _ in iter_all_instances() do
+				if win_buf == buf then
+					return win
+				end
+			end
+		end
+	end
+	return nil
+end
+
+-- Make target_buf the visible agent. Reuse an existing agent window (swapping
+-- the buffer in place) when one is open so the surrounding window layout — in
+-- particular a fixed-width left drawer — is preserved. Falls back to opening a
+-- fresh split when no agent window exists. Any other agent windows are closed.
+local function show_agent_buffer(target_mode, target_idx, target_buf, window_type)
+	local reuse_win = find_agent_window()
+	if reuse_win then
+		vim.api.nvim_win_set_buf(reuse_win, target_buf)
+		vim.api.nvim_set_current_win(reuse_win)
+		close_other_agent_buffers(target_mode, target_idx)
+	else
+		terminal.open_buffer_in_new_window(window_type, target_buf)
+	end
+end
+
+M._find_agent_window = find_agent_window
+M._show_agent_buffer = show_agent_buffer
+
 local function start_new_agent_job(args, window_type, mode, idx)
 	mode = mode or M.default_mode
 	idx = idx or 0
@@ -341,8 +376,7 @@ local function confirmOpenAndDo(callback, args, window_type, target_mode, target
 			end
 		end
 		if not visible then
-			close_other_agent_buffers(target_mode, target_idx)
-			terminal.open_buffer_in_new_window(window_type, inst.buf)
+			show_agent_buffer(target_mode, target_idx, inst.buf, window_type)
 		end
 		M.active_mode, M.active_index = target_mode, target_idx
 		M.active_buf, M.active_job_id = inst.buf, inst.job_id
@@ -434,8 +468,7 @@ function M.Open(mode, args, window_type, idx)
 	local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
 
 	if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
-		close_other_agent_buffers(mode, idx)
-		terminal.open_buffer_in_new_window(window_type, buf)
+		show_agent_buffer(mode, idx, buf, window_type)
 		M.active_mode = mode
 		M.active_index = idx
 		M.active_buf = buf

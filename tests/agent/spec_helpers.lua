@@ -33,6 +33,18 @@ function M.buf_visible(buf)
   return false
 end
 
+-- Close every window currently showing buf, leaving the buffer alive but
+-- hidden. Refuses to close the last window in the tabpage.
+function M.hide_buffer(buf)
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
+      if #vim.api.nvim_list_wins() > 1 then
+        pcall(vim.api.nvim_win_close, win, false)
+      end
+    end
+  end
+end
+
 -- Create a scratch buffer pre-filled with the given lines.
 -- Useful for status-detection tests that need to scrape terminal-style
 -- buffer contents without actually starting a job.
