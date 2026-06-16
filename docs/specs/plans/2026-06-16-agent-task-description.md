@@ -25,13 +25,13 @@
 
 ---
 
-### Task 1: Create description module skeleton with state management
+### Task 1: Create description module skeleton with state management ✅ COMPLETED (commit: 73b2bea)
 
 **Files:**
 - Create: `lua/tw/agent/description.lua`
 - Test: `test/agent/description_test.lua`
 
-- [ ] **Step 1: Write test for get() returning nil for uncached buffer**
+- [x] **Step 1: Write test for get() returning nil for uncached buffer**
 
 Create `test/agent/description_test.lua`:
 
@@ -55,12 +55,12 @@ describe("description module state management", function()
 end)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `make test-lua`
 Expected: FAIL with "module 'tw.agent.description' not found"
 
-- [ ] **Step 3: Create description module skeleton**
+- [x] **Step 3: Create description module skeleton**
 
 Create `lua/tw/agent/description.lua`:
 
@@ -100,12 +100,12 @@ end
 return M
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `make test-lua`
 Expected: PASS
 
-- [ ] **Step 5: Write test for get() returning "loading" when buffer in loading set**
+- [x] **Step 5: Write test for get() returning "loading" when buffer in loading set**
 
 Add to `test/agent/description_test.lua`:
 
@@ -129,7 +129,7 @@ Add to `test/agent/description_test.lua`:
   end)
 ```
 
-- [ ] **Step 6: Add test helpers to description module**
+- [x] **Step 6: Add test helpers to description module**
 
 Add to `lua/tw/agent/description.lua` before `return M`:
 
@@ -145,12 +145,12 @@ function M._set_cache_for_test(buf, value)
 end
 ```
 
-- [ ] **Step 7: Run tests to verify they pass**
+- [x] **Step 7: Run tests to verify they pass**
 
 Run: `make test-lua`
 Expected: All tests PASS
 
-- [ ] **Step 8: Write test for invalidate() clearing both cache and loading**
+- [x] **Step 8: Write test for invalidate() clearing both cache and loading**
 
 Add to `test/agent/description_test.lua`:
 
@@ -167,22 +167,22 @@ Add to `test/agent/description_test.lua`:
   end)
 ```
 
-- [ ] **Step 9: Run tests to verify they pass**
+- [x] **Step 9: Run tests to verify they pass**
 
 Run: `make test-lua`
 Expected: All tests PASS
 
-- [ ] **Step 10: Stage changes**
+- [x] **Step 10: Stage changes**
 
 ```bash
 git add lua/tw/agent/description.lua test/agent/description_test.lua
 ```
 
-- [ ] **Step 11: Pause for human review (required stop)**
+- [x] **Step 11: Pause for human review (required stop)**
 
 Review staged changes and STOP. Do not commit. Wait for explicit human confirmation to continue.
 
-- [ ] **Step 12: Commit after confirmation**
+- [x] **Step 12: Commit after confirmation**
 
 ```bash
 git commit -m "feat(agent): add description module skeleton with state management"
@@ -190,13 +190,13 @@ git commit -m "feat(agent): add description module skeleton with state managemen
 
 ---
 
-### Task 2: Add ANSI stripping and text extraction
+### Task 2: Add ANSI stripping and text extraction ✅ COMPLETED (commit: f7a76ba)
 
 **Files:**
 - Modify: `lua/tw/agent/description.lua`
-- Test: `test/agent/description_test.lua`
+- Test: `test/description_test.lua` (moved from test/agent/)
 
-- [ ] **Step 1: Write test for ANSI stripping**
+- [x] **Step 1: Write test for ANSI stripping**
 
 Add to `test/agent/description_test.lua`:
 
@@ -235,12 +235,12 @@ describe("description ANSI stripping", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `make test-lua`
 Expected: FAIL with "attempt to call field '_strip_ansi_for_test'"
 
-- [ ] **Step 3: Implement ANSI stripping function**
+- [x] **Step 3: Implement ANSI stripping function**
 
 Add to `lua/tw/agent/description.lua` after `api_key` definition:
 
@@ -269,12 +269,12 @@ function M._strip_ansi_for_test(s)
 end
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `make test-lua`
 Expected: All tests PASS
 
-- [ ] **Step 5: Write test for text extraction from buffer**
+- [x] **Step 5: Write test for text extraction from buffer**
 
 Add to `test/agent/description_test.lua`:
 
@@ -339,12 +339,12 @@ describe("description text extraction", function()
 end)
 ```
 
-- [ ] **Step 6: Run tests to verify they fail**
+- [x] **Step 6: Run tests to verify they fail**
 
 Run: `make test-lua`
 Expected: FAIL with "attempt to call field '_extract_text_for_test'"
 
-- [ ] **Step 7: Implement text extraction function**
+- [x] **Step 7: Implement text extraction function**
 
 Add to `lua/tw/agent/description.lua` after `strip_ansi` function:
 
@@ -370,22 +370,22 @@ function M._extract_text_for_test(buf)
 end
 ```
 
-- [ ] **Step 8: Run tests to verify they pass**
+- [x] **Step 8: Run tests to verify they pass**
 
 Run: `make test-lua`
 Expected: All tests PASS
 
-- [ ] **Step 9: Stage changes**
+- [x] **Step 9: Stage changes**
 
 ```bash
 git add lua/tw/agent/description.lua test/agent/description_test.lua
 ```
 
-- [ ] **Step 10: Pause for human review (required stop)**
+- [x] **Step 10: Pause for human review (required stop)**
 
 Review staged changes and STOP. Do not commit. Wait for explicit human confirmation to continue.
 
-- [ ] **Step 11: Commit after confirmation**
+- [x] **Step 11: Commit after confirmation**
 
 ```bash
 git commit -m "feat(agent): add ANSI stripping and text extraction to description module"
