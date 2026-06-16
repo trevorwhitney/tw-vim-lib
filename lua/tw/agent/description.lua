@@ -7,7 +7,32 @@ local descriptions = {}
 local loading = {}
 
 -- Read API key once at module load to avoid repeated env lookups
-local _api_key = vim.loop.os_getenv("ANTHROPIC_API_KEY")
+local api_key = vim.loop.os_getenv("ANTHROPIC_API_KEY")
+
+-- Strip ANSI escape sequences from text
+-- Removes ANSI escape sequences including CSI, OSC, and two-byte codes
+local function strip_ansi(s)
+	-- CSI: ESC [ <params/intermediates> <final-byte>
+	s = s:gsub("\27%[[%d;:%?%>%<]*[ -/]*[A-Za-z@%[\\%]^_`{|}~]", "")
+	-- OSC: ESC ] <anything except BEL or ESC> <terminator>
+	-- Terminators: BEL (\7) or ESC \ (ST)
+	s = s:gsub("\27%][^\7\27]*\7", "")
+	s = s:gsub("\27%][^\27]*\27\\", "")
+	-- Two-byte ESC sequences: ESC <single letter or = > >
+	s = s:gsub("\27[=>%(%)#%*+%-./]", "")
+	return s
+end
+
+-- Extract first 75 lines from terminal buffer and strip ANSI codes
+-- Returns joined text or empty string if buffer invalid
+local function extract_text(buf)
+	local ok, lines = pcall(vim.api.nvim_buf_get_lines, buf, 0, 75, false)
+	if not ok or not lines then
+		return ""
+	end
+	local joined = table.concat(lines, "\n")
+	return strip_ansi(joined)
+end
 
 -- Synchronous lookup of current description state
 -- Returns: nil (not requested), "loading" (in progress), string (description), or "error"
@@ -38,6 +63,16 @@ end
 -- Test-only: set cached description
 function M._set_cache_for_test(buf, value)
 	descriptions[buf] = value
+end
+
+-- Test-only: expose ANSI stripping
+function M._strip_ansi_for_test(s)
+	return strip_ansi(s)
+end
+
+-- Test-only: expose text extraction
+function M._extract_text_for_test(buf)
+	return extract_text(buf)
 end
 
 return M
