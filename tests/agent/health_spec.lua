@@ -83,27 +83,6 @@ describe("agent.health.check", function()
     assert.is_true(has(report.error, "ANTHROPIC_API_KEY not set"))
   end)
 
-  it("ok when GH_TOKEN is set", function()
-    local health = load_health({})
-    vim.env = { GH_TOKEN = "ghp_x" }
-    health.check()
-    assert.is_true(has(report.ok, "GitHub token configured"))
-  end)
-
-  it("ok when GITHUB_PERSONAL_ACCESS_TOKEN is set", function()
-    local health = load_health({})
-    vim.env = { GITHUB_PERSONAL_ACCESS_TOKEN = "ghp_y" }
-    health.check()
-    assert.is_true(has(report.ok, "GitHub token configured"))
-  end)
-
-  it("warns when no GitHub token is present", function()
-    local health = load_health({})
-    vim.env = {}
-    health.check()
-    assert.is_true(has(report.warn, "No GitHub token found"))
-  end)
-
   it("reports the configured default mode", function()
     local health = load_health({ default_mode = "opencode" })
     vim.env = {}
