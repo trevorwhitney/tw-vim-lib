@@ -3,14 +3,30 @@
 **Plan:** `docs/specs/plans/2026-06-16-agent-task-description.md`  
 **Design Spec:** `docs/specs/2026-06-16-agent-task-description-design.md`
 
-## Status: 9 of 10 Tasks Complete (90%) — only manual API testing (Task 9) remains
+## Status: 9 of 10 Tasks Complete (90%) — Task 9 manual test in progress
 
 **Base commit:** 83132af66db46348152f1d8ccf70207520bdae73  
-**Latest commit:** c2e16c7 (docs: add agent sidebar task description documentation)
+**Latest commit:** beac934 (fix(agent): use current Anthropic model and log API failures)
 
-All code, automated tests, and documentation are complete. The only remaining
-item is **Task 9: manual testing with a real `ANTHROPIC_API_KEY`**, which
-requires an interactive Neovim session and cannot be automated.
+All code, automated tests, and documentation are complete. Manual testing
+(Task 9) surfaced a real bug, now fixed.
+
+### Task 9 finding (fixed)
+
+First manual test showed `⚠ failed` for all descriptions. Root cause (confirmed
+by reproducing the request via `curl`): the model `claude-3-haiku-20240307` is
+**retired** and returns HTTP 404, which `generate()` cached as `"error"`.
+
+- **Fix (commit beac934):** switched to `claude-haiku-4-5-20251001` (verified
+  against the live API: HTTP 200 with the expected `content[1].text` shape),
+  added `tw.log.warn` on non-200/429 responses so failures are diagnosable, and
+  added a regression test pinning the request model.
+- **Still TODO:** re-run the interactive manual test (Task 9 checklist below)
+  with the fix in place to confirm the loading→description flow end-to-end.
+  (A headless live test could not complete here due to a sandbox filesystem
+  restriction on plenary.curl temp files — not a plugin issue.)
+- Available models can be listed with:
+  `curl -s https://api.anthropic.com/v1/models -H "x-api-key: $ANTHROPIC_API_KEY" -H "anthropic-version: 2023-06-01"`
 
 ---
 
