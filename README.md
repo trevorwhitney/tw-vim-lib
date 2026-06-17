@@ -25,6 +25,65 @@ command! -nargs=* Test call v:lua.require("example").test(<q-args>)
 command! -nargs=* TestTwo call v:lua.require("example").testTwo(<f-args>)
 ```
 
+## Agent Sidebar
+
+The agent sidebar lists all active agent sessions (opencode, claude, codex, pi)
+with a live status indicator and an AI-generated summary of what each agent is
+working on.
+
+### Features
+
+- **Status indicators** &mdash; an icon per session shows whether the agent is
+  working, waiting for input, or dead.
+- **Task descriptions** &mdash; a short (≤30 char) AI-generated summary of what
+  each agent is doing, scraped from the terminal and summarized via the
+  Anthropic Claude API (Haiku).
+- **Loading state** &mdash; `⋯ loading...` while a description is being
+  generated.
+- **Error state** &mdash; `⚠ failed` when generation fails (network/auth). Rate
+  limits (HTTP 429) are not cached, so they retry on the next refresh.
+
+Descriptions are generated lazily on first display and cached per buffer. The
+cache is cleared automatically when an agent terminal exits.
+
+### Toggling
+
+- `<leader>cv` &mdash; toggle the agent sidebar on its own.
+- `<leader>\` &mdash; toggle the unified drawer (file tree + agent sidebar
+  stacked below it).
+
+### Configuration
+
+Set your Anthropic API key in the environment to enable descriptions:
+
+```bash
+export ANTHROPIC_API_KEY="your-key-here"
+```
+
+If the key is not set, the sidebar still works &mdash; status and session rows
+render normally, the description column is just left blank.
+
+Sidebar options are passed through `require("tw.agent").setup`:
+
+```lua
+require("tw.agent").setup({
+  sidebar = {
+    width = 45,        -- default; wide enough to fit descriptions
+    position = "left", -- or "right"
+    refresh_ms = 1000,
+    show_dead = false,
+  },
+})
+```
+
+### Troubleshooting
+
+- **Descriptions show `⚠ failed`** &mdash; confirm `ANTHROPIC_API_KEY` is set
+  correctly and that `api.anthropic.com` is reachable. Transient rate limits
+  (429) are not cached and retry automatically.
+- **Descriptions are blank** &mdash; ensure `ANTHROPIC_API_KEY` is exported in
+  the environment Neovim was launched from, then restart Neovim.
+
 ## Troubleshooting
 
 ### tree-sitter
