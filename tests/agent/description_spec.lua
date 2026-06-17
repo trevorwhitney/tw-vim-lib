@@ -7,7 +7,7 @@ describe("description generation", function()
     package.loaded["tw.agent.description"] = nil
     helpers.reset_and_mock(false)
     description = require("tw.agent.description")
-    description._reset_for_test()
+    description.reset()
   end)
 
   it("generate() returns immediately if already loading", function()
@@ -22,7 +22,7 @@ describe("description generation", function()
     }
 
     -- Simulate buffer already loading
-    description._set_loading_for_test(buf, true)
+    description._set_loading(buf, true)
 
     -- Should be no-op
     description.generate(buf, function() end)
@@ -36,7 +36,7 @@ describe("description generation", function()
     local callback_called = false
 
     -- Force API key to be nil
-    description._set_api_key_for_test(nil)
+    description._set_api_key(nil)
 
     description.generate(buf, function()
       callback_called = true
@@ -51,7 +51,7 @@ describe("description generation", function()
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "working on tests" })
 
-    description._set_api_key_for_test("test-key")
+    description._set_api_key("test-key")
 
     -- Mock plenary.curl success
     package.loaded["plenary.curl"] = {
@@ -87,7 +87,7 @@ describe("description generation", function()
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "test" })
 
-    description._set_api_key_for_test("test-key")
+    description._set_api_key("test-key")
 
     -- Mock plenary.curl error
     package.loaded["plenary.curl"] = {
@@ -116,7 +116,7 @@ describe("description generation", function()
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "test" })
 
-    description._set_api_key_for_test("test-key")
+    description._set_api_key("test-key")
 
     -- Mock plenary.curl rate limit
     package.loaded["plenary.curl"] = {
@@ -149,7 +149,7 @@ describe("description cleanup", function()
     package.loaded["tw.agent.description"] = nil
     helpers.reset_and_mock(false)
     description = require("tw.agent.description")
-    description._reset_for_test()
+    description.reset()
   end)
 
   it("TermClose autocmd invalidates cache", function()
@@ -158,7 +158,7 @@ describe("description cleanup", function()
     vim.api.nvim_buf_set_name(buf, "agent://opencode/0")
 
     -- Set a cached description
-    description._set_cache_for_test(buf, "test description")
+    description._set_cache(buf, "test description")
     assert.equals("test description", description.get(buf))
 
     -- Simulate TermClose for the agent buffer. The autocmd matches on the

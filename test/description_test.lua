@@ -116,40 +116,40 @@ print()
 
 test("get() returns nil for buffer not in cache or loading", function()
     local description = load_description()
-    description._reset_for_test()
+    description.reset()
     local result = description.get(123)
     eq(nil, result, "should return nil for uncached buffer")
 end)
 
 test("get() returns 'loading' when buffer is in loading set", function()
     local description = load_description()
-    description._reset_for_test()
-    description._set_loading_for_test(123, true)
+    description.reset()
+    description._set_loading(123, true)
     local result = description.get(123)
     eq("loading", result, "should return 'loading'")
 end)
 
 test("get() returns cached description when in cache", function()
     local description = load_description()
-    description._reset_for_test()
-    description._set_cache_for_test(123, "fixing tests")
+    description.reset()
+    description._set_cache(123, "fixing tests")
     local result = description.get(123)
     eq("fixing tests", result, "should return cached description")
 end)
 
 test("get() returns 'error' when cached as error", function()
     local description = load_description()
-    description._reset_for_test()
-    description._set_cache_for_test(123, "error")
+    description.reset()
+    description._set_cache(123, "error")
     local result = description.get(123)
     eq("error", result, "should return 'error'")
 end)
 
 test("invalidate() clears both cache and loading state", function()
     local description = load_description()
-    description._reset_for_test()
-    description._set_cache_for_test(123, "old description")
-    description._set_loading_for_test(456, true)
+    description.reset()
+    description._set_cache(123, "old description")
+    description._set_loading(456, true)
 
     description.invalidate(123)
     description.invalidate(456)
@@ -166,28 +166,28 @@ print()
 test("strips CSI sequences", function()
 	local description = load_description()
 	local input = "\27[31mred text\27[0m normal"
-	local result = description._strip_ansi_for_test(input)
+	local result = description._strip_ansi(input)
 	eq("red text normal", result, "should strip ANSI color codes")
 end)
 
 test("strips OSC sequences with BEL terminator", function()
 	local description = load_description()
 	local input = "text\27]0;title\7more"
-	local result = description._strip_ansi_for_test(input)
+	local result = description._strip_ansi(input)
 	eq("textmore", result, "should strip OSC with BEL")
 end)
 
 test("strips OSC sequences with ST terminator", function()
 	local description = load_description()
 	local input = "text\27]0;title\27\\more"
-	local result = description._strip_ansi_for_test(input)
+	local result = description._strip_ansi(input)
 	eq("textmore", result, "should strip OSC with ST")
 end)
 
 test("handles text with no ANSI codes", function()
 	local description = load_description()
 	local input = "plain text"
-	local result = description._strip_ansi_for_test(input)
+	local result = description._strip_ansi(input)
 	eq("plain text", result, "should return unchanged")
 end)
 
@@ -203,7 +203,7 @@ test("extracts first 75 lines from buffer", function()
 	end
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
-	local result = description._extract_text_for_test(buf)
+	local result = description._extract_text(buf)
 	local result_lines = vim.split(result, "\n")
 
 	eq(75, #result_lines, "should be 75 lines")
@@ -221,7 +221,7 @@ test("strips ANSI codes from extracted text", function()
 		"plain text",
 	})
 
-	local result = description._extract_text_for_test(buf)
+	local result = description._extract_text(buf)
 	local has_red = result:find("red") ~= nil
 	local has_escape = result:find("\27") ~= nil
 
@@ -236,7 +236,7 @@ test("handles buffers with fewer than 75 lines", function()
 	local buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "line 1", "line 2" })
 
-	local result = description._extract_text_for_test(buf)
+	local result = description._extract_text(buf)
 	local result_lines = vim.split(result, "\n")
 
 	eq(2, #result_lines, "should be 2 lines")
@@ -246,7 +246,7 @@ end)
 
 test("returns empty string for invalid buffer", function()
 	local description = load_description()
-	local result = description._extract_text_for_test(99999)
+	local result = description._extract_text(99999)
 	eq("", result, "should return empty string")
 end)
 
@@ -256,7 +256,7 @@ print()
 test("truncates ASCII text at 30 chars", function()
 	local description = load_description()
 	local input = "this is a very long description that exceeds thirty characters"
-	local result = description._truncate_for_test(input, 30)
+	local result = description._truncate(input, 30)
 	eq("this is a very long descrip...", result, "should truncate to 30 chars")
 	eq(30, vim.fn.strchars(result), "should be exactly 30 characters")
 end)
@@ -264,21 +264,21 @@ end)
 test("does not truncate text shorter than limit", function()
 	local description = load_description()
 	local input = "short text"
-	local result = description._truncate_for_test(input, 30)
+	local result = description._truncate(input, 30)
 	eq("short text", result, "should return unchanged")
 end)
 
 test("handles text exactly at limit", function()
 	local description = load_description()
 	local input = "exactly thirty characters!!!!!"
-	local result = description._truncate_for_test(input, 30)
+	local result = description._truncate(input, 30)
 	eq("exactly thirty characters!!!!!", result, "should return unchanged")
 end)
 
 test("handles UTF-8 multi-byte characters safely", function()
 	local description = load_description()
 	local input = "测试中文字符串that is very long"
-	local result = description._truncate_for_test(input, 20)
+	local result = description._truncate(input, 20)
 	eq(20, vim.fn.strchars(result), "should be exactly 20 characters")
 	local ends_with_dots = result:sub(-3) == "..."
 	eq(true, ends_with_dots, "should end with ...")
@@ -286,7 +286,7 @@ end)
 
 test("handles empty string", function()
 	local description = load_description()
-	local result = description._truncate_for_test("", 30)
+	local result = description._truncate("", 30)
 	eq("", result, "should return empty string")
 end)
 

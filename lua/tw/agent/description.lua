@@ -161,39 +161,32 @@ function M.invalidate(buf)
 	loading[buf] = nil
 end
 
--- Test-only: reset all state
-function M._reset_for_test()
+-- Reset all cached state. Mirrors status.reset(); used by tests and any
+-- caller that needs a clean slate.
+function M.reset()
 	descriptions = {}
 	loading = {}
 end
 
--- Test-only: set loading state
-function M._set_loading_for_test(buf, is_loading)
+-- Internal seams exposed for tests, following the M._foo convention used in
+-- init.lua/sidebar.lua. The single underscore marks them as private/unstable.
+M._strip_ansi = strip_ansi
+M._extract_text = extract_text
+M._truncate = truncate
+
+-- Set the in-progress loading flag for a buffer (white-box state seam).
+function M._set_loading(buf, is_loading)
 	loading[buf] = is_loading or nil
 end
 
--- Test-only: set cached description
-function M._set_cache_for_test(buf, value)
+-- Set the cached description for a buffer (white-box state seam).
+function M._set_cache(buf, value)
 	descriptions[buf] = value
 end
 
--- Test-only: expose ANSI stripping
-function M._strip_ansi_for_test(s)
-	return strip_ansi(s)
-end
-
--- Test-only: expose text extraction
-function M._extract_text_for_test(buf)
-	return extract_text(buf)
-end
-
--- Test-only: expose truncation
-function M._truncate_for_test(text, max_chars)
-	return truncate(text, max_chars)
-end
-
--- Test-only: override API key
-function M._set_api_key_for_test(key)
+-- Override the module-level API key (test seam; the key is normally read once
+-- from the environment at module load).
+function M._set_api_key(key)
 	api_key = key
 end
 
