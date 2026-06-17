@@ -3,10 +3,10 @@
 **Plan:** `docs/specs/plans/2026-06-16-agent-task-description.md`  
 **Design Spec:** `docs/specs/2026-06-16-agent-task-description-design.md`
 
-## Status: 3 of 10 Tasks Complete (30%)
+## Status: 8 of 10 Tasks Complete (80%)
 
 **Base commit:** 83132af66db46348152f1d8ccf70207520bdae73  
-**Latest commit:** e729a8e (feat(agent): add UTF-8 safe truncation to description module)
+**Latest commit:** bf60fc5 (refactor(agent): align description test seams with codebase conventions)
 
 ---
 
@@ -65,84 +65,68 @@
 
 ---
 
-## ⏳ Remaining Tasks (7 of 10)
-
 ### Task 4: Implement generate() with API integration
-**Status:** Not started  
-**Complexity:** High (async, API integration, error handling)  
-**Files:** Modify `lua/tw/agent/description.lua`, create `tests/agent/description_spec.lua`
+**Commit:** 84f5bbd  
+**Files:** `lua/tw/agent/description.lua`, `tests/agent/description_spec.lua` (new)
 
-**What it does:**
-- Implement async `generate(buf, callback)` function
-- Anthropic API integration via plenary.curl
-- Deduplication logic (check loading set)
-- API key guard
-- Error handling (429 rate limits, network errors, malformed responses)
-- Plenary specs for async testing
-
-**Critical details:**
-- Use `plenary.curl.post()` with callback
-- Model: `claude-3-haiku-20240307`, max_tokens: 30
-- Rate limit (429) doesn't cache error (allows retry)
-- Other errors cache "error" state
+**What works:**
+- Async `M.generate(buf, callback)` with dedup guard, API key guard, empty-buffer guard
+- Anthropic API via `plenary.curl.post()` (model `claude-3-haiku-20240307`, max_tokens 30)
+- Response handling in `vim.schedule`: 200 → trim+truncate+cache; 429 → no cache (retryable); other → cache "error"
+- 5 plenary specs (dedup, missing key, success, error, 429)
 
 ---
 
 ### Task 5: Add TermClose cleanup autocmd
-**Status:** Not started  
-**Complexity:** Low  
-**Files:** Modify `lua/tw/agent/description.lua`, `tests/agent/description_spec.lua`
+**Commit:** b38b35c  
+**Files:** `lua/tw/agent/description.lua`, `tests/agent/description_spec.lua`, `test/description_test.lua`
 
-**What it does:**
-- Register TermClose autocmd (pattern `agent://*`)
-- Call `invalidate(buf)` on terminal close
-- Test that cache is cleared on TermClose event
+**What works:**
+- TermClose autocmd (pattern `agent://*`) calls `invalidate(args.buf)` on terminal close
+- 1 plenary spec verifying cache clear
+- Standalone harness gained `nvim_create_augroup`/`nvim_create_autocmd` stubs (module now
+  registers an autocmd at load). Spec triggers via buffer name match (nvim_exec_autocmds
+  rejects buffer+pattern together).
 
 ---
 
 ### Task 6: Update sidebar to display descriptions
-**Status:** Not started  
-**Complexity:** Medium (integrates with existing sidebar)  
-**Files:** Modify `lua/tw/agent/sidebar.lua`, `tests/agent/sidebar_spec.lua`
+**Commit:** 1fb125b  
+**Files:** `lua/tw/agent/sidebar.lua`, `tests/agent/sidebar_spec.lua`
 
-**What it does:**
-- Add `description` field to entries in `collect_entries()`
-- Update `render_lines()` to display descriptions (with loading/error states)
-- Change default width from 20 to 45
-- Add 3 tests for description rendering
-
-**Format:**
-- Normal: `"  oc#0  waiting  fixing tests"`
-- Loading: `"  oc#0  waiting  ⋯ loading..."`
-- Error: `"  oc#0  waiting  ⚠ failed"`
+**What works:**
+- `collect_entries()` adds `description` field (via `pcall(require, "tw.agent.description")`)
+- `render_lines()` shows description / `⋯ loading...` / `⚠ failed`
+- Default width 20 → 45
+- 4 specs (field present, normal render, loading, error)
 
 ---
 
 ### Task 7: Add lazy generation trigger in sidebar refresh
-**Status:** Not started  
-**Complexity:** Medium (callback coordination)  
-**Files:** Modify `lua/tw/agent/sidebar.lua`, `tests/agent/sidebar_spec.lua`
+**Commit:** cb92ad5  
+**Files:** `lua/tw/agent/sidebar.lua`, `tests/agent/sidebar_spec.lua`
 
-**What it does:**
-- After `collect_entries()`, check for nil descriptions
-- Call `description.generate(buf, callback)` for each nil
-- Callback triggers `vim.schedule(M.refresh)` to update UI
-- Add 3 tests for lazy generation trigger
+**What works:**
+- After `collect_entries()`, `refresh()` calls `description.generate(buf, cb)` for nil descriptions
+- Callback does `vim.schedule(M.refresh)`; loading/cache guards prevent an infinite loop
+- 3 specs (triggers on nil, skips cached, callback refreshes UI)
 
 ---
 
-### Task 8: Run full test suite and verify
-**Status:** Not started  
-**Complexity:** Low (verification step)
+### Task 8: Run full test suite and verify + refactor _for_test
+**Commits:** cb92ad5 (suite passing), bf60fc5 (refactor)  
+**Files:** `lua/tw/agent/description.lua`, `test/description_test.lua`, `tests/agent/description_spec.lua`
 
-**What it does:**
-- Run `make test-lua` (standalone tests)
-- Run `make test-plenary` (integration tests)
-- Run `make test` (full suite including Go)
-- Run `make lint`
-- Stage and commit any lint fixes
+**What works:**
+- Full `make test` (Lua + Plenary + Go) green; `make lint` clean; `make format` no-op
+- Refactored the non-idiomatic `_for_test` seams to match codebase conventions:
+  `_reset_for_test` → public `M.reset()` (mirrors `status.reset()`); helpers exposed as
+  single-underscore seams (`M._strip_ansi`, `M._extract_text`, `M._truncate`,
+  `M._set_loading`, `M._set_cache`, `M._set_api_key`)
 
 ---
+
+## ⏳ Remaining Tasks (2 of 10)
 
 ### Task 9: Manual testing with real API
 **Status:** Not started  
@@ -175,10 +159,12 @@
 
 **For the next session:**
 
-1. **Start with Task 3** - UTF-8 safe truncation (straightforward, builds on Task 2)
-2. **Then Task 4** - API integration (most complex, requires plenary specs)
-3. **Tasks 5-7** - Integration and sidebar updates
-4. **Tasks 8-10** - Verification and documentation
+1. **Task 9** - Manual testing with a real `ANTHROPIC_API_KEY` (verify loading→description
+   flow, error state with bad key, width). Requires a human at a Neovim session.
+2. **Task 10** - Update `README.md` with the Agent Sidebar section.
+
+All implementation and automated tests are complete (Tasks 1-8). Only manual
+verification (Task 9) and documentation (Task 10) remain.
 
 **Commands to run:**
 ```bash

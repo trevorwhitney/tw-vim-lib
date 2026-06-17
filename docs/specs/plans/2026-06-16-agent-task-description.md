@@ -503,13 +503,13 @@ git commit -m "feat(agent): add UTF-8 safe truncation to description module"
 
 ---
 
-### Task 4: Implement generate() with API integration
+### Task 4: Implement generate() with API integration ✅ COMPLETED (commit: 84f5bbd)
 
 **Files:**
 - Modify: `lua/tw/agent/description.lua`
 - Test: `tests/agent/description_spec.lua` (plenary, for async testing)
 
-- [ ] **Step 1: Write plenary spec for generate() deduplication**
+- [x] **Step 1: Write plenary spec for generate() deduplication**
 
 Create `tests/agent/description_spec.lua`:
 
@@ -565,12 +565,12 @@ describe("description generation", function()
 end)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `make test-plenary`
 Expected: FAIL with "attempt to call field 'generate'"
 
-- [ ] **Step 3: Implement generate() skeleton**
+- [x] **Step 3: Implement generate() skeleton**
 
 Add to `lua/tw/agent/description.lua` after `truncate` function:
 
@@ -617,12 +617,12 @@ function M._set_api_key_for_test(key)
 end
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `make test-plenary`
 Expected: Tests PASS (deduplication and missing key guards work)
 
-- [ ] **Step 5: Write plenary spec for successful API response**
+- [x] **Step 5: Write plenary spec for successful API response**
 
 Add to `tests/agent/description_spec.lua`:
 
@@ -662,7 +662,7 @@ Add to `tests/agent/description_spec.lua`:
   end)
 ```
 
-- [ ] **Step 6: Implement API request logic**
+- [x] **Step 6: Implement API request logic**
 
 Add to `lua/tw/agent/description.lua`, replace the `-- TODO: Make API request` comment:
 
@@ -734,12 +734,12 @@ Add to `lua/tw/agent/description.lua`, replace the `-- TODO: Make API request` c
   })
 ```
 
-- [ ] **Step 7: Run tests to verify they pass**
+- [x] **Step 7: Run tests to verify they pass**
 
 Run: `make test-plenary`
 Expected: All tests PASS
 
-- [ ] **Step 8: Write spec for error handling**
+- [x] **Step 8: Write spec for error handling**
 
 Add to `tests/agent/description_spec.lua`:
 
@@ -799,22 +799,22 @@ Add to `tests/agent/description_spec.lua`:
   end)
 ```
 
-- [ ] **Step 9: Run tests to verify they pass**
+- [x] **Step 9: Run tests to verify they pass**
 
 Run: `make test-plenary`
 Expected: All tests PASS
 
-- [ ] **Step 10: Stage changes**
+- [x] **Step 10: Stage changes**
 
 ```bash
 git add lua/tw/agent/description.lua tests/agent/description_spec.lua
 ```
 
-- [ ] **Step 11: Pause for human review (required stop)**
+- [x] **Step 11: Pause for human review (required stop)**
 
 Review staged changes and STOP. Do not commit. Wait for explicit human confirmation to continue.
 
-- [ ] **Step 12: Commit after confirmation**
+- [x] **Step 12: Commit after confirmation**
 
 ```bash
 git commit -m "feat(agent): implement generate() with Anthropic API integration"
@@ -822,13 +822,13 @@ git commit -m "feat(agent): implement generate() with Anthropic API integration"
 
 ---
 
-### Task 5: Add TermClose cleanup autocmd
+### Task 5: Add TermClose cleanup autocmd ✅ COMPLETED (commit: b38b35c)
 
 **Files:**
 - Modify: `lua/tw/agent/description.lua`
 - Test: `tests/agent/description_spec.lua`
 
-- [ ] **Step 1: Write spec for TermClose autocmd**
+- [x] **Step 1: Write spec for TermClose autocmd**
 
 Add to `tests/agent/description_spec.lua`:
 
@@ -864,12 +864,12 @@ describe("description cleanup", function()
 end)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `make test-plenary`
 Expected: FAIL (autocmd not registered)
 
-- [ ] **Step 3: Add TermClose autocmd registration**
+- [x] **Step 3: Add TermClose autocmd registration**
 
 Add to `lua/tw/agent/description.lua` before `return M`:
 
@@ -886,22 +886,22 @@ vim.api.nvim_create_autocmd("TermClose", {
 })
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `make test-plenary`
 Expected: All tests PASS
 
-- [ ] **Step 5: Stage changes**
+- [x] **Step 5: Stage changes**
 
 ```bash
 git add lua/tw/agent/description.lua tests/agent/description_spec.lua
 ```
 
-- [ ] **Step 6: Pause for human review (required stop)**
+- [x] **Step 6: Pause for human review (required stop)**
 
 Review staged changes and STOP. Do not commit. Wait for explicit human confirmation to continue.
 
-- [ ] **Step 7: Commit after confirmation**
+- [x] **Step 7: Commit after confirmation**
 
 ```bash
 git commit -m "feat(agent): add TermClose autocmd for description cleanup"
@@ -909,13 +909,13 @@ git commit -m "feat(agent): add TermClose autocmd for description cleanup"
 
 ---
 
-### Task 6: Update sidebar to display descriptions
+### Task 6: Update sidebar to display descriptions ✅ COMPLETED (commit: 1fb125b)
 
 **Files:**
 - Modify: `lua/tw/agent/sidebar.lua:3-20` (DEFAULTS), `lua/tw/agent/sidebar.lua:348-381` (collect_entries), `lua/tw/agent/sidebar.lua:383-397` (render_lines)
 - Test: `tests/agent/sidebar_spec.lua`
 
-- [ ] **Step 1: Write spec for description field in entries**
+- [x] **Step 1: Write spec for description field in entries**
 
 Add to `tests/agent/sidebar_spec.lua` in the "sidebar rendering" describe block:
 
@@ -947,12 +947,12 @@ Add to `tests/agent/sidebar_spec.lua` in the "sidebar rendering" describe block:
   end)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `make test-plenary`
 Expected: FAIL (description field not present)
 
-- [ ] **Step 3: Update collect_entries to add description field**
+- [x] **Step 3: Update collect_entries to add description field**
 
 In `lua/tw/agent/sidebar.lua`, modify the `collect_entries` function around line 369:
 
@@ -985,12 +985,12 @@ Replace with:
 				})
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `make test-plenary`
 Expected: Test PASS
 
-- [ ] **Step 5: Write spec for description rendering in sidebar**
+- [x] **Step 5: Write spec for description rendering in sidebar**
 
 Add to `tests/agent/sidebar_spec.lua`:
 
@@ -1069,12 +1069,12 @@ Add to `tests/agent/sidebar_spec.lua`:
   end)
 ```
 
-- [ ] **Step 6: Run tests to verify they fail**
+- [x] **Step 6: Run tests to verify they fail**
 
 Run: `make test-plenary`
 Expected: FAIL (descriptions not rendered)
 
-- [ ] **Step 7: Update render_lines to include description**
+- [x] **Step 7: Update render_lines to include description**
 
 In `lua/tw/agent/sidebar.lua`, modify the `render_lines` function around line 394:
 
@@ -1104,12 +1104,12 @@ Replace with:
 	end
 ```
 
-- [ ] **Step 8: Run tests to verify they pass**
+- [x] **Step 8: Run tests to verify they pass**
 
 Run: `make test-plenary`
 Expected: All tests PASS
 
-- [ ] **Step 9: Update default width**
+- [x] **Step 9: Update default width**
 
 In `lua/tw/agent/sidebar.lua`, modify the `DEFAULTS` table around line 5:
 
@@ -1123,17 +1123,17 @@ Replace with:
 	width = 45,
 ```
 
-- [ ] **Step 10: Stage changes**
+- [x] **Step 10: Stage changes**
 
 ```bash
 git add lua/tw/agent/sidebar.lua tests/agent/sidebar_spec.lua
 ```
 
-- [ ] **Step 11: Pause for human review (required stop)**
+- [x] **Step 11: Pause for human review (required stop)**
 
 Review staged changes and STOP. Do not commit. Wait for explicit human confirmation to continue.
 
-- [ ] **Step 12: Commit after confirmation**
+- [x] **Step 12: Commit after confirmation**
 
 ```bash
 git commit -m "feat(agent): render descriptions in sidebar with loading/error states"
@@ -1141,13 +1141,13 @@ git commit -m "feat(agent): render descriptions in sidebar with loading/error st
 
 ---
 
-### Task 7: Add lazy generation trigger in sidebar refresh
+### Task 7: Add lazy generation trigger in sidebar refresh ✅ COMPLETED (commit: cb92ad5)
 
 **Files:**
 - Modify: `lua/tw/agent/sidebar.lua:452-504` (refresh function)
 - Test: `tests/agent/sidebar_spec.lua`
 
-- [ ] **Step 1: Write spec for lazy generation trigger**
+- [x] **Step 1: Write spec for lazy generation trigger**
 
 Add to `tests/agent/sidebar_spec.lua`:
 
@@ -1266,12 +1266,12 @@ describe("sidebar lazy description generation", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `make test-plenary`
 Expected: FAIL (generate not called)
 
-- [ ] **Step 3: Add lazy generation trigger to refresh()**
+- [x] **Step 3: Add lazy generation trigger to refresh()**
 
 In `lua/tw/agent/sidebar.lua`, modify the `refresh` function. After the `collect_entries()` call around line 475, add:
 
@@ -1297,22 +1297,22 @@ In `lua/tw/agent/sidebar.lua`, modify the `refresh` function. After the `collect
 
 Place this code right after `local lines = render_lines(entries)` and before `vim.bo[state.buf].modifiable = true`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `make test-plenary`
 Expected: All tests PASS
 
-- [ ] **Step 5: Stage changes**
+- [x] **Step 5: Stage changes**
 
 ```bash
 git add lua/tw/agent/sidebar.lua tests/agent/sidebar_spec.lua
 ```
 
-- [ ] **Step 6: Pause for human review (required stop)**
+- [x] **Step 6: Pause for human review (required stop)**
 
 Review staged changes and STOP. Do not commit. Wait for explicit human confirmation to continue.
 
-- [ ] **Step 7: Commit after confirmation**
+- [x] **Step 7: Commit after confirmation**
 
 ```bash
 git commit -m "feat(agent): add lazy description generation trigger in sidebar refresh"
@@ -1320,7 +1320,7 @@ git commit -m "feat(agent): add lazy description generation trigger in sidebar r
 
 ---
 
-### Task 8: Run full test suite and verify
+### Task 8: Run full test suite and verify ✅ COMPLETED (commits: cb92ad5 tests pass, bf60fc5 refactor)
 
 **Files:**
 - All test files
@@ -1337,33 +1337,33 @@ git commit -m "feat(agent): add lazy description generation trigger in sidebar r
 > `_set_loading_for_test`/`_set_cache_for_test` state pokes now that `generate()`
 > can drive state.
 
-- [ ] **Step 1: Run all Lua unit tests**
+- [x] **Step 1: Run all Lua unit tests**
 
 Run: `make test-lua`
 Expected: All tests PASS
 
-- [ ] **Step 2: Run all Plenary integration tests**
+- [x] **Step 2: Run all Plenary integration tests**
 
 Run: `make test-plenary`
 Expected: All tests PASS
 
-- [ ] **Step 3: Run full test suite**
+- [x] **Step 3: Run full test suite**
 
 Run: `make test`
 Expected: All tests PASS (Lua, Plenary, and Go)
 
-- [ ] **Step 4: Run linter**
+- [x] **Step 4: Run linter**
 
 Run: `make lint`
 Expected: No errors
 
-- [ ] **Step 5: Stage any lint fixes if needed**
+- [x] **Step 5: Stage any lint fixes if needed**
 
 ```bash
 git add -u
 ```
 
-- [ ] **Step 6: Commit lint fixes if any**
+- [x] **Step 6: Commit lint fixes if any** (skipped — `make lint` reported 0 warnings/0 errors)
 
 ```bash
 git commit -m "chore: fix lint issues"
