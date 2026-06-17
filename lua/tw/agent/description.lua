@@ -48,6 +48,104 @@ local function truncate(text, max_chars)
 	return truncated .. "..."
 end
 
+-- Async generate description for buffer using Anthropic API
+-- Calls callback(description_or_error) when complete
+-- No-op if already loading or API key missing
+function M.generate(buf, callback)
+	-- Guard: already loading this buffer
+	if loading[buf] then
+		return
+	end
+
+	-- Guard: API key not configured
+	if not api_key or api_key == "" then
+		return
+	end
+
+	-- Mark as loading before async work
+	loading[buf] = true
+
+	-- Extract text from buffer
+	local text = extract_text(buf)
+	if text == "" then
+		-- Invalid buffer or empty content
+		descriptions[buf] = "error"
+		loading[buf] = nil
+		if callback then
+			callback("error")
+		end
+		return
+	end
+
+	-- Build API request
+	local ok, curl = pcall(require, "plenary.curl")
+	if not ok then
+		descriptions[buf] = "error"
+		loading[buf] = nil
+		if callback then
+			callback("error")
+		end
+		return
+	end
+
+	local request_body = vim.json.encode({
+		model = "claude-3-haiku-20240307",
+		max_tokens = 30,
+		messages = {
+			{
+				role = "user",
+				content = "Summarize what this agent/terminal is doing in 4-5 words:\n\n" .. text,
+			},
+		},
+	})
+
+	curl.post("https://api.anthropic.com/v1/messages", {
+		headers = {
+			["x-api-key"] = api_key,
+			["anthropic-version"] = "2023-06-01",
+			["content-type"] = "application/json",
+		},
+		body = request_body,
+		timeout = 10000,
+		callback = function(response)
+			vim.schedule(function()
+				-- Remove from loading set
+				loading[buf] = nil
+
+				-- Handle response
+				if response.status == 200 then
+					local ok_parse, data = pcall(vim.json.decode, response.body)
+					if ok_parse and data.content and data.content[1] and data.content[1].text then
+						local desc = vim.trim(data.content[1].text)
+						desc = truncate(desc, 30)
+						descriptions[buf] = desc
+						if callback then
+							callback(desc)
+						end
+					else
+						-- Malformed response
+						descriptions[buf] = "error"
+						if callback then
+							callback("error")
+						end
+					end
+				elseif response.status == 429 then
+					-- Rate limit: don't cache error, allow retry
+					if callback then
+						callback(nil)
+					end
+				else
+					-- Other error
+					descriptions[buf] = "error"
+					if callback then
+						callback("error")
+					end
+				end
+			end)
+		end,
+	})
+end
+
 -- Synchronous lookup of current description state
 -- Returns: nil (not requested), "loading" (in progress), string (description), or "error"
 function M.get(buf)
@@ -92,6 +190,11 @@ end
 -- Test-only: expose truncation
 function M._truncate_for_test(text, max_chars)
 	return truncate(text, max_chars)
+end
+
+-- Test-only: override API key
+function M._set_api_key_for_test(key)
+	api_key = key
 end
 
 return M

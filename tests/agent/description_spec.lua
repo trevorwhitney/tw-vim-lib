@@ -1,0 +1,143 @@
+local helpers = require("tests.agent.spec_helpers")
+
+describe("description generation", function()
+  local description
+
+  before_each(function()
+    package.loaded["tw.agent.description"] = nil
+    helpers.reset_and_mock(false)
+    description = require("tw.agent.description")
+    description._reset_for_test()
+  end)
+
+  it("generate() returns immediately if already loading", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local call_count = 0
+
+    -- Mock plenary.curl to track calls
+    package.loaded["plenary.curl"] = {
+      post = function()
+        call_count = call_count + 1
+      end,
+    }
+
+    -- Simulate buffer already loading
+    description._set_loading_for_test(buf, true)
+
+    -- Should be no-op
+    description.generate(buf, function() end)
+
+    assert.equals(0, call_count)
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("generate() returns immediately if API key missing", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local callback_called = false
+
+    -- Force API key to be nil
+    description._set_api_key_for_test(nil)
+
+    description.generate(buf, function()
+      callback_called = true
+    end)
+
+    assert.is_false(callback_called)
+    assert.is_nil(description.get(buf))
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("generate() caches result on successful API response", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "working on tests" })
+
+    description._set_api_key_for_test("test-key")
+
+    -- Mock plenary.curl success
+    package.loaded["plenary.curl"] = {
+      post = function(url, opts)
+        -- Simulate async callback
+        vim.schedule(function()
+          opts.callback({
+            status = 200,
+            body = vim.json.encode({
+              content = { { text = "testing feature" } },
+            }),
+          })
+        end)
+      end,
+    }
+
+    local callback_result = nil
+    description.generate(buf, function(result)
+      callback_result = result
+    end)
+
+    -- Wait for async
+    vim.wait(100, function()
+      return callback_result ~= nil
+    end)
+
+    assert.equals("testing feature", callback_result)
+    assert.equals("testing feature", description.get(buf))
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("generate() caches error on API failure", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "test" })
+
+    description._set_api_key_for_test("test-key")
+
+    -- Mock plenary.curl error
+    package.loaded["plenary.curl"] = {
+      post = function(url, opts)
+        vim.schedule(function()
+          opts.callback({ status = 500, body = "error" })
+        end)
+      end,
+    }
+
+    local callback_result = nil
+    description.generate(buf, function(result)
+      callback_result = result
+    end)
+
+    vim.wait(100, function()
+      return callback_result ~= nil
+    end)
+
+    assert.equals("error", callback_result)
+    assert.equals("error", description.get(buf))
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("generate() does not cache error on rate limit (429)", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "test" })
+
+    description._set_api_key_for_test("test-key")
+
+    -- Mock plenary.curl rate limit
+    package.loaded["plenary.curl"] = {
+      post = function(url, opts)
+        vim.schedule(function()
+          opts.callback({ status = 429, body = "rate limited" })
+        end)
+      end,
+    }
+
+    local callback_result = "not called"
+    description.generate(buf, function(result)
+      callback_result = result
+    end)
+
+    vim.wait(100, function()
+      return callback_result ~= "not called"
+    end)
+
+    assert.is_nil(callback_result)
+    assert.is_nil(description.get(buf)) -- Not cached
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+end)
