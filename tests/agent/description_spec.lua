@@ -141,3 +141,34 @@ describe("description generation", function()
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 end)
+
+describe("description cleanup", function()
+  local description
+
+  before_each(function()
+    package.loaded["tw.agent.description"] = nil
+    helpers.reset_and_mock(false)
+    description = require("tw.agent.description")
+    description._reset_for_test()
+  end)
+
+  it("TermClose autocmd invalidates cache", function()
+    -- Name the buffer to match the agent://* autocmd pattern.
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_name(buf, "agent://opencode/0")
+
+    -- Set a cached description
+    description._set_cache_for_test(buf, "test description")
+    assert.equals("test description", description.get(buf))
+
+    -- Simulate TermClose for the agent buffer. The autocmd matches on the
+    -- buffer name pattern; args.buf is set to the matched buffer.
+    vim.api.nvim_exec_autocmds("TermClose", {
+      buffer = buf,
+    })
+
+    -- Should be cleared
+    assert.is_nil(description.get(buf))
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+end)

@@ -50,6 +50,12 @@ _G.vim = {
         nvim_buf_delete = function(buf, opts)
             buffer_store[buf] = nil
         end,
+        nvim_create_augroup = function(name, opts)
+            return 1
+        end,
+        nvim_create_autocmd = function(event, opts)
+            return 1
+        end,
     },
     split = function(str, sep)
         local result = {}

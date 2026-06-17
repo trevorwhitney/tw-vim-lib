@@ -197,4 +197,15 @@ function M._set_api_key_for_test(key)
 	api_key = key
 end
 
+-- Register cleanup autocmd on module load
+local augroup = vim.api.nvim_create_augroup("tw_agent_description_cleanup", { clear = true })
+vim.api.nvim_create_autocmd("TermClose", {
+	group = augroup,
+	pattern = "agent://*",
+	callback = function(args)
+		M.invalidate(args.buf)
+	end,
+	desc = "Clear description cache when agent terminal exits",
+})
+
 return M
