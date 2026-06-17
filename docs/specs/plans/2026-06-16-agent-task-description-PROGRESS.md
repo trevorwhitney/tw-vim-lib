@@ -3,10 +3,14 @@
 **Plan:** `docs/specs/plans/2026-06-16-agent-task-description.md`  
 **Design Spec:** `docs/specs/2026-06-16-agent-task-description-design.md`
 
-## Status: 8 of 10 Tasks Complete (80%)
+## Status: 9 of 10 Tasks Complete (90%) — only manual API testing (Task 9) remains
 
 **Base commit:** 83132af66db46348152f1d8ccf70207520bdae73  
-**Latest commit:** bf60fc5 (refactor(agent): align description test seams with codebase conventions)
+**Latest commit:** c2e16c7 (docs: add agent sidebar task description documentation)
+
+All code, automated tests, and documentation are complete. The only remaining
+item is **Task 9: manual testing with a real `ANTHROPIC_API_KEY`**, which
+requires an interactive Neovim session and cannot be automated.
 
 ---
 
@@ -126,10 +130,23 @@
 
 ---
 
-## ⏳ Remaining Tasks (2 of 10)
+### Task 10: Update documentation
+**Commit:** c2e16c7  
+**Files:** `README.md`
+
+**What works:**
+- New "Agent Sidebar" README section: features (status icons, descriptions,
+  loading/error states), toggling keymaps (`<leader>cv`, `<leader>\`),
+  configuration via `require("tw.agent").setup({ sidebar = ... })`, and
+  troubleshooting. Details verified against the code (width 45, glyphs,
+  429 retry behavior).
+
+---
+
+## ⏳ Remaining Tasks (1 of 10)
 
 ### Task 9: Manual testing with real API
-**Status:** Not started  
+**Status:** Deferred to human (cannot be automated)  
 **Complexity:** Low (manual verification)
 
 **What it does:**
@@ -142,29 +159,21 @@
 
 ---
 
-### Task 10: Update documentation
-**Status:** Not started  
-**Complexity:** Low (documentation)  
-**Files:** Modify `README.md`
-
-**What it does:**
-- Add "Agent Sidebar" section to README
-- Document features (status, descriptions, loading/error states)
-- Configuration instructions (API key setup)
-- Troubleshooting section
-
----
-
 ## How to Resume
 
-**For the next session:**
+**Only Task 9 remains** — manual testing with a real `ANTHROPIC_API_KEY` at an
+interactive Neovim session. Suggested checklist:
 
-1. **Task 9** - Manual testing with a real `ANTHROPIC_API_KEY` (verify loading→description
-   flow, error state with bad key, width). Requires a human at a Neovim session.
-2. **Task 10** - Update `README.md` with the Agent Sidebar section.
+1. `export ANTHROPIC_API_KEY="..."` then launch `nvim`.
+2. Open an agent (e.g. opencode), type a prompt, then toggle the sidebar with
+   `<leader>cv` (or the drawer with `<leader>\`).
+3. Confirm `⋯ loading...` appears, then resolves to a short description.
+4. Open 2-3 agents with different prompts; confirm each generates.
+5. Set an invalid key, open a new agent, confirm `⚠ failed`.
+6. Confirm the sidebar width (45) fits descriptions without clipping.
 
-All implementation and automated tests are complete (Tasks 1-8). Only manual
-verification (Task 9) and documentation (Task 10) remain.
+All implementation, automated tests, and documentation are complete
+(Tasks 1-8, 10). Only manual verification (Task 9) remains.
 
 **Commands to run:**
 ```bash
@@ -186,15 +195,16 @@ cat docs/specs/plans/2026-06-16-agent-task-description-PROGRESS.md
 
 **Key files to know:**
 - Implementation: `lua/tw/agent/description.lua`
-- Tests: `test/description_test.lua`, `tests/agent/description_spec.lua` (to be created)
+- Tests: `test/description_test.lua` (standalone), `tests/agent/description_spec.lua` (plenary)
 - Sidebar: `lua/tw/agent/sidebar.lua`, `tests/agent/sidebar_spec.lua`
 
 **What's working right now:**
-- Description module skeleton with state management
-- ANSI stripping and text extraction
-- 13 passing unit tests
-- All linting passes
+- Full description module: state management, ANSI stripping, text extraction,
+  UTF-8 truncation, async Anthropic API generation, TermClose cleanup autocmd
+- Sidebar renders descriptions with loading/error states and lazily triggers generation
+- Test seams follow codebase conventions (`M.reset()`, `M._foo` single-underscore)
+- All automated tests pass (Lua + Plenary + Go); `make lint`/`make format` clean
+- README documents the feature
 
 **What's next:**
-- Add UTF-8 safe truncation (Task 3)
-- Then the big one: Anthropic API integration (Task 4)
+- Task 9: manual testing with a real `ANTHROPIC_API_KEY` (see resume checklist above)
