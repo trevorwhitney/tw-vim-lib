@@ -140,6 +140,38 @@ describe("description generation", function()
     assert.is_nil(description.get(buf)) -- Not cached
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
+
+  it("generate() requests a current, non-retired model", function()
+    -- Regression guard: the original implementation used the retired model
+    -- "claude-3-haiku-20240307", which returns HTTP 404 and surfaced as a
+    -- silent "failed" in the UI. Pin the request to the known-good model.
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "test content" })
+
+    description._set_api_key("test-key")
+
+    local captured_body = nil
+    package.loaded["plenary.curl"] = {
+      post = function(url, opts)
+        captured_body = opts.body
+        vim.schedule(function()
+          opts.callback({
+            status = 200,
+            body = vim.json.encode({ content = { { text = "ok" } } }),
+          })
+        end)
+      end,
+    }
+
+    description.generate(buf, function() end)
+    vim.wait(100, function()
+      return captured_body ~= nil
+    end)
+
+    local payload = vim.json.decode(captured_body)
+    assert.equals("claude-haiku-4-5-20251001", payload.model)
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
 end)
 
 describe("description cleanup", function()

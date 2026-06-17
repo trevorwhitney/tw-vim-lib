@@ -89,7 +89,7 @@ function M.generate(buf, callback)
 	end
 
 	local request_body = vim.json.encode({
-		model = "claude-3-haiku-20240307",
+		model = "claude-haiku-4-5-20251001",
 		max_tokens = 30,
 		messages = {
 			{
@@ -135,7 +135,18 @@ function M.generate(buf, callback)
 						callback(nil)
 					end
 				else
-					-- Other error
+					-- Other error. Log status/body so failures are diagnosable
+					-- instead of surfacing only a silent "failed" in the UI.
+					local ok_log, log = pcall(require, "tw.log")
+					if ok_log and log and log.warn then
+						log.warn(
+							string.format(
+								"agent description request failed: status=%s body=%s",
+								tostring(response.status),
+								tostring(response.body)
+							)
+						)
+					end
 					descriptions[buf] = "error"
 					if callback then
 						callback("error")
