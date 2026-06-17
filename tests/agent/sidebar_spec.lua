@@ -674,3 +674,119 @@ describe("sidebar drawer layout", function()
     assert.is_true(vim.wo[win].winfixheight)
   end)
 end)
+
+describe("sidebar lazy description generation", function()
+  local sidebar, agent
+
+  before_each(function()
+    package.loaded["tw.agent.sidebar"] = nil
+    package.loaded["tw.agent.status"] = nil
+    package.loaded["tw.agent.description"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    agent = helpers.reset_and_mock(false)
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({})
+    pcall(sidebar.close)
+  end)
+  after_each(function()
+    pcall(sidebar.close)
+    package.loaded["tw.agent.description"] = nil
+  end)
+
+  it("refresh() calls generate() for nil descriptions", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "test content" })
+    agent._set_instance("opencode", 0, buf, 9001)
+
+    local generate_called = false
+    local generate_buf = nil
+
+    package.loaded["tw.agent.description"] = {
+      get = function(b)
+        return nil -- Simulate not yet requested
+      end,
+      generate = function(b, callback)
+        generate_called = true
+        generate_buf = b
+      end,
+    }
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    sidebar.open()
+    sidebar.refresh()
+
+    vim.fn.jobwait = orig
+
+    assert.is_true(generate_called)
+    assert.equals(buf, generate_buf)
+  end)
+
+  it("refresh() does not call generate() for cached descriptions", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    agent._set_instance("opencode", 0, buf, 9001)
+
+    local generate_called = false
+
+    package.loaded["tw.agent.description"] = {
+      get = function(b)
+        return "cached description"
+      end,
+      generate = function(b, callback)
+        generate_called = true
+      end,
+    }
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    sidebar.open()
+    sidebar.refresh()
+
+    vim.fn.jobwait = orig
+
+    assert.is_false(generate_called)
+  end)
+
+  it("generate() callback triggers sidebar refresh", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "test" })
+    agent._set_instance("opencode", 0, buf, 9001)
+
+    local stored_callback = nil
+    local get_return = nil
+
+    package.loaded["tw.agent.description"] = {
+      get = function(b)
+        return get_return
+      end,
+      generate = function(b, callback)
+        stored_callback = callback
+      end,
+    }
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    sidebar.open()
+    sidebar.refresh()
+
+    -- Simulate async completion
+    get_return = "new description"
+    if stored_callback then
+      stored_callback("new description")
+    end
+
+    -- Give scheduled callback time to run
+    vim.wait(50)
+
+    vim.fn.jobwait = orig
+
+    local lines = vim.api.nvim_buf_get_lines(sidebar._state().buf, 0, -1, false)
+    assert.is_true(lines[3]:find("new description") ~= nil)
+  end)
+end)

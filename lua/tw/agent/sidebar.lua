@@ -489,6 +489,23 @@ function M.refresh()
 
 	local entries = collect_entries()
 	local lines = render_lines(entries)
+
+	-- Lazy generation: trigger for entries with nil descriptions. The
+	-- description module's loading/cache guards prevent re-triggering, so the
+	-- refresh() call inside the callback won't loop.
+	local ok_desc, description = pcall(require, "tw.agent.description")
+	if ok_desc and description and description.generate then
+		for _, e in ipairs(entries) do
+			if e.description == nil then
+				description.generate(e.buf, function(_result)
+					vim.schedule(function()
+						M.refresh()
+					end)
+				end)
+			end
+		end
+	end
+
 	vim.bo[state.buf].modifiable = true
 	vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
 	vim.bo[state.buf].modifiable = false
