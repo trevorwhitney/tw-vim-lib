@@ -3,10 +3,10 @@
 **Plan:** `docs/specs/plans/2026-06-16-agent-task-description.md`  
 **Design Spec:** `docs/specs/2026-06-16-agent-task-description-design.md`
 
-## Status: 2 of 10 Tasks Complete (20%)
+## Status: 3 of 10 Tasks Complete (30%)
 
 **Base commit:** 83132af66db46348152f1d8ccf70207520bdae73  
-**Latest commit:** 612c308 (docs: mark Tasks 1-2 complete in implementation plan)
+**Latest commit:** e729a8e (feat(agent): add UTF-8 safe truncation to description module)
 
 ---
 
@@ -45,19 +45,27 @@
 
 ---
 
-## ⏳ Remaining Tasks (8 of 10)
-
 ### Task 3: Add UTF-8 safe truncation
-**Status:** Not started  
-**Complexity:** Low (similar to Task 2)  
-**Files:** Modify `lua/tw/agent/description.lua`, `test/description_test.lua`
+**Commit:** e729a8e  
+**Files Modified:**
+- `lua/tw/agent/description.lua` - Added `truncate()` function
+- `test/description_test.lua` - Added 5 new tests + `vim.fn`/`vim.trim` stubs
 
-**What it does:**
-- Add `truncate(text, max_chars)` function using `vim.fn.strcharpart()` for UTF-8 safety
-- Truncate to 30 characters with "..." suffix
-- 5 new tests (ASCII, UTF-8, edge cases)
+**What works:**
+- `truncate(text, max_chars)` - UTF-8 safe via `vim.fn.strchars()`/`vim.fn.strcharpart()`
+- Appends "..." (counted within the limit), returns unchanged if within limit
+- All 18 description tests passing (5 new truncation + 13 existing); 87 total Lua tests pass
+
+**Review note:**
+- Confirmed the `_for_test` exposure pattern is NOT a codebase convention. `status.lua`
+  (the analogous module) tests helpers through public `M.detect()` and exposes only
+  `detect`/`invalidate`/`reset`. `init.lua`/`sidebar.lua` use `M._foo = local_fn`
+  single-underscore aliases. Decision: leave `_for_test` in place through Tasks 3-7,
+  then refactor in Task 8 (note added to plan).
 
 ---
+
+## ⏳ Remaining Tasks (7 of 10)
 
 ### Task 4: Implement generate() with API integration
 **Status:** Not started  

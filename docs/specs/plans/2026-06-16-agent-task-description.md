@@ -393,13 +393,13 @@ git commit -m "feat(agent): add ANSI stripping and text extraction to descriptio
 
 ---
 
-### Task 3: Add UTF-8 safe truncation
+### Task 3: Add UTF-8 safe truncation ✅ COMPLETED (commit: e729a8e)
 
 **Files:**
 - Modify: `lua/tw/agent/description.lua`
-- Test: `test/agent/description_test.lua`
+- Test: `test/description_test.lua`
 
-- [ ] **Step 1: Write tests for UTF-8 safe truncation**
+- [x] **Step 1: Write tests for UTF-8 safe truncation**
 
 Add to `test/agent/description_test.lua`:
 
@@ -446,12 +446,12 @@ describe("description truncation", function()
 end)
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `make test-lua`
 Expected: FAIL with "attempt to call field '_truncate_for_test'"
 
-- [ ] **Step 3: Implement UTF-8 safe truncation function**
+- [x] **Step 3: Implement UTF-8 safe truncation function**
 
 Add to `lua/tw/agent/description.lua` after `extract_text` function:
 
@@ -480,22 +480,22 @@ function M._truncate_for_test(text, max_chars)
 end
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `make test-lua`
 Expected: All tests PASS
 
-- [ ] **Step 5: Stage changes**
+- [x] **Step 5: Stage changes**
 
 ```bash
-git add lua/tw/agent/description.lua test/agent/description_test.lua
+git add lua/tw/agent/description.lua test/description_test.lua
 ```
 
-- [ ] **Step 6: Pause for human review (required stop)**
+- [x] **Step 6: Pause for human review (required stop)**
 
 Review staged changes and STOP. Do not commit. Wait for explicit human confirmation to continue.
 
-- [ ] **Step 7: Commit after confirmation**
+- [x] **Step 7: Commit after confirmation**
 
 ```bash
 git commit -m "feat(agent): add UTF-8 safe truncation to description module"
@@ -1324,6 +1324,18 @@ git commit -m "feat(agent): add lazy description generation trigger in sidebar r
 
 **Files:**
 - All test files
+
+> **Cleanup note (added during Task 3 review):** The `_for_test` helper-exposure
+> pattern in `description.lua` is NOT a codebase convention — no other module uses
+> it. The analogous `status.lua` keeps `strip_ansi`/helpers as private locals and
+> tests them through the public `M.detect()`, exposing only lifecycle methods
+> (`detect`, `invalidate`, `reset`). `init.lua`/`sidebar.lua` use the
+> `M._foo = local_fn` single-underscore alias convention. During this task, refactor
+> `description.lua` to match: rename `_reset_for_test` -> public `M.reset()` (like
+> `status.reset()`), convert helper exposure to single-underscore aliases or test
+> `strip_ansi`/`extract_text`/`truncate` through `generate()`+`get()`, and drop the
+> `_set_loading_for_test`/`_set_cache_for_test` state pokes now that `generate()`
+> can drive state.
 
 - [ ] **Step 1: Run all Lua unit tests**
 
