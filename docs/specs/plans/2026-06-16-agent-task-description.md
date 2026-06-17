@@ -1373,24 +1373,24 @@ git commit -m "chore: fix lint issues"
 
 ---
 
-### Task 9: Manual testing with real API
+### Task 9: Manual testing with real API ✅ COMPLETED (verified working after fix beac934)
 
 **Files:**
 - None (manual testing)
 
-- [ ] **Step 1: Set ANTHROPIC_API_KEY environment variable**
+- [x] **Step 1: Set ANTHROPIC_API_KEY environment variable**
 
 ```bash
 export ANTHROPIC_API_KEY="your-key-here"
 ```
 
-- [ ] **Step 2: Launch Neovim with test config**
+- [x] **Step 2: Launch Neovim with test config**
 
 ```bash
 nvim
 ```
 
-- [ ] **Step 3: Open an agent terminal**
+- [x] **Step 3: Open an agent terminal**
 
 Run in Neovim:
 ```vim
@@ -1399,26 +1399,26 @@ Run in Neovim:
 
 Type a test prompt like "help me fix the failing tests"
 
-- [ ] **Step 4: Open the sidebar**
+- [x] **Step 4: Open the sidebar**
 
 Press `<leader>\` or run:
 ```vim
 :AgentSidebar
 ```
 
-- [ ] **Step 5: Verify loading state appears**
+- [x] **Step 5: Verify loading state appears**
 
 Confirm "⋯ loading..." appears next to the agent entry
 
-- [ ] **Step 6: Wait for description to generate**
+- [x] **Step 6: Wait for description to generate**
 
 After a few seconds, verify the description updates from "⋯ loading..." to actual text
 
-- [ ] **Step 7: Test with multiple agents**
+- [x] **Step 7: Test with multiple agents**
 
 Open 2-3 more agents with different prompts and verify descriptions generate for each
 
-- [ ] **Step 8: Test error state**
+- [x] **Step 8: Test error state**
 
 Temporarily set invalid API key:
 ```bash
@@ -1427,11 +1427,11 @@ export ANTHROPIC_API_KEY="invalid"
 
 Open a new agent and verify "⚠ failed" appears
 
-- [ ] **Step 9: Test width adjustment**
+- [x] **Step 9: Test width adjustment**
 
 Verify the sidebar is wider (45 chars) and descriptions fit without clipping
 
-- [ ] **Step 10: Document manual test results**
+- [x] **Step 10: Document manual test results**
 
 Create a note in commit message or docs summarizing manual test findings
 
