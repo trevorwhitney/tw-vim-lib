@@ -34,6 +34,20 @@ local function extract_text(buf)
 	return strip_ansi(joined)
 end
 
+-- Truncate text to max_chars, respecting UTF-8 boundaries
+-- Appends "..." if truncated. Uses character count, not byte count.
+local function truncate(text, max_chars)
+	local char_count = vim.fn.strchars(text)
+	if char_count <= max_chars then
+		return text
+	end
+
+	-- Truncate to (max_chars - 3) to leave room for "..."
+	-- vim.fn.strcharpart is UTF-8 aware
+	local truncated = vim.fn.strcharpart(text, 0, max_chars - 3)
+	return truncated .. "..."
+end
+
 -- Synchronous lookup of current description state
 -- Returns: nil (not requested), "loading" (in progress), string (description), or "error"
 function M.get(buf)
@@ -73,6 +87,11 @@ end
 -- Test-only: expose text extraction
 function M._extract_text_for_test(buf)
 	return extract_text(buf)
+end
+
+-- Test-only: expose truncation
+function M._truncate_for_test(text, max_chars)
+	return truncate(text, max_chars)
 end
 
 return M

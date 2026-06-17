@@ -60,6 +60,44 @@ _G.vim = {
         end
         return result
     end,
+    fn = {
+        strchars = function(str)
+            -- Simple UTF-8 char counter: count all bytes except continuation bytes
+            local count = 0
+            for i = 1, #str do
+                local byte = string.byte(str, i)
+                if byte < 128 or byte >= 192 then
+                    count = count + 1
+                end
+            end
+            return count
+        end,
+        strcharpart = function(str, start, len)
+            -- Extract len characters starting at start (0-indexed)
+            local chars = {}
+            local char_idx = 0
+            local i = 1
+            while i <= #str do
+                local byte = string.byte(str, i)
+                local char_len = 1
+                if byte >= 240 then char_len = 4
+                elseif byte >= 224 then char_len = 3
+                elseif byte >= 192 then char_len = 2
+                end
+                
+                if char_idx >= start and char_idx < start + len then
+                    table.insert(chars, str:sub(i, i + char_len - 1))
+                end
+                
+                char_idx = char_idx + 1
+                i = i + char_len
+            end
+            return table.concat(chars)
+        end,
+    },
+    trim = function(str)
+        return str:match("^%s*(.-)%s*$")
+    end,
 }
 
 local function load_description()
@@ -203,6 +241,46 @@ end)
 test("returns empty string for invalid buffer", function()
 	local description = load_description()
 	local result = description._extract_text_for_test(99999)
+	eq("", result, "should return empty string")
+end)
+
+print("description truncation tests:")
+print()
+
+test("truncates ASCII text at 30 chars", function()
+	local description = load_description()
+	local input = "this is a very long description that exceeds thirty characters"
+	local result = description._truncate_for_test(input, 30)
+	eq("this is a very long descrip...", result, "should truncate to 30 chars")
+	eq(30, vim.fn.strchars(result), "should be exactly 30 characters")
+end)
+
+test("does not truncate text shorter than limit", function()
+	local description = load_description()
+	local input = "short text"
+	local result = description._truncate_for_test(input, 30)
+	eq("short text", result, "should return unchanged")
+end)
+
+test("handles text exactly at limit", function()
+	local description = load_description()
+	local input = "exactly thirty characters!!!!!"
+	local result = description._truncate_for_test(input, 30)
+	eq("exactly thirty characters!!!!!", result, "should return unchanged")
+end)
+
+test("handles UTF-8 multi-byte characters safely", function()
+	local description = load_description()
+	local input = "测试中文字符串that is very long"
+	local result = description._truncate_for_test(input, 20)
+	eq(20, vim.fn.strchars(result), "should be exactly 20 characters")
+	local ends_with_dots = result:sub(-3) == "..."
+	eq(true, ends_with_dots, "should end with ...")
+end)
+
+test("handles empty string", function()
+	local description = load_description()
+	local result = description._truncate_for_test("", 30)
 	eq("", result, "should return empty string")
 end)
 
