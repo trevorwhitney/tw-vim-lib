@@ -218,6 +218,113 @@ describe("sidebar rendering", function()
     assert.is_nil(map[1])
     assert.is_nil(map[2])
   end)
+
+  it("collect_entries includes description field", function()
+    local buf = setup_alive_instance("opencode", 0)
+
+    -- Mock description module
+    package.loaded["tw.agent.description"] = {
+      get = function(b)
+        if b == buf then
+          return "fixing tests"
+        end
+        return nil
+      end,
+      generate = function() end,
+    }
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    sidebar.open()
+    sidebar.refresh()
+
+    vim.fn.jobwait = orig
+    package.loaded["tw.agent.description"] = nil
+
+    local entries = sidebar._state().entries
+    assert.is_true(#entries >= 1)
+    assert.equals("fixing tests", entries[1].description)
+  end)
+
+  it("render_lines includes description in output", function()
+    local buf = setup_alive_instance("opencode", 0)
+
+    package.loaded["tw.agent.description"] = {
+      get = function(b)
+        if b == buf then
+          return "fixing tests"
+        end
+        return nil
+      end,
+      generate = function() end,
+    }
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    sidebar.open()
+    sidebar.refresh()
+
+    vim.fn.jobwait = orig
+    package.loaded["tw.agent.description"] = nil
+
+    local lines = vim.api.nvim_buf_get_lines(sidebar._state().buf, 0, -1, false)
+    assert.is_true(#lines >= 3)
+    assert.is_true(lines[3]:find("fixing tests") ~= nil)
+  end)
+
+  it("render_lines shows loading state", function()
+    local buf = setup_alive_instance("opencode", 0)
+
+    package.loaded["tw.agent.description"] = {
+      get = function(b)
+        if b == buf then
+          return "loading"
+        end
+        return nil
+      end,
+      generate = function() end,
+    }
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    sidebar.open()
+    sidebar.refresh()
+
+    vim.fn.jobwait = orig
+    package.loaded["tw.agent.description"] = nil
+
+    local lines = vim.api.nvim_buf_get_lines(sidebar._state().buf, 0, -1, false)
+    assert.is_true(lines[3]:find("loading") ~= nil)
+  end)
+
+  it("render_lines shows error state", function()
+    local buf = setup_alive_instance("opencode", 0)
+
+    package.loaded["tw.agent.description"] = {
+      get = function(b)
+        if b == buf then
+          return "error"
+        end
+        return nil
+      end,
+      generate = function() end,
+    }
+
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+
+    sidebar.open()
+    sidebar.refresh()
+
+    vim.fn.jobwait = orig
+    package.loaded["tw.agent.description"] = nil
+
+    local lines = vim.api.nvim_buf_get_lines(sidebar._state().buf, 0, -1, false)
+    assert.is_true(lines[3]:find("failed") ~= nil)
+  end)
 end)
 
 describe("sidebar interaction", function()

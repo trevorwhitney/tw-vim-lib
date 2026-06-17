@@ -2,7 +2,7 @@ local M = {}
 
 local DEFAULTS = {
 	enabled = true,
-	width = 20,
+	width = 45,
 	position = "left", -- "left" or "right"
 	refresh_ms = 1000,
 	icons = {
@@ -366,12 +366,19 @@ local function collect_entries()
 					job_id = inst.job_id,
 				})
 				if s ~= "dead" or state.config.show_dead then
+					local desc = nil
+					local ok_desc, description = pcall(require, "tw.agent.description")
+					if ok_desc and description and description.get then
+						desc = description.get(inst.buf)
+					end
+
 					table.insert(entries, {
 						mode = mode,
 						idx = idx,
 						status = s,
 						buf = inst.buf,
 						is_active = (mode == agent.active_mode and idx == agent.active_index),
+						description = desc,
 					})
 				end
 			end
@@ -391,7 +398,15 @@ local function render_lines(entries)
 	for _, e in ipairs(entries) do
 		local icon = icons[e.status] or "?"
 		local mode_short = abbrev[e.mode] or e.mode
-		table.insert(lines, string.format("%s %s#%d  %s", icon, mode_short, e.idx, e.status))
+		local desc_str = ""
+		if e.description == "loading" then
+			desc_str = "  ⋯ loading..."
+		elseif e.description == "error" then
+			desc_str = "  ⚠ failed"
+		elseif e.description and e.description ~= "" then
+			desc_str = "  " .. e.description
+		end
+		table.insert(lines, string.format("%s %s#%d  %s%s", icon, mode_short, e.idx, e.status, desc_str))
 	end
 	return lines
 end
