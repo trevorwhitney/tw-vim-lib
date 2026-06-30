@@ -90,9 +90,7 @@ function M._resolve_entry_range(entry)
 			return r.start_line, r.end_line
 		end
 	end
-	require("tw.log").warn(
-		string.format("comments: extmark unreadable for %s, using stored range", entry.file)
-	)
+	require("tw.log").warn(string.format("comments: extmark unreadable for %s, using stored range", entry.file))
 	return entry.start_line, entry.end_line
 end
 
@@ -270,17 +268,45 @@ function M.setup(_)
 	end
 	wk.add({
 		mode = { "n", "v" },
-		{ "<leader>cc", function() M.add() end, desc = "Add agent comment (line/selection)" },
+		{
+			"<leader>cc",
+			function()
+				M.add()
+			end,
+			desc = "Add agent comment (line/selection)",
+		},
 	})
 	wk.add({
 		mode = { "n" },
-		{ "<leader>cC", function()
-			local count = vim.v.count
-			M.flush(count)
-		end, desc = "Flush agent comments (count = instance idx)" },
-		{ "<leader>cq", function() M.list() end, desc = "List pending agent comments" },
-		{ "<leader>cr", function() M.remove_under_cursor() end, desc = "Remove agent comment under cursor" },
-		{ "<leader>cX", function() M.clear() end, desc = "Clear agent comment batch" },
+		{
+			"<leader>cC",
+			function()
+				local count = vim.v.count
+				M.flush(count)
+			end,
+			desc = "Flush agent comments (count = instance idx)",
+		},
+		{
+			"<leader>cq",
+			function()
+				M.list()
+			end,
+			desc = "List pending agent comments",
+		},
+		{
+			"<leader>cr",
+			function()
+				M.remove_under_cursor()
+			end,
+			desc = "Remove agent comment under cursor",
+		},
+		{
+			"<leader>cX",
+			function()
+				M.clear()
+			end,
+			desc = "Clear agent comment batch",
+		},
 	})
 end
 
