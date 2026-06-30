@@ -111,9 +111,8 @@ local function set_window_options(win, stacked)
 	end
 end
 
--- Fixed height (in lines) of the agents window when stacked below NERDTree:
--- 2 header lines + 10 agent rows (indices 0-9) + 1 padding line.
-local _STACKED_HEIGHT = 13
+-- 2 header lines + 10 agents * 2 rows (header + description) + 1 padding line.
+local _STACKED_HEIGHT = 23
 
 -- Filetypes of the file-explorer plugins we stack the agents pane beneath.
 -- Matched case-insensitively so "NvimTree" and "nvimtree" both qualify.
@@ -166,6 +165,14 @@ end
 -- intentionally excluded.
 local LOCAL_MODES = { "opencode", "claude", "codex", "pi" }
 
+local function entry_header_row(data_start_line, i)
+	return data_start_line + (i - 1) * 2
+end
+
+local function is_header_row(data_start_line, row)
+	return row >= data_start_line and (row - data_start_line) % 2 == 0
+end
+
 -- Helper functions for navigation and keymaps.
 local function find_next_data_row(direction)
 	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
@@ -183,7 +190,7 @@ local function find_next_data_row(direction)
 		if row > line_count then
 			row = 1
 		end
-		if state.line_to_entry[row] then
+		if state.line_to_entry[row] and is_header_row(state.data_start_line, row) then
 			return row
 		end
 	end
@@ -199,7 +206,7 @@ end
 
 local function first_data_row()
 	for r = state.data_start_line, vim.api.nvim_buf_line_count(state.buf) do
-		if state.line_to_entry[r] then
+		if state.line_to_entry[r] and is_header_row(state.data_start_line, r) then
 			return r
 		end
 	end
@@ -209,7 +216,7 @@ end
 local function last_data_row()
 	local last = nil
 	for r = state.data_start_line, vim.api.nvim_buf_line_count(state.buf) do
-		if state.line_to_entry[r] then
+		if state.line_to_entry[r] and is_header_row(state.data_start_line, r) then
 			last = r
 		end
 	end
@@ -387,26 +394,27 @@ local function collect_entries()
 	return entries
 end
 
-local function render_lines(entries)
+local function build_lines(entries, config)
 	local lines = { "⌬ Agents", "─────────" }
 	if #entries == 0 then
 		table.insert(lines, "(no active sessions)")
 		return lines
 	end
-	local icons = state.config.icons
-	local abbrev = state.config.mode_abbrev
+	local icons = config.icons
+	local abbrev = config.mode_abbrev
 	for _, e in ipairs(entries) do
 		local icon = icons[e.status] or "?"
 		local mode_short = abbrev[e.mode] or e.mode
-		local desc_str = ""
+		table.insert(lines, string.format("%s %s#%d  %s", icon, mode_short, e.idx, e.status))
+		local desc_str = "    "
 		if e.description == "loading" then
-			desc_str = "  ⋯ loading..."
+			desc_str = "    ⋯ loading..."
 		elseif e.description == "error" then
-			desc_str = "  ⚠ failed"
+			desc_str = "    ⚠ failed"
 		elseif e.description and e.description ~= "" then
-			desc_str = "  " .. e.description
+			desc_str = "    " .. e.description
 		end
-		table.insert(lines, string.format("%s %s#%d  %s%s", icon, mode_short, e.idx, e.status, desc_str))
+		table.insert(lines, desc_str)
 	end
 	return lines
 end
@@ -419,7 +427,7 @@ local function apply_highlights(buf, entries)
 		hl_group = "TwAgentSidebarHeader",
 	})
 	for i, e in ipairs(entries) do
-		local row = state.data_start_line - 1 + (i - 1)
+		local row = entry_header_row(state.data_start_line, i) - 1
 		local hl = STATUS_HL[e.status] or "Comment"
 		vim.api.nvim_buf_set_extmark(buf, state.ns, row, 0, {
 			end_row = row + 1,
@@ -427,18 +435,27 @@ local function apply_highlights(buf, entries)
 			hl_group = hl,
 			hl_eol = false,
 		})
+		vim.api.nvim_buf_set_extmark(buf, state.ns, row + 1, 0, {
+			end_row = row + 2,
+			end_col = 0,
+			hl_group = "TwAgentSidebarDesc",
+			hl_eol = false,
+		})
 		if e.is_active then
 			vim.api.nvim_buf_set_extmark(buf, state.ns, row, 0, {
+				end_row = row + 2,
 				line_hl_group = "TwAgentSidebarActive",
 			})
 		end
 	end
 end
 
-local function build_line_to_entry(entries)
+local function build_map(entries, data_start_line)
 	local map = {}
 	for i = 1, #entries do
-		map[state.data_start_line + (i - 1)] = i
+		local header = entry_header_row(data_start_line, i)
+		map[header] = i
+		map[header + 1] = i
 	end
 	return map
 end
@@ -488,7 +505,7 @@ function M.refresh()
 	end
 
 	local entries = collect_entries()
-	local lines = render_lines(entries)
+	local lines = build_lines(entries, state.config)
 
 	-- Lazy generation: trigger for entries with nil descriptions. The
 	-- description module's loading/cache guards prevent re-triggering, so the
@@ -510,14 +527,14 @@ function M.refresh()
 	vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
 	vim.bo[state.buf].modifiable = false
 	state.entries = entries
-	state.line_to_entry = build_line_to_entry(entries)
+	state.line_to_entry = build_map(entries, state.data_start_line)
 	apply_highlights(state.buf, entries)
 
 	-- Restore cursor to the same (mode, idx) if it still exists.
 	if cursor_target then
 		for i, e in ipairs(entries) do
 			if e.mode == cursor_target.mode and e.idx == cursor_target.idx then
-				vim.api.nvim_win_set_cursor(state.win, { state.data_start_line + (i - 1), 0 })
+				vim.api.nvim_win_set_cursor(state.win, { entry_header_row(state.data_start_line, i), 0 })
 				return
 			end
 		end
@@ -526,7 +543,7 @@ function M.refresh()
 	-- Default positioning: the active entry, then the first entry.
 	for i, e in ipairs(entries) do
 		if e.is_active then
-			vim.api.nvim_win_set_cursor(state.win, { state.data_start_line + (i - 1), 0 })
+			vim.api.nvim_win_set_cursor(state.win, { entry_header_row(state.data_start_line, i), 0 })
 			return
 		end
 	end
@@ -542,11 +559,17 @@ local function define_highlights()
 		TwAgentSidebarWaiting = "WarningMsg",
 		TwAgentSidebarDead = "ErrorMsg",
 		TwAgentSidebarActive = "Visual",
+		TwAgentSidebarDesc = "Comment",
 	}
 	for name, link in pairs(groups) do
 		vim.api.nvim_set_hl(0, name, { link = link, default = true })
 	end
 end
+
+M._render_lines = build_lines
+M._build_line_to_entry = build_map
+M._entry_header_row = entry_header_row
+M._is_header_row = is_header_row
 
 -- Define highlight groups at module load so they're available even
 -- before setup() is called.
