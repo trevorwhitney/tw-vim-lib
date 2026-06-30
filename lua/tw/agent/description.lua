@@ -6,6 +6,8 @@ local descriptions = {}
 -- Set of buffer numbers currently generating descriptions (used as Lua set: buf -> true)
 local loading = {}
 
+local overridden = {}
+
 -- Read API key once at module load to avoid repeated env lookups
 local api_key = vim.loop.os_getenv("ANTHROPIC_API_KEY")
 
@@ -52,6 +54,10 @@ end
 -- Calls callback(description_or_error) when complete
 -- No-op if already loading or API key missing
 function M.generate(buf, callback)
+	if overridden[buf] then
+		return
+	end
+
 	-- Guard: already loading this buffer
 	if loading[buf] then
 		return
@@ -112,6 +118,10 @@ function M.generate(buf, callback)
 				-- Remove from loading set
 				loading[buf] = nil
 
+				if overridden[buf] then
+					return
+				end
+
 				-- Handle response
 				if response.status == 200 then
 					local ok_parse, data = pcall(vim.json.decode, response.body)
@@ -166,10 +176,23 @@ function M.get(buf)
 	return descriptions[buf] -- nil, string, or "error"
 end
 
+function M.set(buf, text)
+	descriptions[buf] = text
+	loading[buf] = nil
+	overridden[buf] = true
+end
+
+function M.clear_override(buf)
+	overridden[buf] = nil
+	descriptions[buf] = nil
+	loading[buf] = nil
+end
+
 -- Clear cached description for a buffer
 function M.invalidate(buf)
 	descriptions[buf] = nil
 	loading[buf] = nil
+	overridden[buf] = nil
 end
 
 -- Reset all cached state. Mirrors status.reset(); used by tests and any
@@ -177,6 +200,7 @@ end
 function M.reset()
 	descriptions = {}
 	loading = {}
+	overridden = {}
 end
 
 -- Internal seams exposed for tests, following the M._foo convention used in

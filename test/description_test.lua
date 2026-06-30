@@ -104,11 +104,32 @@ _G.vim = {
     trim = function(str)
         return str:match("^%s*(.-)%s*$")
     end,
+    schedule = function(fn)
+        fn()
+    end,
+    json = {
+        decode = function(str)
+            return { content = { { text = str } } }
+        end,
+        encode = function(_tbl)
+            return "{}"
+        end,
+    },
 }
 
 local function load_description()
     package.loaded["tw.agent.description"] = nil
     return require("tw.agent.description")
+end
+
+local function install_fake_curl()
+    local captured = {}
+    package.loaded["plenary.curl"] = {
+        post = function(_url, opts)
+            captured.callback = opts.callback
+        end,
+    }
+    return captured
 end
 
 print("description module state management tests:")
@@ -158,6 +179,88 @@ test("invalidate() clears both cache and loading state", function()
     local r2 = description.get(456)
     eq(nil, r1, "should clear cached description")
     eq(nil, r2, "should clear loading state")
+end)
+
+test("set() stores value, marks overridden, and get() returns it", function()
+	local description = load_description()
+	description.reset()
+	description.set(123, "manual label")
+	eq("manual label", description.get(123), "get returns the manual value")
+end)
+
+test("set() stores value as-typed without truncation", function()
+	local description = load_description()
+	description.reset()
+	local long = string.rep("x", 80)
+	description.set(123, long)
+	eq(long, description.get(123), "manual value is not truncated")
+end)
+
+test("generate() does not run for an overridden buffer", function()
+	local description = load_description()
+	description.reset()
+	description._set_api_key("test-key")
+	description.set(123, "manual label")
+	local called = false
+	description.generate(123, function()
+		called = true
+	end)
+	eq(false, called, "callback must not fire for overridden buffer")
+	eq("manual label", description.get(123), "override is preserved")
+end)
+
+test("clear_override() removes override and cache so get() returns nil", function()
+	local description = load_description()
+	description.reset()
+	description.set(123, "manual label")
+	description.clear_override(123)
+	eq(nil, description.get(123), "cache and override cleared")
+end)
+
+test("generate() runs again after the override is cleared via invalidate", function()
+	local description = load_description()
+	description.reset()
+	description.set(123, "manual label")
+	description.invalidate(123)
+	eq(nil, description.get(123), "invalidate clears the cache")
+	local called = false
+	description._set_api_key("test-key")
+	description.generate(123, function()
+		called = true
+	end)
+	eq(true, called, "generate runs once the override is gone")
+end)
+
+test("reset() clears override state", function()
+	local description = load_description()
+	description.set(123, "manual label")
+	description.reset()
+	eq(nil, description.get(123), "reset clears override")
+end)
+
+test("in-flight generate response does not overwrite a manual override", function()
+	local description = load_description()
+	description.reset()
+	description._set_api_key("test-key")
+	local captured = install_fake_curl()
+
+	local buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "some terminal output" })
+
+	local cb_value = "unset"
+	description.generate(buf, function(value)
+		cb_value = value
+	end)
+
+	description.set(buf, "manual label")
+
+	captured.callback({ status = 200, body = "auto generated" })
+
+	eq("manual label", description.get(buf), "manual override survives the in-flight response")
+	eq("unset", cb_value, "generate callback does not fire after override")
+
+	vim.api.nvim_buf_delete(buf, { force = true })
+	package.loaded["plenary.curl"] = nil
 end)
 
 print("description ANSI stripping tests:")
