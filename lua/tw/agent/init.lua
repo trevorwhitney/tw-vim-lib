@@ -1324,6 +1324,12 @@ function M.setup(opts)
 		drawer_mod.setup(opts.drawer or {})
 	end
 
+	-- Batch review comments (optional; guarded so it can't break startup).
+	local comments_ok, comments_mod = pcall(require, "tw.agent.comments")
+	if comments_ok and comments_mod and comments_mod.setup then
+		comments_mod.setup(opts.comments or {})
+	end
+
 	-- Setup autocmds and user commands
 	commands.setup_autocmds(M)
 	commands.setup_user_commands(M)
