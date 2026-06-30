@@ -38,6 +38,9 @@ _G.vim = {
 		nvim_create_autocmd = function()
 			return 1
 		end,
+		nvim_win_is_valid = function()
+			return true
+		end,
 	},
 }
 
@@ -117,6 +120,20 @@ test("is_header_row is true only on header rows", function()
 	eq(true, sidebar._is_header_row(3, 5), "row 5 is a header")
 	eq(false, sidebar._is_header_row(3, 6), "row 6 is a description")
 	eq(false, sidebar._is_header_row(3, 1), "rows before data_start_line are not headers")
+end)
+
+print("sidebar editing guard tests:")
+print()
+
+test("refresh is suppressed while editing", function()
+	local sidebar = load_sidebar()
+	local st = sidebar._state()
+	st.win = 1
+	st.buf = 1
+	st.editing = true
+	st.entries = { "sentinel" }
+	sidebar.refresh()
+	eq("sentinel", st.entries[1], "entries are not rebuilt while editing")
 end)
 
 H.finish()

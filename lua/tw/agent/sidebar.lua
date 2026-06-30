@@ -29,6 +29,7 @@ local state = {
 	line_to_entry = {},
 	data_start_line = 3,
 	config = nil,
+	editing = false,
 }
 
 function M._state()
@@ -239,6 +240,9 @@ local function set_buffer_keymaps(buf)
 	map("o", function()
 		M._activate_under_cursor()
 	end, "Sidebar: activate session")
+	map("c", function()
+		M._edit_under_cursor()
+	end, "Sidebar: edit description")
 	map("q", function()
 		M.close()
 	end, "Sidebar: close")
@@ -481,7 +485,50 @@ function M._activate_under_cursor()
 	agent.Open(entry.mode, nil, "vsplit", entry.idx)
 end
 
+function M._edit_under_cursor()
+	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+		return
+	end
+	local row = vim.api.nvim_win_get_cursor(state.win)[1]
+	local entry_idx = state.line_to_entry[row]
+	if not entry_idx then
+		return
+	end
+	local entry = state.entries[entry_idx]
+	if not entry then
+		return
+	end
+
+	local description = require("tw.agent.description")
+	local current = description.get(entry.buf)
+	local default = ""
+	if type(current) == "string" and current ~= "loading" and current ~= "error" then
+		default = current
+	end
+
+	state.editing = true
+	local ok = pcall(vim.ui.input, { prompt = "Description: ", default = default }, function(input)
+		state.editing = false
+		if input == nil then
+			return
+		end
+		local trimmed = vim.trim(input)
+		if trimmed == "" then
+			description.clear_override(entry.buf)
+		else
+			description.set(entry.buf, trimmed)
+		end
+		M.refresh()
+	end)
+	if not ok then
+		state.editing = false
+	end
+end
+
 function M.refresh()
+	if state.editing then
+		return
+	end
 	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
 		return
 	end
