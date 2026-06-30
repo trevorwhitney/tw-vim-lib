@@ -264,6 +264,9 @@ local function set_buffer_keymaps(buf)
 			vim.api.nvim_win_set_cursor(state.win, { r, 0 })
 		end
 	end, "Sidebar: last session")
+	map("g?", function()
+		M._show_help()
+	end, "Sidebar: keybinding help")
 end
 
 function M.open()
@@ -523,6 +526,55 @@ function M._edit_under_cursor()
 	if not ok then
 		state.editing = false
 	end
+end
+
+function M._show_help()
+	local keys = {
+		"Agent Sidebar — keys",
+		"",
+		"j / k        move between agents",
+		"<CR> / o     open agent under cursor",
+		"c            edit description",
+		"r            refresh",
+		"gg / G       first / last agent",
+		"q / <Esc>    close sidebar",
+		"g?           this help",
+	}
+
+	local longest = 0
+	for _, line in ipairs(keys) do
+		if #line > longest then
+			longest = #line
+		end
+	end
+
+	local width = math.min(longest + 2, math.max(1, vim.o.columns - 2))
+	local height = math.min(#keys, math.max(1, vim.o.lines - 2))
+	local row = math.max(0, math.floor((vim.o.lines - (height + 2)) / 2))
+	local col = math.max(0, math.floor((vim.o.columns - (width + 2)) / 2))
+
+	local buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, keys)
+	vim.bo[buf].modifiable = false
+	vim.bo[buf].bufhidden = "wipe"
+
+	local win = vim.api.nvim_open_win(buf, true, {
+		relative = "editor",
+		width = width,
+		height = height,
+		row = row,
+		col = col,
+		style = "minimal",
+		border = "rounded",
+	})
+
+	local close = function()
+		if vim.api.nvim_win_is_valid(win) then
+			vim.api.nvim_win_close(win, true)
+		end
+	end
+	vim.keymap.set("n", "q", close, { buffer = buf, silent = true, desc = "Close help" })
+	vim.keymap.set("n", "<Esc>", close, { buffer = buf, silent = true, desc = "Close help" })
 end
 
 function M.refresh()
