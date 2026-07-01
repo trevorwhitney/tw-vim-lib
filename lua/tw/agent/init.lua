@@ -6,6 +6,7 @@ local util = require("tw.agent.util")
 local log = require("tw.log")
 local commands = require("tw.agent.commands")
 local buffer_config = require("tw.agent.buffer-config")
+local publish = require("tw.agent.publish")
 local default_args = {}
 
 -- Notify the sidebar that something in the instance/active state changed.
@@ -69,7 +70,8 @@ end
 local function set_instance(mode, idx, buf, job_id)
 	idx = idx or 0
 	M.instances[mode] = M.instances[mode] or {}
-	M.instances[mode][idx] = { buf = buf, job_id = job_id }
+	M.instances[mode][idx] = { buf = buf, job_id = job_id, mode = mode }
+	M._publish_record(mode, idx, buf)
 end
 
 local function clear_instance(mode, idx)
@@ -112,6 +114,77 @@ M._set_instance = set_instance
 M._clear_instance = clear_instance
 M._iter_all_instances = iter_all_instances
 
+-- Resolve the worktree root used as the registry location and cwd. Falls back
+-- to the current working directory when git root resolution fails.
+local function resolve_root()
+	local root = util.get_git_root()
+	if root and root ~= "" then
+		return root
+	end
+	return vim.fn.getcwd()
+end
+
+function M._publish_record(mode, idx, buf)
+	pcall(function()
+		local root = resolve_root()
+		local desc = nil
+		local ok, description = pcall(require, "tw.agent.description")
+		if ok and description and description.get then
+			desc = description.get(buf)
+		end
+		local status = "working"
+		local ok_status, status_mod = pcall(require, "tw.agent.status")
+		if ok_status and status_mod and status_mod.detect then
+			status = status_mod.detect({
+				mode = mode,
+				idx = idx,
+				buf = buf,
+				job_id = (M.instances[mode][idx] or {}).job_id,
+			})
+		end
+		publish.record({
+			root = root,
+			mode = mode,
+			idx = idx,
+			cwd = root,
+			status = status,
+			description = desc,
+		})
+		M._start_publish_timer()
+	end)
+end
+
+function M._publish_exit(mode, idx)
+	pcall(function()
+		local root = resolve_root()
+		publish.record_exit({ root = root, mode = mode, idx = idx, cwd = root })
+	end)
+end
+
+function M._live_instances()
+	local live = {}
+	for mode, idx, buf, job_id in iter_all_instances() do
+		if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+			table.insert(live, { mode = mode, idx = idx, buf = buf, job_id = job_id })
+		end
+	end
+	return live
+end
+
+function M._start_publish_timer()
+	publish.start_timer(function()
+		return M._live_instances()
+	end, 1000)
+end
+
+function M._stop_publish_timer_if_idle()
+	pcall(function()
+		if #M._live_instances() == 0 then
+			publish.stop_timer()
+		end
+	end)
+end
+
 -- Find the plugin installation path
 local function _get_plugin_root()
 	local source = debug.getinfo(1, "S").source
@@ -131,6 +204,8 @@ local function OnExit(mode, idx)
 			return
 		end
 		clear_instance(mode, idx)
+		M._publish_exit(mode, idx)
+		M._stop_publish_timer_if_idle()
 		if M.active_mode == mode and M.active_index == idx then
 			M.active_mode = "none"
 			M.active_index = 0

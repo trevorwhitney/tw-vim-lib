@@ -4,7 +4,13 @@ local M = {}
 -- Reset module state and install a tw.log mock that swallows all calls.
 -- Must be called BEFORE the first require("tw.agent") in a test's
 -- before_each. Returns the agent module for convenience.
-function M.reset_and_mock(also_load_claude)
+--
+-- opts.publish / opts.registry, when supplied, replace the default no-op stubs
+-- for those modules so a test can spy on publisher calls. Stubs are installed
+-- deterministically on every call (clearing any prior state) to keep tests
+-- isolated across files.
+function M.reset_and_mock(also_load_claude, opts)
+  opts = opts or {}
   package.loaded["tw.agent"]        = nil
   package.loaded["tw.agent.claude"] = nil
   package.loaded["tw.log"]          = nil
@@ -13,6 +19,16 @@ function M.reset_and_mock(also_load_claude)
     warn  = function() end,
     error = function() end,
     debug = function() end,
+  }
+  package.loaded["tw.agent.registry"] = opts.registry or {
+    load = function() return {} end,
+    upsert = function() end,
+    _key_for = function(m, i) return string.format("%s#%d", m, i) end,
+  }
+  package.loaded["tw.agent.publish"] = opts.publish or {
+    record = function() end, record_exit = function() end,
+    start_timer = function() end, stop_timer = function() end,
+    push_status = function() end,
   }
   local agent = require("tw.agent")
   local claude_mod

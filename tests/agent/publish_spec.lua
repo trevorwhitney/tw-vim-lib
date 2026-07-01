@@ -143,9 +143,41 @@ describe("publish — timer lifecycle", function()
     publish.stop_timer()
   end)
 
-  it("stop_timer is safe when no timer is running", function()
-    assert.has_no.errors(function()
-      publish.stop_timer()
-    end)
+   it("stop_timer is safe when no timer is running", function()
+     assert.has_no.errors(function()
+       publish.stop_timer()
+     end)
+   end)
+end)
+
+describe("init publisher wiring", function()
+  local agent
+  local recorded
+
+  before_each(function()
+    local helpers = require("tests.agent.spec_helpers")
+    recorded = { record = {}, exit = {} }
+    agent = helpers.reset_and_mock(false, {
+      publish = {
+        record = function(e) table.insert(recorded.record, e) end,
+        record_exit = function(e) table.insert(recorded.exit, e) end,
+        start_timer = function() end,
+        stop_timer = function() end,
+        push_status = function() end,
+      },
+    })
+  end)
+
+  it("records a session when set_instance runs", function()
+    agent._set_instance("opencode", 0, 10, 999)
+    assert.equals(1, #recorded.record)
+    assert.equals("opencode", recorded.record[1].mode)
+    assert.equals(0, recorded.record[1].idx)
+  end)
+
+  it("stores mode on the instance for the timer's status.detect path", function()
+    agent._set_instance("claude", 2, 11, 998)
+    local inst = agent._get_instance("claude", 2)
+    assert.equals("claude", inst.mode)
   end)
 end)
