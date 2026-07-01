@@ -9,6 +9,7 @@ local DEFAULTS = {
 		working = "", -- nf-fa-cog (\uf013)
 		waiting = "", -- nf-fa-comment (\uf075)
 		dead = "", -- nf-fa-times-circle (\uf057)
+		restorable = "", -- nf-fa-history (\uf1da)
 	},
 	mode_abbrev = {
 		opencode = "oc",
@@ -369,12 +370,29 @@ local STATUS_HL = {
 	working = "TwAgentSidebarWorking",
 	waiting = "TwAgentSidebarWaiting",
 	dead = "TwAgentSidebarDead",
+	restorable = "TwAgentSidebarRestorable",
 }
 
-local function collect_entries()
+local function resolve_registry_root(root)
+	if root and root ~= "" then
+		return root
+	end
+	local ok, util = pcall(require, "tw.agent.util")
+	if ok and util and util.get_git_root then
+		local git_root = util.get_git_root()
+		if git_root and git_root ~= "" then
+			return git_root
+		end
+	end
+	return vim.fn.getcwd()
+end
+
+local function collect_entries(root)
 	local agent = require("tw.agent")
 	local status = require("tw.agent.status")
 	local entries = {}
+	local live_keys = {}
+
 	for _, mode in ipairs(LOCAL_MODES) do
 		local instances = agent.instances[mode] or {}
 		local indices = {}
@@ -385,6 +403,9 @@ local function collect_entries()
 		for _, idx in ipairs(indices) do
 			local inst = instances[idx]
 			if inst and inst.buf and vim.api.nvim_buf_is_valid(inst.buf) and inst.job_id then
+				local key = string.format("%s#%d", mode, idx)
+				live_keys[key] = true
+
 				local s = status.detect({
 					mode = mode,
 					idx = idx,
@@ -405,11 +426,38 @@ local function collect_entries()
 						buf = inst.buf,
 						is_active = (mode == agent.active_mode and idx == agent.active_index),
 						description = desc,
+						restorable = false,
 					})
 				end
 			end
 		end
 	end
+
+	local ok_reg, registry = pcall(require, "tw.agent.registry")
+	if ok_reg and registry and registry.load then
+		local reg_root = resolve_registry_root(root)
+		local saved = registry.load(reg_root)
+		local keys = {}
+		for key, _ in pairs(saved) do
+			table.insert(keys, key)
+		end
+		table.sort(keys)
+		for _, key in ipairs(keys) do
+			local rec = saved[key]
+			if not live_keys[key] then
+				table.insert(entries, {
+					mode = rec.mode,
+					idx = rec.idx,
+					status = "restorable",
+					buf = nil,
+					is_active = false,
+					description = rec.description,
+					restorable = true,
+				})
+			end
+		end
+	end
+
 	return entries
 end
 
@@ -517,7 +565,16 @@ function M._activate_under_cursor()
 	if not ok then
 		return
 	end
-	agent.Open(entry.mode, nil, "vsplit", entry.idx)
+	if entry.restorable then
+		local resume_args = {}
+		local ok_resume, resume = pcall(require, "tw.agent.resume")
+		if ok_resume and resume and resume.args_for then
+			resume_args = resume.args_for(entry.mode, entry.idx, resolve_registry_root(nil))
+		end
+		agent.Open(entry.mode, resume_args, "vsplit", entry.idx)
+	else
+		agent.Open(entry.mode, nil, "vsplit", entry.idx)
+	end
 end
 
 function M._edit_under_cursor()
@@ -530,7 +587,7 @@ function M._edit_under_cursor()
 		return
 	end
 	local entry = state.entries[entry_idx]
-	if not entry then
+	if not entry or not entry.buf then
 		return
 	end
 
@@ -644,7 +701,7 @@ function M.refresh()
 	local ok_desc, description = pcall(require, "tw.agent.description")
 	if ok_desc and description and description.generate then
 		for _, e in ipairs(entries) do
-			if e.description == nil then
+			if e.buf and e.description == nil then
 				description.generate(e.buf, function(_result)
 					vim.schedule(function()
 						M.refresh()
@@ -698,6 +755,7 @@ local function define_highlights()
 		TwAgentSidebarWorking = "String",
 		TwAgentSidebarWaiting = "WarningMsg",
 		TwAgentSidebarDead = "ErrorMsg",
+		TwAgentSidebarRestorable = "Comment",
 		TwAgentSidebarActive = "Visual",
 		TwAgentSidebarDesc = "Comment",
 		TwAgentSidebarCursor = "CursorLine",
@@ -711,6 +769,7 @@ M._render_lines = build_lines
 M._build_line_to_entry = build_map
 M._entry_header_row = entry_header_row
 M._is_header_row = is_header_row
+M._collect_entries = collect_entries
 
 -- Define highlight groups at module load so they're available even
 -- before setup() is called.

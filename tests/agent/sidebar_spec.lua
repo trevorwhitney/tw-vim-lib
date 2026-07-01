@@ -864,3 +864,151 @@ describe("sidebar lazy description generation", function()
     assert.is_true(lines[3]:find("new description") ~= nil)
   end)
 end)
+
+describe("sidebar restorable entries", function()
+  local sidebar, agent
+
+  before_each(function()
+    agent = helpers.reset_and_mock(false, {
+      registry = {
+        load = function()
+          return {
+            ["opencode#0"] = { mode = "opencode", idx = 0, cwd = "/wt",
+              last_status = "restorable", description = "old task",
+              updated_ts = os.time() },
+          }
+        end,
+        upsert = function() end,
+        _key_for = function(m, i) return string.format("%s#%d", m, i) end,
+      },
+    })
+    package.loaded["tw.agent.sidebar"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({ enabled = true })
+  end)
+
+  after_each(function()
+    pcall(sidebar.close)
+  end)
+
+  it("includes registry entries with no live instance as restorable", function()
+    local entries = sidebar._collect_entries("/wt")
+    local found
+    for _, e in ipairs(entries) do
+      if e.mode == "opencode" and e.idx == 0 then found = e end
+    end
+    assert.is_not_nil(found)
+    assert.equals("restorable", found.status)
+    assert.is_true(found.restorable)
+  end)
+
+  it("does not duplicate a live instance as restorable", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    agent._set_instance("opencode", 0, buf, 999)
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    local entries = sidebar._collect_entries("/wt")
+    vim.fn.jobwait = orig
+    local count = 0
+    for _, e in ipairs(entries) do
+      if e.mode == "opencode" and e.idx == 0 then count = count + 1 end
+    end
+    assert.equals(1, count)
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("does not show a restorable ghost for a dead but present instance (show_dead=false)", function()
+    package.loaded["tw.agent.status"] = { detect = function() return "dead" end, invalidate = function() end }
+    local buf = vim.api.nvim_create_buf(false, true)
+    agent._set_instance("opencode", 0, buf, 999)
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    local entries = sidebar._collect_entries("/wt")
+    vim.fn.jobwait = orig
+    package.loaded["tw.agent.status"] = nil
+    for _, e in ipairs(entries) do
+      if e.mode == "opencode" and e.idx == 0 then
+        assert.is_false(e.restorable)
+      end
+    end
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("activates a restorable entry with resume args", function()
+    package.loaded["tw.agent.resume"] = {
+      args_for = function() return { "--session", "ses_x" } end,
+    }
+    local captured
+    local orig_open = agent.Open
+    agent.Open = function(mode, args, window_type, idx)
+      captured = { mode = mode, args = args, window_type = window_type, idx = idx }
+    end
+    sidebar.open()
+    sidebar.refresh()
+    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    sidebar._activate_under_cursor()
+    agent.Open = orig_open
+    package.loaded["tw.agent.resume"] = nil
+    assert.equals("opencode", captured.mode)
+    assert.same({ "--session", "ses_x" }, captured.args)
+    assert.equals(0, captured.idx)
+  end)
+
+  it("edit-under-cursor is a no-op for a restorable (nil-buf) entry", function()
+    sidebar.open()
+    sidebar.refresh()
+    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    assert.has_no.errors(function()
+      sidebar._edit_under_cursor()
+    end)
+  end)
+end)
+
+describe("sidebar restorable supersession", function()
+  local sidebar, agent
+
+  before_each(function()
+    agent = helpers.reset_and_mock(false, {
+      registry = {
+        load = function()
+          return {
+            ["opencode#0"] = { mode = "opencode", idx = 0, cwd = "/wt",
+              last_status = "restorable", updated_ts = os.time() },
+          }
+        end,
+        upsert = function() end,
+        _key_for = function(m, i) return string.format("%s#%d", m, i) end,
+      },
+    })
+    package.loaded["tw.agent.sidebar"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({ enabled = true })
+  end)
+
+  after_each(function()
+    pcall(sidebar.close)
+  end)
+
+  it("a live launch for a slot hides its restorable entry", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    agent._set_instance("opencode", 0, buf, 999)
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    local entries = sidebar._collect_entries("/wt")
+    vim.fn.jobwait = orig
+    for _, e in ipairs(entries) do
+      if e.mode == "opencode" and e.idx == 0 then
+        assert.is_false(e.restorable)
+      end
+    end
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+end)
