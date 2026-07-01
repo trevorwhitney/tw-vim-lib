@@ -274,6 +274,15 @@ function M.setup()
 			remap = false,
 		},
 		{
+			"<leader>gg",
+			function()
+				require("tw.telescope-git-branch-diff").git_branch_diff_picker()
+			end,
+			desc = "Diff Against Branch (Branch Picker)",
+			nowait = false,
+			remap = false,
+		},
+		{
 			"<leader>gh",
 			function()
 				vim.cmd("DiffviewFileHistory")
