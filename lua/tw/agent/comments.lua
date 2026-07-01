@@ -165,6 +165,8 @@ local function open_capture_window(title, on_confirm)
 		col = math.floor((vim.o.columns - width) / 2),
 		border = "rounded",
 		title = title,
+		footer = " <C-s> save   q/<Esc> cancel ",
+		footer_pos = "center",
 	})
 
 	local function close()
