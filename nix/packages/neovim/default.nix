@@ -116,7 +116,7 @@ let
       packages != [ ]
     ) ''--prefix PATH : "${lib.makeBinPath packages}"'';
 
-  neovim = pkgs.neovim-unwrapped.override { nodejs = nodeJsPkg; };
+  neovim = pkgs.neovim-unwrapped;
 
   extraLuaPackages = ps: [ ps.magick ];
   luaEnv = neovim.lua.withPackages extraLuaPackages;
