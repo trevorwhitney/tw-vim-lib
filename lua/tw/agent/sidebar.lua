@@ -25,6 +25,7 @@ local state = {
 	buf = nil,
 	timer = nil,
 	ns = nil,
+	cursor_ns = nil,
 	entries = {},
 	line_to_entry = {},
 	data_start_line = 3,
@@ -51,6 +52,7 @@ end
 function M.setup(opts)
 	state.config = merge_defaults(opts or {})
 	state.ns = vim.api.nvim_create_namespace("tw_agent_sidebar")
+	state.cursor_ns = vim.api.nvim_create_namespace("tw_agent_sidebar_cursor")
 	if state.config.enabled == false then
 		-- Clear the augroup in case a previous setup() registered handlers.
 		pcall(vim.api.nvim_del_augroup_by_name, "tw_agent_sidebar")
@@ -100,7 +102,9 @@ local function set_window_options(win, stacked)
 	vim.wo[win].number = false
 	vim.wo[win].relativenumber = false
 	vim.wo[win].signcolumn = "no"
-	vim.wo[win].cursorline = true
+	-- The built-in cursorline highlights only one screen line; the sidebar
+	-- highlights both rows of an entry via apply_cursor_highlight instead.
+	vim.wo[win].cursorline = false
 	vim.wo[win].wrap = false
 	vim.wo[win].winfixwidth = true
 	vim.wo[win].list = false
@@ -321,6 +325,14 @@ function M.open()
 		end,
 	})
 
+	vim.api.nvim_create_autocmd("CursorMoved", {
+		buffer = state.buf,
+		callback = function()
+			M._apply_cursor_highlight()
+		end,
+		desc = "Highlight both rows of the agent entry under the cursor",
+	})
+
 	-- Initial render so the user doesn't see a blank window.
 	M.refresh()
 
@@ -450,11 +462,31 @@ local function apply_highlights(buf, entries)
 		})
 		if e.is_active then
 			vim.api.nvim_buf_set_extmark(buf, state.ns, row, 0, {
-				end_row = row + 2,
+				end_row = row + 1,
 				line_hl_group = "TwAgentSidebarActive",
 			})
 		end
 	end
+end
+
+function M._apply_cursor_highlight()
+	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
+		return
+	end
+	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+		return
+	end
+	vim.api.nvim_buf_clear_namespace(state.buf, state.cursor_ns, 0, -1)
+	local row = vim.api.nvim_win_get_cursor(state.win)[1]
+	local entry_idx = state.line_to_entry[row]
+	if not entry_idx then
+		return
+	end
+	local header = entry_header_row(state.data_start_line, entry_idx) - 1
+	vim.api.nvim_buf_set_extmark(state.buf, state.cursor_ns, header, 0, {
+		end_row = header + 1,
+		line_hl_group = "TwAgentSidebarCursor",
+	})
 end
 
 local function build_map(entries, data_start_line)
@@ -629,26 +661,35 @@ function M.refresh()
 	state.line_to_entry = build_map(entries, state.data_start_line)
 	apply_highlights(state.buf, entries)
 
+	local target_row = nil
+
 	-- Restore cursor to the same (mode, idx) if it still exists.
 	if cursor_target then
 		for i, e in ipairs(entries) do
 			if e.mode == cursor_target.mode and e.idx == cursor_target.idx then
-				vim.api.nvim_win_set_cursor(state.win, { entry_header_row(state.data_start_line, i), 0 })
-				return
+				target_row = entry_header_row(state.data_start_line, i)
+				break
 			end
 		end
 	end
 
 	-- Default positioning: the active entry, then the first entry.
-	for i, e in ipairs(entries) do
-		if e.is_active then
-			vim.api.nvim_win_set_cursor(state.win, { entry_header_row(state.data_start_line, i), 0 })
-			return
+	if not target_row then
+		for i, e in ipairs(entries) do
+			if e.is_active then
+				target_row = entry_header_row(state.data_start_line, i)
+				break
+			end
 		end
 	end
-	if #entries > 0 then
-		vim.api.nvim_win_set_cursor(state.win, { state.data_start_line, 0 })
+	if not target_row and #entries > 0 then
+		target_row = state.data_start_line
 	end
+
+	if target_row then
+		vim.api.nvim_win_set_cursor(state.win, { target_row, 0 })
+	end
+	M._apply_cursor_highlight()
 end
 
 local function define_highlights()
@@ -659,6 +700,7 @@ local function define_highlights()
 		TwAgentSidebarDead = "ErrorMsg",
 		TwAgentSidebarActive = "Visual",
 		TwAgentSidebarDesc = "Comment",
+		TwAgentSidebarCursor = "CursorLine",
 	}
 	for name, link in pairs(groups) do
 		vim.api.nvim_set_hl(0, name, { link = link, default = true })

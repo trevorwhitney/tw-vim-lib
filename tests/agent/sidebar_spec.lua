@@ -204,6 +204,80 @@ describe("sidebar rendering", function()
     assert.is_true(entries[1].is_active)
   end)
 
+  it("active highlight covers exactly the entry's two rows", function()
+    setup_alive_instance("opencode", 0)
+    setup_alive_instance("claude", 0)
+    agent.active_mode = "opencode"
+    agent.active_index = 0
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    sidebar.open()
+    sidebar.refresh()
+    vim.fn.jobwait = orig
+
+    local state = sidebar._state()
+    local header_row = state.data_start_line - 1
+    local marks = vim.api.nvim_buf_get_extmarks(
+      state.buf,
+      state.ns,
+      { header_row, 0 },
+      { header_row, -1 },
+      { details = true }
+    )
+
+    local active_mark
+    for _, mark in ipairs(marks) do
+      if mark[4] and mark[4].line_hl_group == "TwAgentSidebarActive" then
+        active_mark = mark
+      end
+    end
+
+    assert.is_not_nil(active_mark, "active line highlight extmark should exist")
+    -- Range is end-inclusive: header + description = end_row == header_row + 1.
+    -- It must NOT extend to the next entry's header (header_row + 2).
+    assert.equals(header_row, active_mark[2])
+    assert.equals(header_row + 1, active_mark[4].end_row)
+  end)
+
+  it("cursor highlight covers both rows of the entry under the cursor", function()
+    setup_alive_instance("opencode", 0)
+    setup_alive_instance("claude", 0)
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    sidebar.open()
+    sidebar.refresh()
+
+    local state = sidebar._state()
+    -- Focus the sidebar and place the cursor on the first entry's header.
+    vim.api.nvim_set_current_win(state.win)
+    vim.api.nvim_win_set_cursor(state.win, { state.data_start_line, 0 })
+    sidebar._apply_cursor_highlight()
+    vim.fn.jobwait = orig
+
+    -- The window must not use the built-in single-line cursorline.
+    assert.is_false(vim.wo[state.win].cursorline)
+
+    local header_row = state.data_start_line - 1
+    local marks = vim.api.nvim_buf_get_extmarks(
+      state.buf,
+      state.cursor_ns,
+      { header_row, 0 },
+      { header_row, -1 },
+      { details = true }
+    )
+
+    local cursor_mark
+    for _, mark in ipairs(marks) do
+      if mark[4] and mark[4].line_hl_group == "TwAgentSidebarCursor" then
+        cursor_mark = mark
+      end
+    end
+
+    assert.is_not_nil(cursor_mark, "cursor line highlight extmark should exist")
+    assert.equals(header_row, cursor_mark[2])
+    assert.equals(header_row + 1, cursor_mark[4].end_row)
+  end)
+
   it("line_to_entry maps data-row line numbers to entry indices", function()
     setup_alive_instance("opencode", 0)
     setup_alive_instance("claude", 0)
