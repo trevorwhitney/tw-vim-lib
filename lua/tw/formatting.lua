@@ -1,26 +1,17 @@
 local M = {}
-local function format(bufnr, options)
-	local conform_format = require("conform").format
-	local opts = options or {}
-	opts = vim.tbl_deep_extend("force", opts, {
-		async = false, -- this needs to stay false, otherwise the ranges clobber each other
-		lsp_format = "first",
-	})
 
-	local ignore_filetypes = {
-		"Trouble",
-		"dap-repl",
-		"dapui_console",
-		"fugitive",
-	}
-	local buf_ft = vim.bo[bufnr].filetype
-	if vim.tbl_contains(ignore_filetypes, buf_ft) then
-		return
-	end
+local log = require("tw.log")
 
-	local lines = vim.fn.system("git diff --unified=0 " .. vim.fn.bufname(bufnr)):gmatch("[^\n\r]+")
+local ignore_filetypes = {
+	"Trouble",
+	"dap-repl",
+	"dapui_console",
+	"fugitive",
+}
+
+local function parse_ranges(diff_output)
 	local ranges = {}
-	for line in lines do
+	for line in diff_output:gmatch("[^\n\r]+") do
 		if line:find("^@@") then
 			local line_nums = line:match("%+.- ")
 			if line_nums:find(",") then
@@ -47,20 +38,61 @@ local function format(bufnr, options)
 			end
 		end
 	end
+	return ranges
+end
 
-	if next(ranges) then
-		for _, range in pairs(ranges) do
-			local opt = vim.tbl_deep_extend("force", {
-				range = range,
-			}, opts)
-
-			conform_format(opt, function(err, _)
-				if err == nil then
-					vim.lsp.buf.format({ range = range })
-				end
-			end)
-		end
+-- Format ranges one at a time. Each conform call is async (won't block the
+-- UI), but the next range only starts after the previous completes so their
+-- buffer edits can't clobber each other's line offsets.
+local function format_ranges_sequentially(ranges, index, opts)
+	local range = ranges[index]
+	if range == nil then
+		return
 	end
+
+	local opt = vim.tbl_deep_extend("force", { range = range }, opts)
+	local fmt_start = vim.uv.hrtime()
+	require("conform").format(opt, function(err, _)
+		local fmt_ms = (vim.uv.hrtime() - fmt_start) / 1e6
+		log.debug(string.format("format: conform range %d took %.1fms (err=%s)", index, fmt_ms, tostring(err)))
+		format_ranges_sequentially(ranges, index + 1, opts)
+	end)
+end
+
+local function format(bufnr, options)
+	local opts = options or {}
+	opts = vim.tbl_deep_extend("force", opts, {
+		async = true,
+		lsp_format = "first",
+	})
+
+	local buf_ft = vim.bo[bufnr].filetype
+	if vim.tbl_contains(ignore_filetypes, buf_ft) then
+		return
+	end
+
+	-- `git diff` runs off the main loop; a stale .git/index.lock or a slow
+	-- repo can no longer freeze the UI. Ranges are computed in the callback.
+	local git_start = vim.uv.hrtime()
+	vim.system(
+		{ "git", "diff", "--unified=0", vim.fn.bufname(bufnr) },
+		{ text = true },
+		vim.schedule_wrap(function(result)
+			local git_ms = (vim.uv.hrtime() - git_start) / 1e6
+			log.debug(string.format("format: git diff took %.1fms (code=%d)", git_ms, result.code or -1))
+
+			if result.code ~= 0 then
+				return
+			end
+
+			local ranges = parse_ranges(result.stdout or "")
+			if not next(ranges) then
+				return
+			end
+
+			format_ranges_sequentially(ranges, 1, opts)
+		end)
+	)
 end
 
 local function configure()
@@ -81,13 +113,16 @@ local function configure()
 		["_"] = { "trim_whitespace", "trim_newlines" },
 	}
 	require("conform").setup({
-		-- log_level = vim.log.levels.DEBUG,
+		log_level = vim.log.levels.DEBUG,
 		formatters_by_ft = formatters_by_ft,
 		default_format_opts = {
 			lsp_format = "first",
 		},
+		-- Bound the on-save format so a slow/busy gopls can't freeze the editor
+		-- longer than this. Beyond the timeout conform bails and the save proceeds.
 		format_on_save = {
 			lsp_format = "first",
+			timeout_ms = 1000,
 		},
 	})
 end
