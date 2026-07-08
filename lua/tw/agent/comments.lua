@@ -169,6 +169,9 @@ local function open_capture_window(title, on_confirm)
 		footer_pos = "center",
 	})
 
+	vim.wo[win].wrap = true
+	vim.wo[win].linebreak = true
+
 	local function close()
 		if vim.api.nvim_win_is_valid(win) then
 			vim.api.nvim_win_close(win, true)
