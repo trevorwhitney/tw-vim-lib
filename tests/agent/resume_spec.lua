@@ -69,4 +69,92 @@ describe("resume", function()
     })
     assert.same({ "--session", "ses_num" }, args)
   end)
+
+  it("captures the newest session created at/after launch, unclaimed", function()
+    local rows = {
+      { id = "ses_pre", directory = "/wt", created = 50, updated = 300 },
+      { id = "ses_new", directory = "/wt", created = 200, updated = 210 },
+      { id = "ses_older", directory = "/wt", created = 150, updated = 160 },
+    }
+    local id = resume.capture_session_id("/wt", 100, {}, {
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.equals("ses_new", id)
+  end)
+
+  it("excludes sessions created before launch", function()
+    local rows = { { id = "ses_pre", directory = "/wt", created = 50, updated = 999 } }
+    local id = resume.capture_session_id("/wt", 100, {}, {
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.is_nil(id)
+  end)
+
+  it("excludes already-claimed sessions", function()
+    local rows = {
+      { id = "ses_taken", directory = "/wt", created = 300, updated = 300 },
+      { id = "ses_free", directory = "/wt", created = 200, updated = 200 },
+    }
+    local id = resume.capture_session_id("/wt", 100, { ses_taken = true }, {
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.equals("ses_free", id)
+  end)
+
+  it("breaks created ties deterministically by id descending", function()
+    local rows = {
+      { id = "ses_aaa", directory = "/wt", created = 200, updated = 200 },
+      { id = "ses_zzz", directory = "/wt", created = 200, updated = 200 },
+    }
+    local id = resume.capture_session_id("/wt", 100, {}, {
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.equals("ses_zzz", id)
+  end)
+
+  it("excludes sessions with missing or non-numeric created", function()
+    local rows = { { id = "ses_nocreate", directory = "/wt", updated = 999 } }
+    local id = resume.capture_session_id("/wt", 100, {}, {
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.is_nil(id)
+  end)
+
+  it("returns nil and does not throw on decode failure", function()
+    local id = resume.capture_session_id("/wt", 100, {}, {
+      list_sessions = function() return "not json {{{" end,
+    })
+    assert.is_nil(id)
+  end)
+
+  it("returns nil and does not throw when list command errors", function()
+    local id
+    assert.has_no.errors(function()
+      id = resume.capture_session_id("/wt", 100, {}, {
+        list_sessions = function() error("boom") end,
+      })
+    end)
+    assert.is_nil(id)
+  end)
+
+  it("includes a session created exactly at launch_ts", function()
+    local rows = { { id = "ses_boundary", directory = "/wt", created = 100, updated = 100 } }
+    local id = resume.capture_session_id("/wt", 100, {}, {
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.equals("ses_boundary", id)
+  end)
+
+  it("returns nil when list output is nil or empty", function()
+    assert.is_nil(resume.capture_session_id("/wt", 100, {}, { list_sessions = function() return nil end }))
+    assert.is_nil(resume.capture_session_id("/wt", 100, {}, { list_sessions = function() return "" end }))
+  end)
+
+  it("excludes a session whose created is non-numeric", function()
+    local rows = { { id = "ses_badcreated", directory = "/wt", created = "oops", updated = 999 } }
+    local id = resume.capture_session_id("/wt", 100, {}, {
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.is_nil(id)
+  end)
 end)
