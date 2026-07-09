@@ -132,4 +132,33 @@ describe("registry", function()
     local entries = registry.load(tmpdir)
     assert.equals("waiting", entries["opencode#0"].last_status)
   end)
+
+  it("collects claimed session_ids excluding the given key", function()
+    registry.upsert(tmpdir, "opencode", 0, { cwd = tmpdir, session_id = "ses_a", updated_ts = now() })
+    registry.upsert(tmpdir, "opencode", 1, { cwd = tmpdir, session_id = "ses_b", updated_ts = now() })
+    local claimed = registry.claimed_session_ids(tmpdir, registry._key_for("opencode", 1))
+    assert.is_true(claimed["ses_a"])
+    assert.is_nil(claimed["ses_b"])
+  end)
+
+  it("returns an empty set when no session_ids are stored", function()
+    registry.upsert(tmpdir, "opencode", 0, { cwd = tmpdir, updated_ts = now() })
+    assert.same({}, registry.claimed_session_ids(tmpdir, "opencode#9"))
+  end)
+
+  it("skips entries whose session_id is not a string", function()
+    vim.fn.mkdir(tmpdir .. "/.workmux", "p")
+    local f = io.open(tmpdir .. "/.workmux/agent-sessions.json", "w")
+    f:write(vim.json.encode({
+      version = 1,
+      sessions = {
+        ["opencode#0"] = { mode = "opencode", session_id = 42, updated_ts = now() },
+        ["opencode#1"] = { mode = "opencode", session_id = "ses_ok", updated_ts = now() },
+      },
+    }))
+    f:close()
+    local claimed = registry.claimed_session_ids(tmpdir, "opencode#9")
+    assert.is_true(claimed["ses_ok"])
+    assert.is_nil(claimed[42])
+  end)
 end)

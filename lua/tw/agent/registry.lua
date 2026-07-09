@@ -98,6 +98,20 @@ function M.delete(root, mode, idx)
 	write_atomic(root, entries)
 end
 
+-- Return the set { [session_id] = true } of session_ids recorded for every
+-- entry except the one whose key equals except_key. Used so a capturing panel
+-- does not claim a session another panel already owns.
+function M.claimed_session_ids(root, except_key)
+	local entries = M.load(root)
+	local claimed = {}
+	for key, entry in pairs(entries) do
+		if key ~= except_key and type(entry) == "table" and type(entry.session_id) == "string" then
+			claimed[entry.session_id] = true
+		end
+	end
+	return claimed
+end
+
 M._key_for = key_for
 
 return M
