@@ -24,6 +24,7 @@ function M.record(entry)
 		cwd = entry.cwd,
 		last_status = entry.status or "working",
 		description = description,
+		session_id = entry.session_id,
 		updated_ts = now(),
 	})
 end

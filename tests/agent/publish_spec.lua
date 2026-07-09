@@ -39,6 +39,18 @@ describe("publish — registry sink", function()
     publish.record_exit({ root = "/wt", mode = "claude", idx = 1, cwd = "/wt" })
     assert.equals("restorable", writes[1].fields.last_status)
   end)
+
+  it("forwards session_id when present", function()
+    publish.record({ root = "/wt", mode = "opencode", idx = 0, cwd = "/wt",
+      status = "working", session_id = "ses_x" })
+    assert.equals("ses_x", writes[1].fields.session_id)
+  end)
+
+  it("omits session_id when absent", function()
+    publish.record({ root = "/wt", mode = "opencode", idx = 0, cwd = "/wt",
+      status = "working" })
+    assert.is_nil(writes[1].fields.session_id)
+  end)
 end)
 
 describe("publish — workmux sink", function()
@@ -179,5 +191,38 @@ describe("init publisher wiring", function()
     agent._set_instance("claude", 2, 11, 998)
     local inst = agent._get_instance("claude", 2)
     assert.equals("claude", inst.mode)
+  end)
+end)
+
+describe("publish — session_id survives exit", function()
+  local publish
+  local tmpdir
+
+  before_each(function()
+    package.loaded["tw.agent.publish"] = nil
+    package.loaded["tw.agent.registry"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    require("tw.agent.registry")
+    publish = require("tw.agent.publish")
+    tmpdir = vim.fn.tempname()
+    vim.fn.mkdir(tmpdir, "p")
+  end)
+
+  after_each(function()
+    package.loaded["tw.agent.registry"] = nil
+    vim.fn.delete(tmpdir, "rf")
+  end)
+
+  it("keeps a recorded session_id after record_exit", function()
+    publish.record({ root = tmpdir, mode = "opencode", idx = 0, cwd = tmpdir,
+      status = "working", session_id = "ses_keep" })
+    publish.record_exit({ root = tmpdir, mode = "opencode", idx = 0, cwd = tmpdir })
+    local registry = require("tw.agent.registry")
+    local entries = registry.load(tmpdir)
+    assert.equals("ses_keep", entries["opencode#0"].session_id)
+    assert.equals("restorable", entries["opencode#0"].last_status)
   end)
 end)
