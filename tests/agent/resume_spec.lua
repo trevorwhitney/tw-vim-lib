@@ -157,4 +157,33 @@ describe("resume", function()
     })
     assert.is_nil(id)
   end)
+
+  it("uses a stored session_id when it still exists in cwd", function()
+    local rows = {
+      { id = "ses_stored", directory = "/wt", created = 1, updated = 100 },
+      { id = "ses_newer", directory = "/wt", created = 1, updated = 500 },
+    }
+    local args = resume.args_for("opencode", 0, "/wt", {
+      session_id = "ses_stored",
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.same({ "--session", "ses_stored" }, args)
+  end)
+
+  it("falls back to cwd+recency when a stored session_id no longer exists", function()
+    local rows = { { id = "ses_current", directory = "/wt", created = 1, updated = 500 } }
+    local args = resume.args_for("opencode", 0, "/wt", {
+      session_id = "ses_gone",
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.same({ "--session", "ses_current" }, args)
+  end)
+
+  it("ignores session_id for non-opencode modes", function()
+    local args = resume.args_for("claude", 0, "/wt", {
+      session_id = "ses_stored",
+      list_sessions = function() return "[]" end,
+    })
+    assert.same({ "--continue" }, args)
+  end)
 end)

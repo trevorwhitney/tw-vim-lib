@@ -98,6 +98,13 @@ function M.args_for(mode, _idx, cwd, opts)
 		return { "--continue" }
 	end
 	local matches = matching_sessions(json_text, cwd)
+	if opts.session_id and matches then
+		for _, row in ipairs(matches) do
+			if row.id == opts.session_id then
+				return { "--session", opts.session_id }
+			end
+		end
+	end
 	if matches and matches[1] then
 		return { "--session", matches[1].id }
 	end
