@@ -76,12 +76,14 @@ local function write_atomic(root, entries)
 	end
 end
 
--- Insert or update a single session record. fields must include updated_ts;
--- mode and idx are set from the arguments. Read-modify-write is last-writer-wins
--- across concurrent nvims, which is acceptable for this best-effort registry.
+-- Insert or update a single session record. fields are merged over the existing
+-- record, so a caller that omits a field does not erase it; provided fields
+-- overwrite. Callers should include a current updated_ts (load prunes on it).
+-- Last-writer-wins across concurrent nvims, acceptable for this best-effort registry.
 function M.upsert(root, mode, idx, fields)
 	local entries = M.load(root)
-	local record = vim.tbl_extend("force", fields or {}, {
+	local existing = entries[key_for(mode, idx)] or {}
+	local record = vim.tbl_extend("force", existing, fields or {}, {
 		mode = mode,
 		idx = idx,
 	})

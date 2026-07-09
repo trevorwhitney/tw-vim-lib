@@ -112,4 +112,24 @@ describe("registry", function()
     local leftovers = vim.fn.glob(tmpdir .. "/.workmux/*.tmp", false, true)
     assert.equals(0, #leftovers)
   end)
+
+  it("merges fields on upsert, preserving omitted ones", function()
+    registry.upsert(tmpdir, "opencode", 0, {
+      cwd = tmpdir, last_status = "working",
+      session_id = "ses_keep", updated_ts = now(),
+    })
+    registry.upsert(tmpdir, "opencode", 0, {
+      cwd = tmpdir, last_status = "restorable", updated_ts = now(),
+    })
+    local entries = registry.load(tmpdir)
+    assert.equals("ses_keep", entries["opencode#0"].session_id)
+    assert.equals("restorable", entries["opencode#0"].last_status)
+  end)
+
+  it("still overwrites fields that are provided", function()
+    registry.upsert(tmpdir, "opencode", 0, { cwd = tmpdir, last_status = "working", updated_ts = now() })
+    registry.upsert(tmpdir, "opencode", 0, { cwd = tmpdir, last_status = "waiting", updated_ts = now() })
+    local entries = registry.load(tmpdir)
+    assert.equals("waiting", entries["opencode#0"].last_status)
+  end)
 end)
