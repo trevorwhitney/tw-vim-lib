@@ -61,6 +61,58 @@ M.instances = {
 	codex = {},
 }
 
+-- Per-panel opencode session capture state, keyed by "<mode>#<idx>". Kept at
+-- module scope because set_instance replaces M.instances[mode][idx], which would
+-- otherwise drop these across restarts.
+M._opencode_launch_ts = {}
+M._opencode_capture_attempts = {}
+
+-- Upper bound on capture retries per launch. Each attempt spawns a synchronous
+-- `opencode session list`; the cap prevents an unbounded once-per-second storm
+-- when a panel never produces a session.
+M._MAX_CAPTURE_ATTEMPTS = 10
+
+local function epoch_ms()
+	local seconds, microseconds = vim.uv.gettimeofday()
+	return seconds * 1000 + math.floor((microseconds or 0) / 1000)
+end
+
+-- resume is looked up through this seam so specs can inject a stub.
+local _resume_override = nil
+local function get_resume()
+	if _resume_override then
+		return _resume_override
+	end
+	local ok, resume = pcall(require, "tw.agent.resume")
+	if ok then
+		return resume
+	end
+	return nil
+end
+
+function M._set_resume(stub)
+	_resume_override = stub
+end
+
+-- Record the launch time for an opencode panel slot and reset its capture
+-- attempt counter. Called before the opencode process starts, so a session
+-- created after launch always has created >= this value. epoch_ms gives
+-- wall-clock milliseconds, comparable to opencode's created/updated fields.
+function M._note_opencode_launch(mode, idx)
+	if mode ~= "opencode" then
+		return
+	end
+	local key = string.format("%s#%d", mode, idx)
+	M._opencode_launch_ts[key] = epoch_ms()
+	M._opencode_capture_attempts[key] = 0
+end
+
+function M._reset_opencode_capture()
+	M._opencode_launch_ts = {}
+	M._opencode_capture_attempts = {}
+	_resume_override = nil
+end
+
 local function get_instance(mode, idx)
 	idx = idx or 0
 	M.instances[mode] = M.instances[mode] or {}
@@ -124,9 +176,78 @@ local function resolve_root()
 	return vim.fn.getcwd()
 end
 
+-- Best-effort capture of the opencode session id for a panel slot. Returns the
+-- id to record, or nil to leave it unset (restore then falls back to
+-- cwd+recency). The registry entry is the authoritative "already captured"
+-- guard. Logs once when the retry budget is exhausted.
+function M._capture_opencode_session(registry, mode, idx, root)
+	local key = registry._key_for(mode, idx)
+
+	local existing = registry.load(root)[key]
+	if existing and existing.session_id then
+		return nil
+	end
+
+	local launch_ts = M._opencode_launch_ts[key]
+	if not launch_ts then
+		return nil
+	end
+
+	local attempts = M._opencode_capture_attempts[key] or 0
+	if attempts >= M._MAX_CAPTURE_ATTEMPTS then
+		return nil
+	end
+
+	local resume = get_resume()
+	if not resume or not resume.capture_session_id then
+		return nil
+	end
+
+	local claimed = registry.claimed_session_ids(root, key)
+	local id = resume.capture_session_id(root, launch_ts, claimed, {})
+	if id then
+		return id
+	end
+	attempts = attempts + 1
+	M._opencode_capture_attempts[key] = attempts
+	if attempts == M._MAX_CAPTURE_ATTEMPTS then
+		log.warn("resume: gave up capturing opencode session id for " .. key)
+	end
+	return nil
+end
+
+-- Timer-driven capture attempt for one live opencode instance. Persists the
+-- captured session id via publish.record so restore can use it. No-op for
+-- non-opencode modes and once an id is already stored.
+function M._capture_tick(mode, idx)
+	if mode ~= "opencode" then
+		return
+	end
+	pcall(function()
+		local root = resolve_root()
+		local registry = require("tw.agent.registry")
+		local session_id = M._capture_opencode_session(registry, mode, idx, root)
+		if session_id then
+			publish.record({
+				root = root,
+				mode = mode,
+				idx = idx,
+				cwd = root,
+				status = "working",
+				session_id = session_id,
+			})
+		end
+	end)
+end
+
 function M._publish_record(mode, idx, buf)
 	pcall(function()
 		local root = resolve_root()
+		local session_id = nil
+		if mode == "opencode" then
+			local registry = require("tw.agent.registry")
+			session_id = M._capture_opencode_session(registry, mode, idx, root)
+		end
 		local desc = nil
 		local ok, description = pcall(require, "tw.agent.description")
 		if ok and description and description.get then
@@ -149,6 +270,7 @@ function M._publish_record(mode, idx, buf)
 			cwd = root,
 			status = status,
 			description = desc,
+			session_id = session_id,
 		})
 		M._start_publish_timer()
 	end)
@@ -172,6 +294,9 @@ function M._live_instances()
 end
 
 function M._start_publish_timer()
+	publish._set_capture_hook(function(mode, idx)
+		M._capture_tick(mode, idx)
+	end)
 	publish.start_timer(function()
 		return M._live_instances()
 	end, 1000)
@@ -340,6 +465,7 @@ local function start_new_agent_job(args, window_type, mode, idx)
 
 	terminal.open_window(window_type)
 	buf = vim.api.nvim_get_current_buf()
+	M._note_opencode_launch(mode, idx)
 	job_id = vim.fn.termopen(command, {
 		on_exit = OnExit(mode, idx),
 		-- TODO: make this configurable

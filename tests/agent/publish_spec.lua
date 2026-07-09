@@ -156,10 +156,39 @@ describe("publish — timer lifecycle", function()
   end)
 
    it("stop_timer is safe when no timer is running", function()
-     assert.has_no.errors(function()
-       publish.stop_timer()
-     end)
-   end)
+      assert.has_no.errors(function()
+        publish.stop_timer()
+      end)
+    end)
+
+  it("invokes the capture hook for each ticked instance", function()
+    local hook_calls = {}
+    local status_detect_calls = 0
+    publish._set_capture_hook(function(mode, idx) table.insert(hook_calls, mode .. "#" .. idx) end)
+    package.loaded["tw.agent.status"] = {
+      detect = function()
+        status_detect_calls = status_detect_calls + 1
+        return "working"
+      end,
+    }
+    local unwrapped_cb
+    local fake2 = {
+      start = function(_, _, _, fn)
+        unwrapped_cb = fn
+      end,
+      stop = function() end,
+      close = function() end
+    }
+    publish._set_timer_factory(function() return fake2 end)
+    publish.start_timer(function() return { { mode = "opencode", idx = 0 } } end, 1000)
+    assert.is_function(unwrapped_cb)
+    unwrapped_cb()
+    vim.wait(10)
+    assert.equals(1, status_detect_calls)
+    assert.same({ "opencode#0" }, hook_calls)
+    publish.stop_timer()
+    publish._set_capture_hook(nil)
+  end)
 end)
 
 describe("init publisher wiring", function()

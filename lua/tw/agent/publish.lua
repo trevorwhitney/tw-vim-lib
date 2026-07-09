@@ -81,6 +81,12 @@ function M._set_timer_factory(fn)
 	timer_factory = fn
 end
 
+local capture_hook = nil
+
+function M._set_capture_hook(fn)
+	capture_hook = fn
+end
+
 function M.start_timer(tick, interval_ms)
 	if poll_timer then
 		return
@@ -99,6 +105,9 @@ function M.start_timer(tick, interval_ms)
 				for _, inst in ipairs(tick() or {}) do
 					local s = status.detect(inst)
 					M.push_status(inst.mode, inst.idx, s)
+					if capture_hook then
+						pcall(capture_hook, inst.mode, inst.idx)
+					end
 				end
 			end)
 		end)

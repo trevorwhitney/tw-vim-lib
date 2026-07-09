@@ -90,6 +90,14 @@ describe("resume", function()
     assert.is_nil(id)
   end)
 
+  it("excludes a session created just before launch even within the same second", function()
+    local rows = { { id = "ses_stale", directory = "/wt", created = 1000, updated = 5000 } }
+    local id = resume.capture_session_id("/wt", 1500, {}, {
+      list_sessions = function() return list_json(rows) end,
+    })
+    assert.is_nil(id)
+  end)
+
   it("excludes already-claimed sessions", function()
     local rows = {
       { id = "ses_taken", directory = "/wt", created = 300, updated = 300 },
