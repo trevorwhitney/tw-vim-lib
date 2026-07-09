@@ -1012,3 +1012,136 @@ describe("sidebar restorable supersession", function()
     vim.api.nvim_buf_delete(buf, { force = true })
   end)
 end)
+
+describe("sidebar new session (a)", function()
+  local sidebar, agent
+
+  before_each(function()
+    agent = helpers.reset_and_mock(false)
+    package.loaded["tw.agent.sidebar"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({ enabled = true })
+  end)
+
+  after_each(function()
+    pcall(sidebar.close)
+  end)
+
+  it("returns 0 as the next free index when nothing is used", function()
+    assert.equals(0, sidebar.next_free_index("opencode"))
+  end)
+
+  it("skips indices held by live instances", function()
+    agent._set_instance("opencode", 0, vim.api.nvim_create_buf(false, true), 999)
+    assert.equals(1, sidebar.next_free_index("opencode"))
+  end)
+
+  it("skips indices held by restorable registry entries", function()
+    package.loaded["tw.agent.registry"] = {
+      load = function()
+        return {
+          ["opencode#0"] = { mode = "opencode", idx = 0, updated_ts = os.time() },
+          ["opencode#1"] = { mode = "opencode", idx = 1, updated_ts = os.time() },
+        }
+      end,
+      upsert = function() end,
+      _key_for = function(m, i) return string.format("%s#%d", m, i) end,
+    }
+    assert.equals(2, sidebar.next_free_index("opencode"))
+  end)
+
+  it("fills the lowest gap between used indices", function()
+    agent._set_instance("opencode", 0, vim.api.nvim_create_buf(false, true), 999)
+    agent._set_instance("opencode", 2, vim.api.nvim_create_buf(false, true), 998)
+    assert.equals(1, sidebar.next_free_index("opencode"))
+  end)
+
+  it("opens a new default-mode session at the next free index", function()
+    agent._set_instance("opencode", 0, vim.api.nvim_create_buf(false, true), 999)
+    local captured
+    local orig_open = agent.Open
+    agent.Open = function(mode, args, window_type, idx)
+      captured = { mode = mode, args = args, window_type = window_type, idx = idx }
+    end
+    sidebar.new_session()
+    agent.Open = orig_open
+    assert.equals("opencode", captured.mode)
+    assert.equals(1, captured.idx)
+    assert.is_nil(captured.args)
+  end)
+
+  it("'a' keymap invokes new-session", function()
+    local called = false
+    local orig = sidebar.new_session
+    sidebar.new_session = function() called = true end
+    sidebar.open()
+    vim.api.nvim_buf_call(sidebar._state().buf, function()
+      vim.cmd("normal a")
+    end)
+    sidebar.new_session = orig
+    assert.is_true(called)
+  end)
+end)
+
+describe("sidebar delete restorable (d)", function()
+  local sidebar, agent, deleted
+
+  before_each(function()
+    deleted = {}
+    agent = helpers.reset_and_mock(false, {
+      registry = {
+        load = function()
+          return {
+            ["opencode#0"] = { mode = "opencode", idx = 0, cwd = "/wt",
+              last_status = "restorable", description = "old task",
+              updated_ts = os.time() },
+          }
+        end,
+        upsert = function() end,
+        delete = function(_root, mode, idx)
+          table.insert(deleted, { mode = mode, idx = idx })
+        end,
+        _key_for = function(m, i) return string.format("%s#%d", m, i) end,
+      },
+    })
+    package.loaded["tw.agent.sidebar"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    sidebar = require("tw.agent.sidebar")
+    sidebar.setup({ enabled = true })
+  end)
+
+  after_each(function()
+    pcall(sidebar.close)
+  end)
+
+  it("deletes the restorable entry under the cursor", function()
+    sidebar.open()
+    sidebar.refresh()
+    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    sidebar.delete_under_cursor()
+    assert.equals(1, #deleted)
+    assert.equals("opencode", deleted[1].mode)
+    assert.equals(0, deleted[1].idx)
+  end)
+
+  it("is a no-op for a live (non-restorable) entry", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    agent._set_instance("opencode", 0, buf, 999)
+    local orig = vim.fn.jobwait
+    vim.fn.jobwait = function() return { -1 } end
+    sidebar.open()
+    sidebar.refresh()
+    vim.fn.jobwait = orig
+    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    sidebar.delete_under_cursor()
+    assert.equals(0, #deleted)
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+end)

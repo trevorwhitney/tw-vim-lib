@@ -269,6 +269,12 @@ local function set_buffer_keymaps(buf)
 			vim.api.nvim_win_set_cursor(state.win, { r, 0 })
 		end
 	end, "Sidebar: last session")
+	map("a", function()
+		M.new_session()
+	end, "Sidebar: new session (next free index)")
+	map("d", function()
+		M.delete_under_cursor()
+	end, "Sidebar: delete restorable session")
 	map("g?", function()
 		M._show_help()
 	end, "Sidebar: keybinding help")
@@ -577,6 +583,67 @@ function M._activate_under_cursor()
 	end
 end
 
+-- Lowest index in 0..9 not held by a live instance or a restorable registry
+-- entry for the given mode. Returns nil when every slot is taken.
+function M.next_free_index(mode)
+	local used = {}
+	local ok_agent, agent = pcall(require, "tw.agent")
+	if ok_agent and agent and agent.instances then
+		for idx, _ in pairs(agent.instances[mode] or {}) do
+			used[idx] = true
+		end
+	end
+	local ok_reg, registry = pcall(require, "tw.agent.registry")
+	if ok_reg and registry and registry.load then
+		local saved = registry.load(resolve_registry_root(nil))
+		for _, rec in pairs(saved) do
+			if rec.mode == mode and rec.idx ~= nil then
+				used[rec.idx] = true
+			end
+		end
+	end
+	for idx = 0, 9 do
+		if not used[idx] then
+			return idx
+		end
+	end
+	return nil
+end
+
+function M.new_session()
+	local ok, agent = pcall(require, "tw.agent")
+	if not ok then
+		return
+	end
+	local mode = agent.default_mode
+	local idx = M.next_free_index(mode)
+	if idx == nil then
+		vim.notify("No free agent index (0-9) available", vim.log.levels.WARN)
+		return
+	end
+	agent.Open(mode, nil, "vsplit", idx)
+end
+
+function M.delete_under_cursor()
+	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+		return
+	end
+	local row = vim.api.nvim_win_get_cursor(state.win)[1]
+	local entry_idx = state.line_to_entry[row]
+	if not entry_idx then
+		return
+	end
+	local entry = state.entries[entry_idx]
+	if not entry or not entry.restorable then
+		return
+	end
+	local ok, registry = pcall(require, "tw.agent.registry")
+	if ok and registry and registry.delete then
+		registry.delete(resolve_registry_root(nil), entry.mode, entry.idx)
+	end
+	M.refresh()
+end
+
 function M._edit_under_cursor()
 	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
 		return
@@ -623,7 +690,9 @@ function M._show_help()
 		"",
 		"j / k        move between agents",
 		"<CR> / o     open agent under cursor",
+		"a            new session (next free index)",
 		"c            edit description",
+		"d            delete restorable session",
 		"r            refresh",
 		"gg / G       first / last agent",
 		"q / <Esc>    close sidebar",

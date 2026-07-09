@@ -89,6 +89,13 @@ function M.upsert(root, mode, idx, fields)
 	write_atomic(root, entries)
 end
 
+-- Remove a single session record. No-op when the key is absent.
+function M.delete(root, mode, idx)
+	local entries = M.load(root)
+	entries[key_for(mode, idx)] = nil
+	write_atomic(root, entries)
+end
+
 M._key_for = key_for
 
 return M
