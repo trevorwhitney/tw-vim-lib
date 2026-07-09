@@ -458,6 +458,7 @@ local function collect_entries(root)
 					buf = nil,
 					is_active = false,
 					description = rec.description,
+					session_id = rec.session_id,
 					restorable = true,
 				})
 			end
@@ -575,7 +576,9 @@ function M._activate_under_cursor()
 		local resume_args = {}
 		local ok_resume, resume = pcall(require, "tw.agent.resume")
 		if ok_resume and resume and resume.args_for then
-			resume_args = resume.args_for(entry.mode, entry.idx, resolve_registry_root(nil))
+			resume_args = resume.args_for(entry.mode, entry.idx, resolve_registry_root(nil), {
+				session_id = entry.session_id,
+			})
 		end
 		agent.Open(entry.mode, resume_args, "vsplit", entry.idx)
 	else

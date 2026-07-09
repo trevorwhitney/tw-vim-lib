@@ -875,7 +875,7 @@ describe("sidebar restorable entries", function()
           return {
             ["opencode#0"] = { mode = "opencode", idx = 0, cwd = "/wt",
               last_status = "restorable", description = "old task",
-              updated_ts = os.time() },
+              session_id = "ses_side", updated_ts = os.time() },
           }
         end,
         upsert = function() end,
@@ -965,6 +965,36 @@ describe("sidebar restorable entries", function()
     assert.has_no.errors(function()
       sidebar._edit_under_cursor()
     end)
+  end)
+
+  it("copies session_id onto restorable entries", function()
+    local entries = sidebar._collect_entries("/wt")
+    local found
+    for _, e in ipairs(entries) do
+      if e.mode == "opencode" and e.idx == 0 and e.restorable then found = e end
+    end
+    assert.is_not_nil(found)
+    assert.equals("ses_side", found.session_id)
+  end)
+
+  it("forwards entry.session_id into resume.args_for on activate", function()
+    local captured_opts
+    package.loaded["tw.agent.resume"] = {
+      args_for = function(_mode, _idx, _root, opts)
+        captured_opts = opts
+        return { "--session", "ses_side" }
+      end,
+    }
+    local orig_open = agent.Open
+    agent.Open = function() end
+    sidebar.open()
+    sidebar.refresh()
+    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    sidebar._activate_under_cursor()
+    agent.Open = orig_open
+    package.loaded["tw.agent.resume"] = nil
+    assert.is_not_nil(captured_opts)
+    assert.equals("ses_side", captured_opts.session_id)
   end)
 end)
 
