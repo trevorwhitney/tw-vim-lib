@@ -89,6 +89,16 @@ test("render_lines renders nil description as indent-only blank row", function()
 	eq("    ", lines[4], "nil description renders as indent only")
 end)
 
+test("render_lines flattens newlines in description to a single row", function()
+	local sidebar = load_sidebar()
+	local entries = {
+		{ mode = "opencode", idx = 0, status = "working", description = "line one\nline two\r\nline three" },
+	}
+	local lines = sidebar._render_lines(entries, config)
+	eq("    line one line two line three", lines[4], "embedded newlines collapse to spaces")
+	eq(nil, lines[5], "description stays a single row")
+end)
+
 test("render_lines keeps single-row empty state", function()
 	local sidebar = load_sidebar()
 	local lines = sidebar._render_lines({}, config)

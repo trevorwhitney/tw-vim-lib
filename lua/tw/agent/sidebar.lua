@@ -486,7 +486,7 @@ local function build_lines(entries, config)
 		elseif e.description == "error" then
 			desc_str = "    ⚠ failed"
 		elseif e.description and e.description ~= "" then
-			desc_str = "    " .. e.description
+			desc_str = "    " .. e.description:gsub("[\r\n]+", " ")
 		end
 		table.insert(lines, desc_str)
 	end
