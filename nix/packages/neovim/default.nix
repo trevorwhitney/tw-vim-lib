@@ -155,8 +155,10 @@ let
         doCheck = false;
         dontPatchShebangs = true;
         postInstall = ''
-          # find and remove broken symlinks
-          find $out -xtype l -exec echo "Removing broken symlink: {}" \; -delete
+          # Remove broken symlinks. Avoid `-xtype l`, which stats the target and
+          # aborts with "Permission denied" on absolute symlinks whose target is
+          # unreachable inside the Nix sandbox (e.g. Obsidian/Google Drive docs).
+          find $out -type l ! -exec test -e {} \; -print -delete
         '';
       })
     ];

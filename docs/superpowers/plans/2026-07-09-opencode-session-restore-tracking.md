@@ -1,1 +1,0 @@
-/Users/twhitney/Library/CloudStorage/GoogleDrive-trevorjwhitney@gmail.com/My Drive/Obsidian/grafana/planning/plans/2026-07-09-opencode-session-restore-tracking.md
