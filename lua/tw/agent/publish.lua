@@ -6,6 +6,23 @@ local function now()
 	return os.time()
 end
 
+-- global mirror is looked up through this seam so specs can inject a spy.
+local _global_override = nil
+local function get_global()
+	if _global_override then
+		return _global_override
+	end
+	local ok, mod = pcall(require, "tw.agent.global")
+	if ok then
+		return mod
+	end
+	return nil
+end
+
+function M._set_global(mod)
+	_global_override = mod
+end
+
 function M._workmux_status(status)
 	if status == "working" then
 		return "working"
@@ -27,6 +44,18 @@ function M.record(entry)
 		session_id = entry.session_id,
 		updated_ts = now(),
 	})
+	local g = get_global()
+	if g and g.record then
+		pcall(g.record, {
+			root = entry.root,
+			mode = entry.mode,
+			idx = entry.idx,
+			status = entry.status or "working",
+			description = description,
+			session_id = entry.session_id,
+			updated_ts = now(),
+		})
+	end
 end
 
 function M.record_exit(entry)
@@ -35,6 +64,15 @@ function M.record_exit(entry)
 		last_status = "restorable",
 		updated_ts = now(),
 	})
+	local g = get_global()
+	if g and g.record_exit then
+		pcall(g.record_exit, {
+			root = entry.root,
+			mode = entry.mode,
+			idx = entry.idx,
+			updated_ts = now(),
+		})
+	end
 end
 
 local last_pushed = {}
