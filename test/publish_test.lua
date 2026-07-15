@@ -76,7 +76,61 @@ test("a throwing global mirror does not break record or record_exit", function()
 		cwd = "/w/loki/wt",
 	})
 	eq(true, ok_record, "record must not raise when mirror throws")
-	eq(true, ok_exit, "record_exit must not raise when mirror throws")
+	eq(true, ok_exit, "[REDACTED] must not raise when mirror throws")
+end)
+
+test("heartbeat writes mirror at most once per interval", function()
+	local writes = {}
+	publish._set_global({
+		record = function(entry)
+			table.insert(writes, entry)
+		end,
+		record_exit = function() end,
+		touch = function(entry)
+			table.insert(writes, entry)
+		end,
+	})
+	local t = 0
+	publish._set_clock(function()
+		return t
+	end)
+	publish._reset_heartbeat()
+
+	local inst = { root = "/w/loki/wt", mode = "opencode", idx = 0, status = "working" }
+
+	t = 1000
+	publish.heartbeat(inst) -- first write always allowed
+	eq(1, #writes, "first write succeeded")
+	t = 4999
+	publish.heartbeat(inst) -- 3999ms later: still throttled
+	eq(1, #writes, "suppressed before interval")
+	t = 5000
+	publish.heartbeat(inst) -- exactly 4000ms later: allowed
+	eq(2, #writes, "allowed at interval boundary")
+end)
+
+test("a mirror record() resets the heartbeat throttle for that key", function()
+	local writes = {}
+	publish._set_global({
+		record = function(entry)
+			table.insert(writes, entry)
+		end,
+		record_exit = function() end,
+		touch = function(entry)
+			table.insert(writes, entry)
+		end,
+	})
+	local t = 10000
+	publish._set_clock(function()
+		return t
+	end)
+	publish._reset_heartbeat()
+
+	publish.record({ root = "/w/loki/wt", mode = "opencode", idx = 0, status = "working" })
+	local after_record = #writes
+	t = 11000
+	publish.heartbeat({ root = "/w/loki/wt", mode = "opencode", idx = 0, status = "working" })
+	eq(after_record, #writes, "heartbeat suppressed within interval of a record()")
 end)
 
 H.finish("publish.lua")

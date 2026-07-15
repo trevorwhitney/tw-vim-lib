@@ -284,10 +284,11 @@ function M._publish_exit(mode, idx)
 end
 
 function M._live_instances()
+	local root = resolve_root()
 	local live = {}
 	for mode, idx, buf, job_id in iter_all_instances() do
 		if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
-			table.insert(live, { mode = mode, idx = idx, buf = buf, job_id = job_id })
+			table.insert(live, { mode = mode, idx = idx, buf = buf, job_id = job_id, root = root })
 		end
 	end
 	return live

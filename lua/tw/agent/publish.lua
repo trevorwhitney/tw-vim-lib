@@ -23,6 +23,25 @@ function M._set_global(mod)
 	_global_override = mod
 end
 
+local HEARTBEAT_INTERVAL_MS = 4000
+local last_heartbeat_ts = {}
+
+local _clock = function()
+	return vim.uv and vim.uv.now() or (os.time() * 1000)
+end
+
+function M._set_clock(fn)
+	_clock = fn
+end
+
+function M._reset_heartbeat()
+	last_heartbeat_ts = {}
+end
+
+local function stamp_heartbeat(mode, idx)
+	last_heartbeat_ts[string.format("%s#%d", mode, idx)] = _clock()
+end
+
 function M._workmux_status(status)
 	if status == "working" then
 		return "working"
@@ -56,6 +75,7 @@ function M.record(entry)
 			updated_ts = now(),
 		})
 	end
+	stamp_heartbeat(entry.mode, entry.idx)
 end
 
 function M.record_exit(entry)
@@ -125,6 +145,26 @@ function M._set_capture_hook(fn)
 	capture_hook = fn
 end
 
+function M.heartbeat(inst)
+	local key = string.format("%s#%d", inst.mode, inst.idx)
+	local last = last_heartbeat_ts[key]
+	local now_ms = _clock()
+	if last and (now_ms - last) < HEARTBEAT_INTERVAL_MS then
+		return
+	end
+	last_heartbeat_ts[key] = now_ms
+	local g = get_global()
+	if g and g.touch then
+		pcall(g.touch, {
+			root = inst.root,
+			mode = inst.mode,
+			idx = inst.idx,
+			status = inst.status or "working",
+			updated_ts = os.time(),
+		})
+	end
+end
+
 function M.start_timer(tick, interval_ms)
 	if poll_timer then
 		return
@@ -143,6 +183,14 @@ function M.start_timer(tick, interval_ms)
 				for _, inst in ipairs(tick() or {}) do
 					local s = status.detect(inst)
 					M.push_status(inst.mode, inst.idx, s)
+					if inst.root then
+						M.heartbeat({
+							root = inst.root,
+							mode = inst.mode,
+							idx = inst.idx,
+							status = s,
+						})
+					end
 					if capture_hook then
 						pcall(capture_hook, inst.mode, inst.idx)
 					end

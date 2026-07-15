@@ -131,6 +131,34 @@ function M.record(entry, opts)
 	write_atomic(dir, filename, vim.json.encode(rec))
 end
 
+-- Update only status/updated_ts on an existing mirror record, preserving all
+-- other fields (session_id, description, path, handle). Skips when no record
+-- file exists yet. Used by the periodic heartbeat so freshness updates never
+-- erase previously mirrored metadata.
+function M.touch(entry, opts)
+	opts = opts or {}
+	local id = resolve_identity(entry.root, opts)
+	if not id then
+		return
+	end
+	local dir = M._agents_dir(opts)
+	local filename = M._record_filename(id.project, id.worktree, entry.mode, entry.idx)
+	local path = dir .. "/" .. filename
+	local f = io.open(path, "r")
+	if not f then
+		return
+	end
+	local content = f:read("*a")
+	f:close()
+	local ok, existing = pcall(vim.json.decode, content)
+	if not ok or type(existing) ~= "table" then
+		return
+	end
+	existing.status = entry.status or existing.status
+	existing.updated_ts = entry.updated_ts or os.time()
+	write_atomic(dir, filename, vim.json.encode(existing))
+end
+
 -- Mark an exited agent's record restorable, preserving session_id/description.
 -- Skips entirely when no prior record file exists (nothing to mark restorable),
 -- so a junk record is never created on the exit path.

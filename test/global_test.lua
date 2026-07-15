@@ -235,14 +235,54 @@ test("delete removes the record file", function()
 	fake_fs = {}
 	global.record({
 		root = "/Users/tw/workspace/loki/wt",
+		mode = "[REDACTED]",
+		idx = 0,
+		status = "working",
+		updated_ts = 5,
+	}, { xdg_state = "/tmp/xdg" })
+	global.delete("loki", "wt", "[REDACTED]", 0, { xdg_state = "/tmp/xdg" })
+	local path = "[REDACTED]#0.json"
+	eq(nil, fake_fs[path], "file gone")
+end)
+
+test("touch updates status/updated_ts but preserves session_id and description", function()
+	fake_fs = {}
+	global.record({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		session_id = "ses_keep",
+		description = "do the thing",
+		updated_ts = 100,
+	}, { xdg_state = "/tmp/xdg" })
+	global.touch({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		updated_ts = 205,
+	}, { xdg_state = "/tmp/xdg" })
+	local path = "/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"
+	eq("ses_keep", fake_fs[path].session_id, "session_id preserved")
+	eq("do the thing", fake_fs[path].description, "description preserved")
+	eq(205, fake_fs[path].updated_ts, "updated_ts advanced")
+end)
+
+test("touch writes nothing when no prior record exists", function()
+	fake_fs = {}
+	global.touch({
+		root = "/Users/tw/workspace/loki/wt",
 		mode = "opencode",
 		idx = 0,
 		status = "working",
 		updated_ts = 5,
 	}, { xdg_state = "/tmp/xdg" })
-	global.delete("loki", "wt", "opencode", 0, { xdg_state = "/tmp/xdg" })
-	local path = "/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"
-	eq(nil, fake_fs[path], "file gone")
+	local n = 0
+	for _ in pairs(fake_fs) do
+		n = n + 1
+	end
+	eq(0, n, "no record created")
 end)
 
 H.finish("global.lua")
