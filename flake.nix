@@ -106,6 +106,7 @@
 
         packages = {
           neovim = defaultPackage;
+          agentmux = pkgs.callPackage ./nix/packages/agentmux { };
         };
 
         devShells.default =
