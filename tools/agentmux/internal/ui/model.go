@@ -17,8 +17,9 @@ import (
 const refreshInterval = 1500 * time.Millisecond
 
 type refreshMsg struct {
-	nodes []tree.Node
-	err   error
+	nodes     []tree.Node
+	summaries map[string]string
+	err       error
 }
 type tickMsg struct{}
 
@@ -37,6 +38,7 @@ type Model struct {
 	filtering bool   // true while the / filter input is active
 	filter    string // current filter query
 	showHelp  bool   // true while ? full-help is shown
+	summaries map[string]string
 }
 
 // New builds the model for the given mirror directory.
@@ -71,7 +73,22 @@ func (m Model) load() tea.Cmd {
 		}
 		store.Reap(dir, now, statPath, mtimeOf, store.ReapWindowSecs)
 		recs, err := store.Load(dir)
-		return refreshMsg{nodes: tree.Build(recs, now, statPath), err: err}
+
+		summaries := map[string]string{}
+		if err == nil {
+			perProjectDir := map[string]map[string]string{}
+			for _, r := range recs {
+				projDir := filepath.Dir(r.Path)
+				wtmap, ok := perProjectDir[projDir]
+				if !ok {
+					wtmap = store.LoadWorktreeSummaries(projDir)
+					perProjectDir[projDir] = wtmap
+				}
+				summaries[r.Project+"/"+r.Worktree] = store.Summary(r, wtmap, nil)
+			}
+		}
+
+		return refreshMsg{nodes: tree.Build(recs, now, statPath), summaries: summaries, err: err}
 	}
 }
 
@@ -100,6 +117,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = "load error: " + msg.err.Error()
 		} else {
 			m.nodes = msg.nodes
+			m.summaries = msg.summaries
 			m.status = ""
 			m.rebuildVisible()
 		}
@@ -281,7 +299,10 @@ func (m Model) View() tea.View {
 			b = append(b, lipgloss.NewStyle().Faint(true).Render("/"+m.filter))
 		}
 		for i, n := range m.visible {
-			summary := n.Worktree
+			summary := m.summaries[n.Project+"/"+n.Worktree]
+			if summary == "" {
+				summary = n.Worktree
+			}
 			row := RenderRow(n, summary, now)
 			if i == m.cursor {
 				row = lipgloss.NewStyle().Reverse(true).Render(row)
