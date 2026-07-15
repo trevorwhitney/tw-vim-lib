@@ -56,4 +56,23 @@ test("filename escapes underscores so __ delimiter is unambiguous", function()
 	eq("a%5F__%5Fb__opencode#0.json", a, "underscore encoding")
 end)
 
+test("derive splits ~/workspace/<project>/<worktree>", function()
+	local d = global._derive_identity("/Users/tw/workspace/loki/logmerge-build-index")
+	eq("loki", d.project, "project")
+	eq("logmerge-build-index", d.worktree, "worktree")
+	eq("logmerge-build-index", d.handle, "handle")
+end)
+
+test("derive handles a main checkout (project == worktree)", function()
+	local d = global._derive_identity("/Users/tw/workspace/loki/loki")
+	eq("loki", d.project, "project")
+	eq("loki", d.worktree, "worktree")
+end)
+
+test("derive returns nil for a path with no workspace segment", function()
+	eq(nil, global._derive_identity("/tmp/scratch"), "non-workspace 2-seg")
+	eq(nil, global._derive_identity("/"), "root path")
+	eq(nil, global._derive_identity("/Users/tw/workspace/loki"), "workspace but no worktree")
+end)
+
 H.finish("global.lua")
