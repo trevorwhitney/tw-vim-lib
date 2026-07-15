@@ -1,5 +1,12 @@
 local M = {}
 
+local function warn(msg)
+	local ok, log = pcall(require, "tw.log")
+	if ok and log and log.warn then
+		log.warn(msg)
+	end
+end
+
 -- Resolve the mirror agents directory. opts.xdg_state / opts.home override the
 -- environment (used by tests); production reads XDG_STATE_HOME then HOME.
 function M._agents_dir(opts)
@@ -53,6 +60,109 @@ function M._derive_identity(path)
 		worktree = worktree,
 		handle = worktree,
 	}
+end
+
+-- Resolve identity for a worktree root, using the convention first and an
+-- optional injected workmux lookup as fallback. opts.workmux_lookup(path) may
+-- return { project=, worktree=, handle= } or nil.
+local function resolve_identity(root, opts)
+	local id = M._derive_identity(root)
+	if id and id.project and id.project ~= "" then
+		return id
+	end
+	local lookup = opts and opts.workmux_lookup
+	if lookup then
+		local ok, fallback = pcall(lookup, root)
+		if ok and fallback and fallback.project and fallback.project ~= "" then
+			return fallback
+		end
+	end
+	return nil
+end
+
+-- Atomic write: tmp file then rename. Best-effort; never raises.
+local function write_atomic(dir, filename, payload)
+	vim.fn.mkdir(dir, "p")
+	local path = dir .. "/" .. filename
+	local tmp = path .. ".tmp"
+	local ok, err = pcall(function()
+		local f = io.open(tmp, "w")
+		if not f then
+			error("open tmp failed")
+		end
+		f:write(payload)
+		f:close()
+		local renamed, rerr = os.rename(tmp, path)
+		if not renamed then
+			error("rename failed: " .. tostring(rerr))
+		end
+	end)
+	if not ok then
+		pcall(os.remove, tmp)
+		warn("global.write_atomic: " .. tostring(err))
+		return false, err
+	end
+	return true
+end
+
+-- Write (or overwrite) one agent record. Skips entirely if the project cannot
+-- be resolved, so a blank-project record is never written.
+function M.record(entry, opts)
+	opts = opts or {}
+	local id = resolve_identity(entry.root, opts)
+	if not id then
+		return
+	end
+	local dir = M._agents_dir(opts)
+	local filename = M._record_filename(id.project, id.worktree, entry.mode, entry.idx)
+	local rec = {
+		project = id.project,
+		worktree = id.worktree,
+		path = entry.root,
+		handle = id.handle,
+		mode = entry.mode,
+		idx = entry.idx,
+		status = entry.status or "working",
+		description = entry.description,
+		session_id = entry.session_id,
+		updated_ts = entry.updated_ts or os.time(),
+		schema = 1,
+	}
+	write_atomic(dir, filename, vim.json.encode(rec))
+end
+
+-- Mark an exited agent's record restorable, preserving session_id/description.
+-- Skips entirely when no prior record file exists (nothing to mark restorable),
+-- so a junk record is never created on the exit path.
+function M.record_exit(entry, opts)
+	opts = opts or {}
+	local id = resolve_identity(entry.root, opts)
+	if not id then
+		return
+	end
+	local dir = M._agents_dir(opts)
+	local filename = M._record_filename(id.project, id.worktree, entry.mode, entry.idx)
+	local path = dir .. "/" .. filename
+	local f = io.open(path, "r")
+	if not f then
+		return
+	end
+	local content = f:read("*a")
+	f:close()
+	local ok, existing = pcall(vim.json.decode, content)
+	if not ok or type(existing) ~= "table" then
+		return
+	end
+	existing.status = "restorable"
+	existing.updated_ts = entry.updated_ts or os.time()
+	write_atomic(dir, filename, vim.json.encode(existing))
+end
+
+-- Remove a record file. No-op if absent.
+function M.delete(project, worktree, mode, idx, opts)
+	local dir = M._agents_dir(opts or {})
+	local filename = M._record_filename(project, worktree, mode, idx)
+	pcall(os.remove, dir .. "/" .. filename)
 end
 
 return M
