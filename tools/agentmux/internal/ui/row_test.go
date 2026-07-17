@@ -83,37 +83,41 @@ func Test_RenderRow(t *testing.T) {
 	})
 
 	t.Run("agent live working", func(t *testing.T) {
-		t.Skip("segment rendering for agents not implemented yet")
 		n := tree.Node{
-			Kind:     tree.KindAgent,
-			Depth:    2,
-			Worktree: "wt",
-			Record: store.Record{
-				Mode:      "opencode",
-				Idx:       0,
-				Status:    "working",
-				UpdatedTS: now,
-			},
+			Kind: tree.KindAgent, Depth: 2, Worktree: "wt",
+			Record: store.Record{Mode: "opencode", Idx: 0, Status: "working", UpdatedTS: now},
 		}
-		expected := "    opencode#0  working · live"
-		assert.Equal(t, expected, RenderRow(n, "", now))
+		assert.Equal(t, []Segment{
+			{Text: "    opencode#0", Role: RoleAgentWorking},
+			{Text: "  working", Role: RoleAgentWorking},
+			{Text: " · live", Role: RoleAge},
+		}, RenderRow(n, "", now))
 	})
 
 	t.Run("agent saved waiting with attention", func(t *testing.T) {
-		t.Skip("segment rendering for agents not implemented yet")
 		n := tree.Node{
-			Kind:     tree.KindAgent,
-			Depth:    2,
-			Worktree: "wt",
-			Record: store.Record{
-				Mode:      "opencode",
-				Idx:       1,
-				Status:    "waiting",
-				UpdatedTS: now - 7200,
-			},
+			Kind: tree.KindAgent, Depth: 2, Worktree: "wt",
+			Record: store.Record{Mode: "opencode", Idx: 1, Status: "waiting", UpdatedTS: now - 7200},
 		}
-		expected := "    opencode#1  waiting · saved 2h ago ⚠"
-		assert.Equal(t, expected, RenderRow(n, "", now))
+		assert.Equal(t, []Segment{
+			{Text: "    opencode#1", Role: RoleAgentWaiting},
+			{Text: "  waiting", Role: RoleAgentWaiting},
+			{Text: " · saved 2h ago", Role: RoleAge},
+			{Text: " ⚠", Role: RoleAttention},
+		}, RenderRow(n, "", now))
+	})
+
+	t.Run("agent stale working is attention (yellow line)", func(t *testing.T) {
+		n := tree.Node{
+			Kind: tree.KindAgent, Depth: 2, Worktree: "wt",
+			Record: store.Record{Mode: "opencode", Idx: 0, Status: "working", UpdatedTS: now - 300},
+		}
+		assert.Equal(t, []Segment{
+			{Text: "    opencode#0", Role: RoleAgentWaiting},
+			{Text: "  working", Role: RoleAgentWaiting},
+			{Text: " · saved 5m ago", Role: RoleAge},
+			{Text: " ⚠", Role: RoleAttention},
+		}, RenderRow(n, "", now))
 	})
 }
 

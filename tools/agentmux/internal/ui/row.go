@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/trevorwhitney/tw-vim-lib/agentmux/internal/store"
 	"github.com/trevorwhitney/tw-vim-lib/agentmux/internal/tree"
 )
 
@@ -71,9 +72,43 @@ func RenderRow(n tree.Node, summary string, now int64) []Segment {
 		)
 		return segs
 	case tree.KindAgent:
-		return nil
+		r := n.Record
+		lineRole := agentLineRole(r, now)
+		segs := []Segment{
+			{Text: fmt.Sprintf("%s%s#%d", indent, r.Mode, r.Idx), Role: lineRole},
+			{Text: "  " + r.Status, Role: lineRole},
+		}
+		if store.Liveness(r, now) == "saved" {
+			segs = append(segs, Segment{
+				Text: fmt.Sprintf(" · saved %s ago", humanAge(store.AgeSecs(r, now))),
+				Role: RoleAge,
+			})
+		} else {
+			segs = append(segs, Segment{Text: " · live", Role: RoleAge})
+		}
+		if store.NeedsAttention(r, now) {
+			segs = append(segs, Segment{Text: " ⚠", Role: RoleAttention})
+		}
+		return segs
 	}
 	return nil
+}
+
+// agentLineRole picks the color role for the agent's name+status line. A stale
+// agent is an attention state and takes the waiting (yellow) tone even if its
+// status still literally reads "working".
+func agentLineRole(r store.Record, now int64) SegmentRole {
+	if store.NeedsAttention(r, now) && store.Liveness(r, now) == "saved" {
+		return RoleAgentWaiting
+	}
+	switch r.Status {
+	case "working":
+		return RoleAgentWorking
+	case "waiting":
+		return RoleAgentWaiting
+	default:
+		return RoleDefault
+	}
 }
 
 // countSegment formats a "<n><suffix>" count, using RoleCountZero when n==0 so
