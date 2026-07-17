@@ -3,7 +3,6 @@ package ui
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/key"
@@ -294,26 +293,25 @@ func (m Model) View() tea.View {
 	} else {
 		now := time.Now().Unix()
 		var b []string
-		title := lipgloss.NewStyle().Bold(true).Render("agentmux — agents across worktrees")
-		b = append(b, title)
+		b = append(b, styleTitle.Render("agentmux — agents across worktrees"))
 		if m.filtering || m.filter != "" {
-			b = append(b, lipgloss.NewStyle().Faint(true).Render("/"+m.filter))
+			b = append(b, styleFilter.Render("/"+m.filter))
 		}
 		for i, n := range m.visible {
 			summary := m.summaries[n.Project+"/"+n.Worktree]
 			if summary == "" {
 				summary = n.Worktree
 			}
-			row := plainSegments(RenderRow(n, summary, now))
+			row := styleSegments(RenderRow(n, summary, now))
 			if i == m.cursor {
 				row = lipgloss.NewStyle().Reverse(true).Render(row)
 			}
 			b = append(b, row)
 		}
 		if m.status != "" {
-			b = append(b, lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(m.status))
+			b = append(b, styleStatus.Render(m.status))
 		}
-		b = append(b, lipgloss.NewStyle().Faint(true).Render("⏎ jump · ⇥ collapse · d purge · r refresh · / filter · ? help · q quit"))
+		b = append(b, styleFooter.Render("⏎ jump · ⇥ collapse · d purge · r refresh · / filter · ? help · q quit"))
 		content = lipgloss.JoinVertical(lipgloss.Left, b...)
 	}
 	v := tea.NewView(content)
@@ -338,14 +336,4 @@ func helpView() string {
 		"(any key to dismiss)",
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, lines...)
-}
-
-// plainSegments joins segment text without styling. Temporary until the style
-// layer replaces it.
-func plainSegments(segs []Segment) string {
-	var b strings.Builder
-	for _, s := range segs {
-		b.WriteString(s.Text)
-	}
-	return b.String()
 }

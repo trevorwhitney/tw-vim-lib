@@ -20,6 +20,13 @@ var (
 	stylePlain     = lipgloss.NewStyle()
 )
 
+var (
+	styleTitle  = lipgloss.NewStyle().Bold(true)
+	styleFooter = lipgloss.NewStyle().Faint(true)
+	styleStatus = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+	styleFilter = lipgloss.NewStyle().Faint(true)
+)
+
 var roleStyles = map[SegmentRole]lipgloss.Style{
 	RoleProject:      styleProject,
 	RoleWorktree:     stylePlain,
