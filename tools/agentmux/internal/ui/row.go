@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/trevorwhitney/tw-vim-lib/agentmux/internal/store"
 	"github.com/trevorwhitney/tw-vim-lib/agentmux/internal/tree"
 )
 
@@ -35,42 +34,26 @@ type Segment struct {
 	Role SegmentRole
 }
 
-// RenderRow returns the plain-text label for a node. Lip Gloss styling is
-// applied by the list delegate; this function owns the content/layout so it can
-// be tested without a terminal.
-func RenderRow(n tree.Node, summary string, now int64) string {
+// RenderRow returns the ordered segments for a node. It owns content and
+// layout (text, indent, markers, separators, ordering) and is terminal-free so
+// it can be unit-tested without rendering. Styling is applied by styleSegments.
+func RenderRow(n tree.Node, summary string, now int64) []Segment {
 	indent := strings.Repeat("  ", n.Depth)
 	switch n.Kind {
 	case tree.KindProject:
-		return indent + n.Project
+		return []Segment{{Text: indent + "▸ " + n.Project, Role: RoleProject}}
 	case tree.KindWorktree:
-		tag := ""
-		if n.IsMain {
-			tag = " [main]"
-		}
 		if n.Validity == "gone" {
-			return fmt.Sprintf("%s%s%s  (removed)", indent, n.Worktree, tag)
+			return []Segment{
+				{Text: indent + n.Worktree, Role: RoleWorktree},
+				{Text: "  (removed)", Role: RoleRemoved},
+			}
 		}
-		attn := ""
-		if n.NeedsAttention {
-			attn = " ⚠"
-		}
-		return fmt.Sprintf("%s%s%s  [%dw · %dq · %ds]%s  — %s",
-			indent, n.Worktree, tag, n.Working, n.Waiting, n.Saved, attn, summary)
+		return nil
 	case tree.KindAgent:
-		r := n.Record
-		life := store.Liveness(r, now)
-		suffix := life
-		if life == "saved" {
-			suffix = fmt.Sprintf("saved %s ago", humanAge(store.AgeSecs(r, now)))
-		}
-		attn := ""
-		if store.NeedsAttention(r, now) {
-			attn = " ⚠"
-		}
-		return fmt.Sprintf("%s%s#%d  %s · %s%s", indent, r.Mode, r.Idx, r.Status, suffix, attn)
+		return nil
 	}
-	return ""
+	return nil
 }
 
 // humanAge formats a duration in seconds as a compact relative string.

@@ -3,6 +3,7 @@ package ui
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/key"
@@ -303,7 +304,7 @@ func (m Model) View() tea.View {
 			if summary == "" {
 				summary = n.Worktree
 			}
-			row := RenderRow(n, summary, now)
+			row := plainSegments(RenderRow(n, summary, now))
 			if i == m.cursor {
 				row = lipgloss.NewStyle().Reverse(true).Render(row)
 			}
@@ -337,4 +338,14 @@ func helpView() string {
 		"(any key to dismiss)",
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, lines...)
+}
+
+// plainSegments joins segment text without styling. Temporary until the style
+// layer replaces it.
+func plainSegments(segs []Segment) string {
+	var b strings.Builder
+	for _, s := range segs {
+		b.WriteString(s.Text)
+	}
+	return b.String()
 }
