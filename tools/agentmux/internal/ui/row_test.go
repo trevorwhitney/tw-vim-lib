@@ -99,6 +99,21 @@ func Test_RenderRow(t *testing.T) {
 	})
 }
 
+func Test_SegmentRole_values(t *testing.T) {
+	roles := []SegmentRole{
+		RoleDefault, RoleProject, RoleWorktree, RoleMain,
+		RoleCountWorking, RoleCountWaiting, RoleCountSaved, RoleCountZero,
+		RoleAgentWorking, RoleAgentWaiting, RoleAttention, RoleAge,
+		RoleRemoved, RoleSep,
+	}
+	seen := map[SegmentRole]bool{}
+	for _, r := range roles {
+		assert.False(t, seen[r], "duplicate role value: %d", r)
+		seen[r] = true
+	}
+	assert.Len(t, seen, 14)
+}
+
 func Test_humanAge(t *testing.T) {
 	assert.Equal(t, "59s", humanAge(59))
 	assert.Equal(t, "1m", humanAge(60))

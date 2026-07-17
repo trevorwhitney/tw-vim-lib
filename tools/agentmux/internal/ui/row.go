@@ -8,6 +8,33 @@ import (
 	"github.com/trevorwhitney/tw-vim-lib/agentmux/internal/tree"
 )
 
+// SegmentRole classifies a run of row text so the style layer can style it
+// without needing the node. Every styling decision is encoded in the role.
+type SegmentRole int
+
+const (
+	RoleDefault SegmentRole = iota
+	RoleProject
+	RoleWorktree
+	RoleMain
+	RoleCountWorking
+	RoleCountWaiting
+	RoleCountSaved
+	RoleCountZero
+	RoleAgentWorking
+	RoleAgentWaiting
+	RoleAttention
+	RoleAge
+	RoleRemoved
+	RoleSep
+)
+
+// Segment is a run of text plus the role that determines its style.
+type Segment struct {
+	Text string
+	Role SegmentRole
+}
+
 // RenderRow returns the plain-text label for a node. Lip Gloss styling is
 // applied by the list delegate; this function owns the content/layout so it can
 // be tested without a terminal.
