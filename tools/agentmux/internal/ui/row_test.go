@@ -27,37 +27,45 @@ func Test_RenderRow(t *testing.T) {
 	})
 
 	t.Run("worktree valid non-main no attention", func(t *testing.T) {
-		t.Skip("segment rendering for valid worktrees not implemented yet")
 		n := tree.Node{
-			Kind:           tree.KindWorktree,
-			Depth:          1,
-			Worktree:       "feature",
-			Working:        0,
-			Waiting:        0,
-			Saved:          3,
-			IsMain:         false,
-			Validity:       "valid",
-			NeedsAttention: false,
+			Kind: tree.KindWorktree, Depth: 1, Worktree: "feature",
+			Working: 0, Waiting: 0, Saved: 3,
+			IsMain: false, Validity: "valid", NeedsAttention: false,
 		}
-		expected := "  feature  [0w · 0q · 3s]  — fix the thing"
-		assert.Equal(t, expected, RenderRow(n, "fix the thing", now))
+		assert.Equal(t, []Segment{
+			{Text: "  feature", Role: RoleWorktree},
+			{Text: "  [", Role: RoleSep},
+			{Text: "0w", Role: RoleCountZero},
+			{Text: " · ", Role: RoleSep},
+			{Text: "0q", Role: RoleCountZero},
+			{Text: " · ", Role: RoleSep},
+			{Text: "3s", Role: RoleCountSaved},
+			{Text: "]", Role: RoleSep},
+			{Text: "  — ", Role: RoleSep},
+			{Text: "fix the thing", Role: RoleDefault},
+		}, RenderRow(n, "fix the thing", now))
 	})
 
 	t.Run("worktree valid main with attention", func(t *testing.T) {
-		t.Skip("segment rendering for valid worktrees not implemented yet")
 		n := tree.Node{
-			Kind:           tree.KindWorktree,
-			Depth:          1,
-			Worktree:       "loki",
-			Working:        2,
-			Waiting:        1,
-			Saved:          0,
-			IsMain:         true,
-			Validity:       "valid",
-			NeedsAttention: true,
+			Kind: tree.KindWorktree, Depth: 1, Worktree: "loki",
+			Working: 2, Waiting: 1, Saved: 0,
+			IsMain: true, Validity: "valid", NeedsAttention: true,
 		}
-		expected := "  loki [main]  [2w · 1q · 0s] ⚠  — do the thing"
-		assert.Equal(t, expected, RenderRow(n, "do the thing", now))
+		assert.Equal(t, []Segment{
+			{Text: "  loki", Role: RoleWorktree},
+			{Text: " [main]", Role: RoleMain},
+			{Text: "  [", Role: RoleSep},
+			{Text: "2w", Role: RoleCountWorking},
+			{Text: " · ", Role: RoleSep},
+			{Text: "1q", Role: RoleCountWaiting},
+			{Text: " · ", Role: RoleSep},
+			{Text: "0s", Role: RoleCountZero},
+			{Text: "]", Role: RoleSep},
+			{Text: " ⚠", Role: RoleAttention},
+			{Text: "  — ", Role: RoleSep},
+			{Text: "do the thing", Role: RoleDefault},
+		}, RenderRow(n, "do the thing", now))
 	})
 
 	t.Run("worktree gone", func(t *testing.T) {

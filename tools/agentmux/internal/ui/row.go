@@ -49,11 +49,40 @@ func RenderRow(n tree.Node, summary string, now int64) []Segment {
 				{Text: "  (removed)", Role: RoleRemoved},
 			}
 		}
-		return nil
+		segs := []Segment{{Text: indent + n.Worktree, Role: RoleWorktree}}
+		if n.IsMain {
+			segs = append(segs, Segment{Text: " [main]", Role: RoleMain})
+		}
+		segs = append(segs,
+			Segment{Text: "  [", Role: RoleSep},
+			countSegment(n.Working, "w", RoleCountWorking),
+			Segment{Text: " · ", Role: RoleSep},
+			countSegment(n.Waiting, "q", RoleCountWaiting),
+			Segment{Text: " · ", Role: RoleSep},
+			countSegment(n.Saved, "s", RoleCountSaved),
+			Segment{Text: "]", Role: RoleSep},
+		)
+		if n.NeedsAttention {
+			segs = append(segs, Segment{Text: " ⚠", Role: RoleAttention})
+		}
+		segs = append(segs,
+			Segment{Text: "  — ", Role: RoleSep},
+			Segment{Text: summary, Role: RoleDefault},
+		)
+		return segs
 	case tree.KindAgent:
 		return nil
 	}
 	return nil
+}
+
+// countSegment formats a "<n><suffix>" count, using RoleCountZero when n==0 so
+// the style layer dims it, otherwise the given semantic role.
+func countSegment(n int, suffix string, role SegmentRole) Segment {
+	if n == 0 {
+		role = RoleCountZero
+	}
+	return Segment{Text: fmt.Sprintf("%d%s", n, suffix), Role: role}
 }
 
 // humanAge formats a duration in seconds as a compact relative string.
