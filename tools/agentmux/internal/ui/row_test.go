@@ -107,6 +107,20 @@ func Test_RenderRow(t *testing.T) {
 		}, RenderRow(n, "", now))
 	})
 
+	t.Run("agent with description", func(t *testing.T) {
+		n := tree.Node{
+			Kind: tree.KindAgent, Depth: 2, Worktree: "wt",
+			Record: store.Record{Mode: "opencode", Idx: 0, Status: "working", Description: "fixing the parser", UpdatedTS: now},
+		}
+		assert.Equal(t, []Segment{
+			{Text: "    opencode#0", Role: RoleAgentWorking},
+			{Text: "  working", Role: RoleAgentWorking},
+			{Text: " · live", Role: RoleAge},
+			{Text: "  — ", Role: RoleSep},
+			{Text: "fixing the parser", Role: RoleDefault},
+		}, RenderRow(n, "", now))
+	})
+
 	t.Run("agent stale working is attention (yellow line)", func(t *testing.T) {
 		n := tree.Node{
 			Kind: tree.KindAgent, Depth: 2, Worktree: "wt",

@@ -6,6 +6,16 @@ local function now()
 	return os.time()
 end
 
+-- Placeholder states from the async description generator are not real
+-- summaries; normalize them (and empty strings) to nil so they never reach the
+-- mirror or registry.
+local function normalize_description(description)
+	if description == "loading" or description == "error" or description == "" then
+		return nil
+	end
+	return description
+end
+
 -- global mirror is looked up through this seam so specs can inject a spy.
 local _global_override = nil
 local function get_global()
@@ -52,10 +62,7 @@ function M._workmux_status(status)
 end
 
 function M.record(entry)
-	local description = entry.description
-	if description == "loading" or description == "error" or description == "" then
-		description = nil
-	end
+	local description = normalize_description(entry.description)
 	pcall(registry.upsert, entry.root, entry.mode, entry.idx, {
 		cwd = entry.cwd,
 		last_status = entry.status or "working",
@@ -136,13 +143,29 @@ end
 local timer_factory = default_timer_factory
 
 function M._set_timer_factory(fn)
-	timer_factory = fn
+	timer_factory = fn or default_timer_factory
 end
 
 local capture_hook = nil
 
 function M._set_capture_hook(fn)
 	capture_hook = fn
+end
+
+-- Resolve the live description for a terminal buffer. Injectable so specs can
+-- avoid loading the description module (and its API dependencies).
+local function default_describe(buf)
+	local ok, description = pcall(require, "tw.agent.description")
+	if ok and description and description.get then
+		return description.get(buf)
+	end
+	return nil
+end
+
+local describe = default_describe
+
+function M._set_describe(fn)
+	describe = fn or default_describe
 end
 
 function M.heartbeat(inst)
@@ -160,6 +183,7 @@ function M.heartbeat(inst)
 			mode = inst.mode,
 			idx = inst.idx,
 			status = inst.status or "working",
+			description = normalize_description(inst.description),
 			updated_ts = os.time(),
 		})
 	end
@@ -189,6 +213,7 @@ function M.start_timer(tick, interval_ms)
 							mode = inst.mode,
 							idx = inst.idx,
 							status = s,
+							description = inst.buf and describe(inst.buf) or nil,
 						})
 					end
 					if capture_hook then

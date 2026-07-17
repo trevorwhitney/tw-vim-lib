@@ -269,6 +269,51 @@ test("touch updates status/updated_ts but preserves session_id and description",
 	eq(205, fake_fs[path].updated_ts, "updated_ts advanced")
 end)
 
+test("touch updates description when a fresh one is provided", function()
+	fake_fs = {}
+	global.record({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		session_id = "ses_keep",
+		description = "old summary",
+		updated_ts = 100,
+	}, { xdg_state = "/tmp/xdg" })
+	global.touch({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		description = "new summary",
+		updated_ts = 205,
+	}, { xdg_state = "/tmp/xdg" })
+	local path = "/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"
+	eq("new summary", fake_fs[path].description, "description updated")
+	eq("ses_keep", fake_fs[path].session_id, "session_id preserved")
+end)
+
+test("touch preserves existing description when none is provided", function()
+	fake_fs = {}
+	global.record({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		description = "keep me",
+		updated_ts = 100,
+	}, { xdg_state = "/tmp/xdg" })
+	global.touch({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		updated_ts = 205,
+	}, { xdg_state = "/tmp/xdg" })
+	local path = "/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"
+	eq("keep me", fake_fs[path].description, "description preserved when not provided")
+end)
+
 test("touch writes nothing when no prior record exists", function()
 	fake_fs = {}
 	global.touch({

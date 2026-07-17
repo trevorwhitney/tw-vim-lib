@@ -89,6 +89,12 @@ func RenderRow(n tree.Node, summary string, now int64) []Segment {
 		if store.NeedsAttention(r, now) {
 			segs = append(segs, Segment{Text: " ⚠", Role: RoleAttention})
 		}
+		if r.Description != "" {
+			segs = append(segs,
+				Segment{Text: "  — ", Role: RoleSep},
+				Segment{Text: r.Description, Role: RoleDefault},
+			)
+		}
 		return segs
 	}
 	return nil

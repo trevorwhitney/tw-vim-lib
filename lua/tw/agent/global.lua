@@ -131,10 +131,11 @@ function M.record(entry, opts)
 	write_atomic(dir, filename, vim.json.encode(rec))
 end
 
--- Update only status/updated_ts on an existing mirror record, preserving all
--- other fields (session_id, description, path, handle). Skips when no record
--- file exists yet. Used by the periodic heartbeat so freshness updates never
--- erase previously mirrored metadata.
+-- Update status/updated_ts on an existing mirror record, and the description
+-- when a fresh non-empty one is provided. All other fields (session_id, path,
+-- handle) are preserved. Skips when no record file exists yet. Used by the
+-- periodic heartbeat so descriptions generated after the initial record still
+-- reach the mirror, without erasing previously mirrored metadata.
 function M.touch(entry, opts)
 	opts = opts or {}
 	local id = resolve_identity(entry.root, opts)
@@ -156,6 +157,9 @@ function M.touch(entry, opts)
 	end
 	existing.status = entry.status or existing.status
 	existing.updated_ts = entry.updated_ts or os.time()
+	if entry.description and entry.description ~= "" then
+		existing.description = entry.description
+	end
 	write_atomic(dir, filename, vim.json.encode(existing))
 end
 
