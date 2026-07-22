@@ -330,4 +330,137 @@ test("touch writes nothing when no prior record exists", function()
 	eq(0, n, "no record created")
 end)
 
+test("record preserves an existing session_id when the new one is nil", function()
+	fake_fs = {}
+	global.record({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		session_id = "ses_keep",
+		updated_ts = 1,
+	}, { xdg_state = "/tmp/xdg" })
+	global.record({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		session_id = nil,
+		updated_ts = 2,
+	}, { xdg_state = "/tmp/xdg" })
+	local path = "/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"
+	eq("ses_keep", fake_fs[path].session_id, "session_id preserved on nil rewrite")
+	eq(2, fake_fs[path].updated_ts, "updated_ts still advanced")
+end)
+
+test("record overwrites session_id when a fresh non-nil id is provided", function()
+	fake_fs = {}
+	global.record({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		session_id = "ses_old",
+		updated_ts = 1,
+	}, { xdg_state = "/tmp/xdg" })
+	global.record({
+		root = "/Users/tw/workspace/loki/wt",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		session_id = "ses_new",
+		updated_ts = 2,
+	}, { xdg_state = "/tmp/xdg" })
+	local path = "/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"
+	eq("ses_new", fake_fs[path].session_id, "fresh id overwrites")
+end)
+
+test("reap removes records whose worktree path no longer exists", function()
+	fake_fs = {}
+	global.record({
+		root = "/Users/tw/workspace/loki/live",
+		mode = "opencode",
+		idx = 0,
+		status = "working",
+		session_id = "s1",
+		updated_ts = 1,
+	}, { xdg_state = "/tmp/xdg" })
+	global.record({
+		root = "/Users/tw/workspace/loki/dead",
+		mode = "opencode",
+		idx = 0,
+		status = "restorable",
+		session_id = "s2",
+		updated_ts = 1,
+	}, { xdg_state = "/tmp/xdg" })
+	local live_path = "/tmp/xdg/agentmux/agents/loki__live__opencode#0.json"
+	local dead_path = "/tmp/xdg/agentmux/agents/loki__dead__opencode#0.json"
+	global.reap({
+		xdg_state = "/tmp/xdg",
+		readdir = function()
+			return { "loki__live__opencode#0.json", "loki__dead__opencode#0.json" }
+		end,
+		isdir = function(p)
+			return p == "/Users/tw/workspace/loki/live"
+		end,
+	})
+	eq(true, fake_fs[live_path] ~= nil, "live record kept")
+	eq(nil, fake_fs[dead_path], "dead record removed")
+end)
+
+test("reap ignores non-json entries", function()
+	fake_fs = {}
+	fake_fs["/tmp/xdg/agentmux/agents/notes.txt"] = "ignore me"
+	global.reap({
+		xdg_state = "/tmp/xdg",
+		readdir = function()
+			return { "notes.txt" }
+		end,
+		isdir = function()
+			return false
+		end,
+	})
+	eq("ignore me", fake_fs["/tmp/xdg/agentmux/agents/notes.txt"], "non-json left untouched")
+end)
+
+test("reap leaves an undecodable record in place", function()
+	fake_fs = {}
+	fake_fs["/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"] = "not a table"
+	global.reap({
+		xdg_state = "/tmp/xdg",
+		readdir = function()
+			return { "loki__wt__opencode#0.json" }
+		end,
+		isdir = function()
+			return false
+		end,
+	})
+	eq("not a table", fake_fs["/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"], "corrupt record untouched")
+end)
+
+test("reap leaves a record with no path field in place", function()
+	fake_fs = {}
+	fake_fs["/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"] = { project = "loki", worktree = "wt" }
+	global.reap({
+		xdg_state = "/tmp/xdg",
+		readdir = function()
+			return { "loki__wt__opencode#0.json" }
+		end,
+		isdir = function()
+			error("isdir must not be called for a pathless record")
+		end,
+	})
+	eq(true, fake_fs["/tmp/xdg/agentmux/agents/loki__wt__opencode#0.json"] ~= nil, "pathless record untouched")
+end)
+
+test("reap never raises even when readdir fails", function()
+	local ok = pcall(global.reap, {
+		xdg_state = "/tmp/xdg",
+		readdir = function()
+			error("readdir boom")
+		end,
+	})
+	eq(true, ok, "reap swallowed the error")
+end)
+
 H.finish("global.lua")

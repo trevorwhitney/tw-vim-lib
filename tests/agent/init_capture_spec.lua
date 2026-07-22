@@ -42,13 +42,22 @@ describe("init — opencode session capture", function()
     assert.equals(1, list_calls)
   end)
 
-  it("does nothing when the registry already has a session_id", function()
+  it("recaptures a NEW session_id after relaunch even when the registry holds an OLD id", function()
     agent._set_resume(make_resume("ses_new"))
     agent._note_opencode_launch("opencode", 0)
-    local reg = make_registry({ ["opencode#0"] = { session_id = "ses_existing" } })
+    local reg = make_registry({ ["opencode#0"] = { session_id = "ses_old" } })
     local id = agent._capture_opencode_session(reg, "opencode", 0, "/wt")
-    assert.is_nil(id)
-    assert.equals(0, list_calls)
+    assert.equals("ses_new", id)
+    assert.equals(1, list_calls)
+  end)
+
+  it("stops re-capturing once a session is captured for the current launch", function()
+    agent._set_resume(make_resume("ses_a"))
+    agent._note_opencode_launch("opencode", 0)
+    local reg = make_registry()
+    assert.equals("ses_a", agent._capture_opencode_session(reg, "opencode", 0, "/wt"))
+    assert.is_nil(agent._capture_opencode_session(reg, "opencode", 0, "/wt"))
+    assert.equals(1, list_calls)
   end)
 
   it("returns nil without a launch timestamp", function()
@@ -132,5 +141,45 @@ describe("init — opencode session capture", function()
     -- ms-precision epoch is not aligned to a whole second boundary in general;
     -- assert it carries sub-second resolution by comparing to os.time()*1000.
     assert.is_true(ts >= os.time() * 1000)
+  end)
+end)
+
+describe("init — throttled mirror reap", function()
+  local agent
+
+  before_each(function()
+    local helpers = require("tests.agent.spec_helpers")
+    agent = helpers.reset_and_mock(false)
+    agent._last_reap_ts = 0
+  end)
+
+  it("runs the reaper on the first call", function()
+    local calls = 0
+    local ran = agent._maybe_reap({ now = 1000, reap = function() calls = calls + 1 end })
+    assert.is_true(ran)
+    assert.equals(1, calls)
+  end)
+
+  it("suppresses a second reap within the interval", function()
+    local calls = 0
+    local reap = function() calls = calls + 1 end
+    agent._maybe_reap({ now = 1000, reap = reap })
+    local ran = agent._maybe_reap({ now = 1000 + agent._REAP_INTERVAL_MS - 1, reap = reap })
+    assert.is_false(ran)
+    assert.equals(1, calls)
+  end)
+
+  it("runs again once the interval has elapsed", function()
+    local calls = 0
+    local reap = function() calls = calls + 1 end
+    agent._maybe_reap({ now = 1000, reap = reap })
+    local ran = agent._maybe_reap({ now = 1000 + agent._REAP_INTERVAL_MS, reap = reap })
+    assert.is_true(ran)
+    assert.equals(2, calls)
+  end)
+
+  it("never raises when the reaper throws", function()
+    local ok = pcall(agent._maybe_reap, { now = 1000, reap = function() error("reap boom") end })
+    assert.is_true(ok)
   end)
 end)

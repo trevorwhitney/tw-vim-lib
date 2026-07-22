@@ -105,8 +105,26 @@ local function write_atomic(dir, filename, payload)
 	return true
 end
 
+-- Read and decode an existing record file, or nil when absent/corrupt.
+local function read_record(dir, filename)
+	local f = io.open(dir .. "/" .. filename, "r")
+	if not f then
+		return nil
+	end
+	local content = f:read("*a")
+	f:close()
+	local ok, decoded = pcall(vim.json.decode, content)
+	if not ok or type(decoded) ~= "table" then
+		return nil
+	end
+	return decoded
+end
+
 -- Write (or overwrite) one agent record. Skips entirely if the project cannot
--- be resolved, so a blank-project record is never written.
+-- be resolved, so a blank-project record is never written. A nil session_id
+-- does not erase a previously captured one: capture is launch-scoped and lags
+-- the initial record, so an early publish with no id must preserve the stored
+-- value rather than blank it out (a real, non-nil capture still overwrites).
 function M.record(entry, opts)
 	opts = opts or {}
 	local id = resolve_identity(entry.root, opts)
@@ -115,6 +133,13 @@ function M.record(entry, opts)
 	end
 	local dir = M._agents_dir(opts)
 	local filename = M._record_filename(id.project, id.worktree, entry.mode, entry.idx)
+	local session_id = entry.session_id
+	if session_id == nil then
+		local existing = read_record(dir, filename)
+		if existing and existing.session_id then
+			session_id = existing.session_id
+		end
+	end
 	local rec = {
 		project = id.project,
 		worktree = id.worktree,
@@ -124,7 +149,7 @@ function M.record(entry, opts)
 		idx = entry.idx,
 		status = entry.status or "working",
 		description = entry.description,
-		session_id = entry.session_id,
+		session_id = session_id,
 		updated_ts = entry.updated_ts or os.time(),
 		schema = 1,
 	}
@@ -195,6 +220,41 @@ function M.delete(project, worktree, mode, idx, opts)
 	local dir = M._agents_dir(opts or {})
 	local filename = M._record_filename(project, worktree, mode, idx)
 	pcall(os.remove, dir .. "/" .. filename)
+end
+
+-- Self-healing reaper: drop mirror records for worktrees that no longer exist.
+-- Stale records pollute the "known agents" list and a lingering session_id can
+-- be picked as a doomed message target. Best-effort and never raises: a record
+-- is removed only when its `path` is a string that is not an existing
+-- directory; a missing path, an undecodable record, or a read/list failure
+-- leaves the file untouched. opts.isdir / opts.readdir are injectable for tests.
+function M.reap(opts)
+	opts = opts or {}
+	local dir = M._agents_dir(opts)
+	local isdir = opts.isdir or function(p)
+		return vim.fn.isdirectory(p) == 1
+	end
+	local readdir = opts.readdir
+		or function(d)
+			local ok, entries = pcall(vim.fn.readdir, d)
+			if ok and type(entries) == "table" then
+				return entries
+			end
+			return {}
+		end
+	local ok, err = pcall(function()
+		for _, name in ipairs(readdir(dir)) do
+			if type(name) == "string" and name:match("%.json$") then
+				local rec = read_record(dir, name)
+				if rec and type(rec.path) == "string" and rec.path ~= "" and not isdir(rec.path) then
+					pcall(os.remove, dir .. "/" .. name)
+				end
+			end
+		end
+	end)
+	if not ok then
+		warn("global.reap: " .. tostring(err))
+	end
 end
 
 return M

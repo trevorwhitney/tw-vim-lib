@@ -67,6 +67,12 @@ M.instances = {
 M._opencode_launch_ts = {}
 M._opencode_capture_attempts = {}
 
+-- Whether a session id has already been captured for the CURRENT launch of a
+-- slot, keyed by "<mode>#<idx>". Reset on every (re)launch so a restarted
+-- opencode process (new session id) is re-captured instead of being blocked by
+-- the stale id still held in the per-worktree registry.
+M._opencode_captured = {}
+
 -- Upper bound on capture retries per launch. Each attempt spawns a synchronous
 -- `opencode session list`; the cap prevents an unbounded once-per-second storm
 -- when a panel never produces a session.
@@ -105,12 +111,35 @@ function M._note_opencode_launch(mode, idx)
 	local key = string.format("%s#%d", mode, idx)
 	M._opencode_launch_ts[key] = epoch_ms()
 	M._opencode_capture_attempts[key] = 0
+	M._opencode_captured[key] = nil
 end
 
 function M._reset_opencode_capture()
 	M._opencode_launch_ts = {}
 	M._opencode_capture_attempts = {}
+	M._opencode_captured = {}
 	_resume_override = nil
+end
+
+-- Throttled mirror reap. The publish timer fires every second, but listing the
+-- agents dir and stat-ing each worktree that often is wasteful, so the reaper
+-- runs at most once per REAP_INTERVAL_MS. opts.now / opts.reap are injectable
+-- so the throttle is unit-testable without a real clock or filesystem.
+M._REAP_INTERVAL_MS = 60000
+M._last_reap_ts = 0
+
+function M._maybe_reap(opts)
+	opts = opts or {}
+	local now_ms = opts.now or epoch_ms()
+	if M._last_reap_ts ~= 0 and (now_ms - M._last_reap_ts) < M._REAP_INTERVAL_MS then
+		return false
+	end
+	M._last_reap_ts = now_ms
+	local reap = opts.reap or function()
+		require("tw.agent.global").reap()
+	end
+	pcall(reap)
+	return true
 end
 
 local function get_instance(mode, idx)
@@ -178,13 +207,17 @@ end
 
 -- Best-effort capture of the opencode session id for a panel slot. Returns the
 -- id to record, or nil to leave it unset (restore then falls back to
--- cwd+recency). The registry entry is the authoritative "already captured"
--- guard. Logs once when the retry budget is exhausted.
+-- cwd+recency). Capture is scoped to the current launch: the per-launch
+-- "captured" flag (reset by _note_opencode_launch) is the guard, NOT the
+-- persisted registry id. Guarding on the registry id blocked recapture forever
+-- after a restart, because opencode issues a NEW session id while the registry
+-- still held the OLD one. The created >= launch_ts filter in capture_session_id
+-- guarantees any id we get here belongs to the current launch. Logs once when
+-- the retry budget is exhausted.
 function M._capture_opencode_session(registry, mode, idx, root)
 	local key = registry._key_for(mode, idx)
 
-	local existing = registry.load(root)[key]
-	if existing and existing.session_id then
+	if M._opencode_captured[key] then
 		return nil
 	end
 
@@ -206,6 +239,7 @@ function M._capture_opencode_session(registry, mode, idx, root)
 	local claimed = registry.claimed_session_ids(root, key)
 	local id = resume.capture_session_id(root, launch_ts, claimed, {})
 	if id then
+		M._opencode_captured[key] = true
 		return id
 	end
 	attempts = attempts + 1
@@ -297,6 +331,9 @@ end
 function M._start_publish_timer()
 	publish._set_capture_hook(function(mode, idx)
 		M._capture_tick(mode, idx)
+	end)
+	publish._set_reap_hook(function()
+		M._maybe_reap()
 	end)
 	publish.start_timer(function()
 		return M._live_instances()
@@ -1543,6 +1580,12 @@ function M.setup(opts)
 	-- Setup autocmds and user commands
 	commands.setup_autocmds(M)
 	commands.setup_user_commands(M)
+
+	-- Prune mirror records for worktrees that no longer exist. Runs once here on
+	-- startup; the publish timer then reaps periodically while agents are live.
+	pcall(function()
+		require("tw.agent.global").reap()
+	end)
 end
 
 return M

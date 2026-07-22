@@ -241,4 +241,47 @@ test("poll loop resolves each instance's live description into the heartbeat", f
 	publish._set_timer_factory(nil)
 end)
 
+test("poll loop invokes the reap hook once per tick", function()
+	publish._set_global({
+		record = function() end,
+		record_exit = function() end,
+		touch = function() end,
+	})
+	publish._reset_heartbeat()
+	publish._reset_pushed()
+	publish.stop_timer()
+
+	local captured_tick = nil
+	publish._set_timer_factory(function()
+		return {
+			start = function(_, _, _, cb)
+				captured_tick = cb
+			end,
+			stop = function() end,
+			close = function() end,
+		}
+	end)
+
+	local reaps = 0
+	publish._set_reap_hook(function()
+		reaps = reaps + 1
+	end)
+
+	publish.start_timer(function()
+		return {
+			{ root = "/w/loki/wt", mode = "opencode", idx = 0, buf = 1 },
+			{ root = "/w/loki/wt", mode = "opencode", idx = 1, buf = 2 },
+		}
+	end, 1000)
+
+	captured_tick()
+	eq(1, reaps, "reap runs once per tick, not per instance")
+	captured_tick()
+	eq(2, reaps, "reap runs again on the next tick")
+
+	publish.stop_timer()
+	publish._set_reap_hook(nil)
+	publish._set_timer_factory(nil)
+end)
+
 H.finish("publish.lua")

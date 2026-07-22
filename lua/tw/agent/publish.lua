@@ -152,6 +152,14 @@ function M._set_capture_hook(fn)
 	capture_hook = fn
 end
 
+-- Optional per-tick hook for the mirror reaper. Invoked once per timer tick
+-- (not per instance) so the reaper's own throttle governs how often it runs.
+local reap_hook = nil
+
+function M._set_reap_hook(fn)
+	reap_hook = fn
+end
+
 -- Resolve the live description for a terminal buffer. Injectable so specs can
 -- avoid loading the description module (and its API dependencies).
 local function default_describe(buf)
@@ -203,6 +211,9 @@ function M.start_timer(tick, interval_ms)
 		interval_ms,
 		vim.schedule_wrap(function()
 			pcall(function()
+				if reap_hook then
+					pcall(reap_hook)
+				end
 				local status = require("tw.agent.status")
 				for _, inst in ipairs(tick() or {}) do
 					local s = status.detect(inst)
