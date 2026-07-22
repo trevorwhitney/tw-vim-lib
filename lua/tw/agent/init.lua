@@ -478,6 +478,11 @@ local function start_new_agent_job(args, window_type, mode, idx)
 			-- onto the display.
 			TMUX = "",
 			STY = "",
+			-- Identifies this agent's slot within its worktree so the
+			-- agent-messaging plugin keys its server record per-slot
+			-- (multiple agents can share a worktree). Matches the mirror
+			-- record's mode+idx that the send side reconstructs.
+			TW_AGENT_SLOT = mode .. "#" .. idx,
 		},
 	})
 	vim.bo[buf].bufhidden = "hide"
@@ -1347,7 +1352,10 @@ local function generate_pane_description(prompt_text, cwd)
 	local message = instructions .. " The task: " .. capped_prompt
 
 	vim.system(
-		{ "opencode", "run", "--format", "json", "--model", "anthropic/claude-haiku-4-5", message },
+		-- --pure: skip external plugins for this throwaway title generator so it
+		-- doesn't load agent-messaging and retract the live agent's server record
+		-- (both run in the same worktree) on exit.
+		{ "opencode", "--pure", "run", "--format", "json", "--model", "anthropic/claude-haiku-4-5", message },
 		{ timeout = 45000 },
 		function(result)
 			vim.schedule(function()

@@ -3,7 +3,11 @@ local M = {}
 local log = require("tw.log")
 
 local function default_list_sessions()
-	local pipe = io.popen("opencode session list --format json 2>/dev/null")
+	-- --pure: don't load external plugins for this auxiliary query. The
+	-- agent-messaging plugin publishes/retracts a per-agent server record on
+	-- load/dispose; letting a transient `session list` in the agent's worktree
+	-- load it would clobber the live agent's record.
+	local pipe = io.popen("opencode --pure session list --format json 2>/dev/null")
 	if not pipe then
 		return nil
 	end
