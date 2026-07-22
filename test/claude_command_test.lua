@@ -115,9 +115,54 @@ test("codex gets --full-auto flag", function()
 	eq("/usr/local/bin/codex --full-auto", claude.command({}, "codex"), "command")
 end)
 
-test("opencode gets no extra flags", function()
+test("opencode omits --port when no free port is available", function()
 	local claude = load_claude(false)
+	claude._free_port = function()
+		return nil
+	end
 	eq("/usr/local/bin/opencode", claude.command({}, "opencode"), "command")
+end)
+
+-- ---------------------------------------------------------------------------
+-- opencode --port injection: opencode must bind a real, addressable HTTP
+-- server so other agents can reach it via send-to-agent. Without an explicit
+-- port opencode hands plugins an unreachable placeholder URL.
+-- ---------------------------------------------------------------------------
+test("opencode gets --port from the free-port provider (after binary)", function()
+	local claude = load_claude(false)
+	claude._free_port = function()
+		return 45678
+	end
+	eq(
+		"/usr/local/bin/opencode --port 45678",
+		claude.command({}, "opencode"),
+		"command"
+	)
+end)
+
+test("opencode --port precedes positional args", function()
+	local claude = load_claude(false)
+	claude._free_port = function()
+		return 4321
+	end
+	eq(
+		"/usr/local/bin/opencode --port 4321 /repo",
+		claude.command({ "/repo" }, "opencode"),
+		"command"
+	)
+end)
+
+test("non-opencode agents never get --port", function()
+	local claude = load_claude(false)
+	claude._free_port = function()
+		return 9999
+	end
+	eq(
+		"/usr/local/bin/claude --dangerously-skip-permissions",
+		claude.command({}, "claude"),
+		"command"
+	)
+	eq("/usr/local/bin/codex --full-auto", claude.command({}, "codex"), "command")
 end)
 
 test("defaults command_name to claude when nil", function()
@@ -204,8 +249,23 @@ end)
 
 test("sandbox: nil context_directories omits --add-dirs", function()
 	local claude = load_claude(true)
+	claude._free_port = function()
+		return nil
+	end
 	local cmd = claude.command({}, "opencode", nil)
 	eq(SANDBOX_PATH .. " /usr/local/bin/opencode", cmd, "command")
+end)
+
+test("sandbox: opencode --port sits after the binary, inside the wrapper", function()
+	local claude = load_claude(true)
+	claude._free_port = function()
+		return 5555
+	end
+	eq(
+		SANDBOX_PATH .. " /usr/local/bin/opencode --port 5555",
+		claude.command({}, "opencode"),
+		"command"
+	)
 end)
 
 -- restore io.popen

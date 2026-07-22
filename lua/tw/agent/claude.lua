@@ -8,8 +8,37 @@ local sandbox_warned = false
 local AGENT_FLAGS = {
 	claude = { "--dangerously-skip-permissions" },
 	codex = { "--full-auto" },
-	-- opencode: no flags needed
+	-- opencode: no permission flags; it gets a dynamic --port (see below)
 }
+
+-- Ask the OS for a free TCP port by binding to port 0 and reading the assignment.
+-- opencode agents launch with an explicit --port so they run a real, reachable
+-- HTTP server that other agents can address via send-to-agent; without it,
+-- opencode reports an unreachable placeholder URL to plugins. Returns nil if a
+-- port cannot be obtained, in which case the agent still launches (messaging
+-- just won't work for it). Exposed on M for test injection.
+function M._free_port()
+	local uv = vim.uv or vim.loop
+	if not (uv and uv.new_tcp) then
+		return nil
+	end
+	local tcp = uv.new_tcp()
+	if not tcp then
+		return nil
+	end
+	local port
+	local ok = pcall(function()
+		tcp:bind("127.0.0.1", 0)
+		port = tcp:getsockname().port
+	end)
+	pcall(function()
+		tcp:close()
+	end)
+	if ok then
+		return port
+	end
+	return nil
+end
 
 local get_command_path = function(command_name)
 	local handle = io.popen(table.concat({ "command", "-v", command_name }, " "))
@@ -65,6 +94,17 @@ function M.command(args, command_name, context_directories)
 
 	-- Agent binary
 	table.insert(command, command_path)
+
+	-- opencode: bind a real HTTP server on a free port so the agent is
+	-- reachable by other agents (send-to-agent). Placed right after the binary,
+	-- before positional args, mirroring the per-agent flag placement below.
+	if command_name == "opencode" then
+		local port = M._free_port()
+		if port then
+			table.insert(command, "--port")
+			table.insert(command, tostring(port))
+		end
+	end
 
 	-- Per-agent permission flags (unconditional)
 	local flags = AGENT_FLAGS[command_name]
