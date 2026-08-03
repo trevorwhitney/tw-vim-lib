@@ -1,10 +1,5 @@
--- Unified left "drawer": the file tree (nvim-tree) pinned top-left with the
--- agent sidebar stacked directly below it, opened and closed as one unit.
---
--- The tree always opens before the sidebar so the sidebar's open-time stacking
--- logic detects the tree window and slots in beneath it, regardless of the
--- order the user toggles things. This sidesteps nvim-tree's fixed top-left
--- placement, which would otherwise land left of an already-open sidebar.
+-- Unified left "drawer": the file tree (nvim-tree) and the agent sidebar,
+-- opened and closed together. edgy owns their placement in the left edgebar.
 local M = {}
 
 -- nvim-tree backend. Wraps the public API so tests can inject a fake.
@@ -40,9 +35,7 @@ local function sidebar()
 end
 
 local function sidebar_is_open()
-	local sb = sidebar()
-	local st = sb._state and sb._state()
-	return st ~= nil and st.win ~= nil and vim.api.nvim_win_is_valid(st.win)
+	return sidebar().is_open()
 end
 
 -- The drawer is "open" if either half is showing.
@@ -51,7 +44,6 @@ function M.is_open()
 end
 
 function M.open()
-	-- Tree first: the sidebar stacks below it on open.
 	if not state.tree.is_open() then
 		state.tree.open()
 	end
