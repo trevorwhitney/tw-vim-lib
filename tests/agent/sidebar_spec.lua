@@ -23,7 +23,7 @@ describe("sidebar lifecycle", function()
   it("open() creates a window and buffer", function()
     sidebar.open()
     local state = sidebar._state()
-    assert.is_true(vim.api.nvim_win_is_valid(state.win))
+    assert.is_true(vim.fn.bufwinid(state.buf) ~= -1)
     assert.is_true(vim.api.nvim_buf_is_valid(state.buf))
   end)
 
@@ -39,9 +39,9 @@ describe("sidebar lifecycle", function()
 
   it("toggle() opens when closed, closes when open", function()
     sidebar.toggle()
-    assert.is_true(vim.api.nvim_win_is_valid(sidebar._state().win))
+    assert.is_true(vim.fn.bufwinid(sidebar._state().buf) ~= -1)
     sidebar.toggle()
-    assert.is_nil(sidebar._state().win)
+    assert.equals(-1, vim.fn.bufwinid(sidebar._state().buf))
   end)
 
   it("setup({ enabled = false }) prevents open from creating a window", function()
@@ -50,7 +50,7 @@ describe("sidebar lifecycle", function()
     sidebar = require("tw.agent.sidebar")
     sidebar.setup({ enabled = false })
     sidebar.open()
-    assert.is_nil(sidebar._state().win)
+    assert.equals(-1, vim.fn.bufwinid(sidebar._state().buf or -1))
   end)
 
    it("sidebar buffer has buftype=nofile and is unmodifiable by default", function()
@@ -72,6 +72,14 @@ describe("sidebar lifecycle", function()
     local buf2 = sidebar._state().buf
     assert.equals(buf1, buf2, "reopen must reuse the singleton buffer")
     assert.is_true(vim.fn.bufwinid(buf2) ~= -1)
+  end)
+
+  it("is_open() reflects window visibility via bufwinid", function()
+    assert.is_false(sidebar.is_open())
+    sidebar.open()
+    assert.is_true(sidebar.is_open())
+    sidebar.close()
+    assert.is_false(sidebar.is_open())
   end)
 end)
 
@@ -243,14 +251,15 @@ describe("sidebar rendering", function()
     sidebar.refresh()
 
     local state = sidebar._state()
+    local win = vim.fn.bufwinid(state.buf)
     -- Focus the sidebar and place the cursor on the first entry's header.
-    vim.api.nvim_set_current_win(state.win)
-    vim.api.nvim_win_set_cursor(state.win, { state.data_start_line, 0 })
+    vim.api.nvim_set_current_win(win)
+    vim.api.nvim_win_set_cursor(win, { state.data_start_line, 0 })
     sidebar._apply_cursor_highlight()
     vim.fn.jobwait = orig
 
     -- The window must not use the built-in single-line cursorline.
-    assert.is_false(vim.wo[state.win].cursorline)
+    assert.is_false(vim.wo[win].cursorline)
 
     local header_row = state.data_start_line - 1
     local marks = vim.api.nvim_buf_get_extmarks(
@@ -439,7 +448,7 @@ describe("sidebar interaction", function()
 
     sidebar.open()
     sidebar.refresh()
-    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    vim.api.nvim_win_set_cursor(vim.fn.bufwinid(sidebar._state().buf), { sidebar._state().data_start_line, 0 })
     sidebar._activate_under_cursor()
 
     agent.Open = orig_open
@@ -453,7 +462,7 @@ describe("sidebar interaction", function()
   it("<CR> on a non-data row is a no-op", function()
     sidebar.open()
     sidebar.refresh()
-    vim.api.nvim_win_set_cursor(sidebar._state().win, { 1, 0 })
+    vim.api.nvim_win_set_cursor(vim.fn.bufwinid(sidebar._state().buf), { 1, 0 })
     local called = false
     local orig_open = agent.Open
     agent.Open = function() called = true end
@@ -492,17 +501,18 @@ describe("sidebar cursor preservation", function()
      sidebar.open()
      sidebar.refresh()
      local data_start = sidebar._state().data_start_line
+     local win = vim.fn.bufwinid(sidebar._state().buf)
      -- Cursor lands on the second data row (claude)
-     vim.api.nvim_win_set_cursor(sidebar._state().win, { data_start + 1, 0 })
+     vim.api.nvim_win_set_cursor(win, { data_start + 1, 0 })
 
      -- User is focused on the sidebar window
-     vim.api.nvim_set_current_win(sidebar._state().win)
+     vim.api.nvim_set_current_win(win)
 
      -- Remove opencode; claude shifts to the first data row
      agent.instances.opencode = {}
      sidebar.refresh()
 
-     local new_cursor = vim.api.nvim_win_get_cursor(sidebar._state().win)
+     local new_cursor = vim.api.nvim_win_get_cursor(win)
      assert.equals(data_start, new_cursor[1])
 
      vim.fn.jobwait = orig
@@ -944,7 +954,7 @@ describe("sidebar restorable entries", function()
     end
     sidebar.open()
     sidebar.refresh()
-    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    vim.api.nvim_win_set_cursor(vim.fn.bufwinid(sidebar._state().buf), { sidebar._state().data_start_line, 0 })
     sidebar._activate_under_cursor()
     agent.Open = orig_open
     package.loaded["tw.agent.resume"] = nil
@@ -956,7 +966,7 @@ describe("sidebar restorable entries", function()
   it("edit-under-cursor is a no-op for a restorable (nil-buf) entry", function()
     sidebar.open()
     sidebar.refresh()
-    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    vim.api.nvim_win_set_cursor(vim.fn.bufwinid(sidebar._state().buf), { sidebar._state().data_start_line, 0 })
     assert.has_no.errors(function()
       sidebar._edit_under_cursor()
     end)
@@ -984,7 +994,7 @@ describe("sidebar restorable entries", function()
     agent.Open = function() end
     sidebar.open()
     sidebar.refresh()
-    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    vim.api.nvim_win_set_cursor(vim.fn.bufwinid(sidebar._state().buf), { sidebar._state().data_start_line, 0 })
     sidebar._activate_under_cursor()
     agent.Open = orig_open
     package.loaded["tw.agent.resume"] = nil
@@ -1149,7 +1159,7 @@ describe("sidebar delete restorable (d)", function()
   it("deletes the restorable entry under the cursor", function()
     sidebar.open()
     sidebar.refresh()
-    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    vim.api.nvim_win_set_cursor(vim.fn.bufwinid(sidebar._state().buf), { sidebar._state().data_start_line, 0 })
     sidebar.delete_under_cursor()
     assert.equals(1, #deleted)
     assert.equals("opencode", deleted[1].mode)
@@ -1164,7 +1174,7 @@ describe("sidebar delete restorable (d)", function()
     sidebar.open()
     sidebar.refresh()
     vim.fn.jobwait = orig
-    vim.api.nvim_win_set_cursor(sidebar._state().win, { sidebar._state().data_start_line, 0 })
+    vim.api.nvim_win_set_cursor(vim.fn.bufwinid(sidebar._state().buf), { sidebar._state().data_start_line, 0 })
     sidebar.delete_under_cursor()
     assert.equals(0, #deleted)
     vim.api.nvim_buf_delete(buf, { force = true })

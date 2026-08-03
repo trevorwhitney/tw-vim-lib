@@ -38,6 +38,17 @@ function M._state()
 	return state
 end
 
+local function sidebar_win()
+	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
+		return -1
+	end
+	return vim.fn.bufwinid(state.buf)
+end
+
+function M.is_open()
+	return sidebar_win() ~= -1
+end
+
 local function merge_defaults(opts)
 	local merged = vim.deepcopy(DEFAULTS)
 	for k, v in pairs(opts or {}) do
@@ -177,10 +188,11 @@ end
 
 -- Helper functions for navigation and keymaps.
 local function find_next_data_row(direction)
-	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+	local win = sidebar_win()
+	if win == -1 then
 		return nil
 	end
-	local cursor = vim.api.nvim_win_get_cursor(state.win)
+	local cursor = vim.api.nvim_win_get_cursor(win)
 	local row = cursor[1]
 	local line_count = vim.api.nvim_buf_line_count(state.buf)
 	-- Scan in direction until we land on a data row; wraps at top/bottom.
@@ -200,9 +212,10 @@ local function find_next_data_row(direction)
 end
 
 local function move_cursor(direction)
+	local win = sidebar_win()
 	local row = find_next_data_row(direction)
-	if row then
-		vim.api.nvim_win_set_cursor(state.win, { row, 0 })
+	if row and win ~= -1 then
+		vim.api.nvim_win_set_cursor(win, { row, 0 })
 	end
 end
 
@@ -254,15 +267,17 @@ local function set_buffer_keymaps(buf)
 		M.refresh()
 	end, "Sidebar: force refresh")
 	map("gg", function()
+		local win = sidebar_win()
 		local r = first_data_row()
-		if r then
-			vim.api.nvim_win_set_cursor(state.win, { r, 0 })
+		if r and win ~= -1 then
+			vim.api.nvim_win_set_cursor(win, { r, 0 })
 		end
 	end, "Sidebar: first session")
 	map("G", function()
+		local win = sidebar_win()
 		local r = last_data_row()
-		if r then
-			vim.api.nvim_win_set_cursor(state.win, { r, 0 })
+		if r and win ~= -1 then
+			vim.api.nvim_win_set_cursor(win, { r, 0 })
 		end
 	end, "Sidebar: last session")
 	map("a", function()
@@ -280,7 +295,7 @@ function M.open()
 	if not state.config or state.config.enabled == false then
 		return
 	end
-	if state.win and vim.api.nvim_win_is_valid(state.win) then
+	if sidebar_win() ~= -1 then
 		return
 	end
 	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
@@ -359,7 +374,7 @@ function M.open()
 end
 
 function M.toggle()
-	if state.win and vim.api.nvim_win_is_valid(state.win) then
+	if M.is_open() then
 		M.close()
 	else
 		M.open()
@@ -524,11 +539,12 @@ function M._apply_cursor_highlight()
 	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
 		return
 	end
-	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+	local win = sidebar_win()
+	if win == -1 then
 		return
 	end
 	vim.api.nvim_buf_clear_namespace(state.buf, state.cursor_ns, 0, -1)
-	local row = vim.api.nvim_win_get_cursor(state.win)[1]
+	local row = vim.api.nvim_win_get_cursor(win)[1]
 	local entry_idx = state.line_to_entry[row]
 	if not entry_idx then
 		return
@@ -551,10 +567,11 @@ local function build_map(entries, data_start_line)
 end
 
 function M._activate_under_cursor()
-	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+	local win = sidebar_win()
+	if win == -1 then
 		return
 	end
-	local cursor = vim.api.nvim_win_get_cursor(state.win)
+	local cursor = vim.api.nvim_win_get_cursor(win)
 	local row = cursor[1]
 	local entry_idx = state.line_to_entry[row]
 	if not entry_idx then
@@ -624,10 +641,11 @@ function M.new_session()
 end
 
 function M.delete_under_cursor()
-	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+	local win = sidebar_win()
+	if win == -1 then
 		return
 	end
-	local row = vim.api.nvim_win_get_cursor(state.win)[1]
+	local row = vim.api.nvim_win_get_cursor(win)[1]
 	local entry_idx = state.line_to_entry[row]
 	if not entry_idx then
 		return
@@ -644,10 +662,11 @@ function M.delete_under_cursor()
 end
 
 function M._edit_under_cursor()
-	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+	local win = sidebar_win()
+	if win == -1 then
 		return
 	end
-	local row = vim.api.nvim_win_get_cursor(state.win)[1]
+	local row = vim.api.nvim_win_get_cursor(win)[1]
 	local entry_idx = state.line_to_entry[row]
 	if not entry_idx then
 		return
@@ -738,7 +757,8 @@ function M.refresh()
 	if state.editing then
 		return
 	end
-	if not (state.win and vim.api.nvim_win_is_valid(state.win)) then
+	local win = sidebar_win()
+	if win == -1 then
 		return
 	end
 	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
@@ -748,8 +768,8 @@ function M.refresh()
 	-- Only preserve cursor when the user is actually focused on the sidebar
 	-- window; otherwise the default positioning logic applies.
 	local cursor_target = nil
-	if vim.api.nvim_get_current_win() == state.win then
-		local cursor = vim.api.nvim_win_get_cursor(state.win)
+	if vim.api.nvim_get_current_win() == win then
+		local cursor = vim.api.nvim_win_get_cursor(win)
 		local row = cursor[1]
 		local prev_idx = state.line_to_entry[row]
 		if prev_idx and state.entries[prev_idx] then
@@ -812,7 +832,7 @@ function M.refresh()
 	end
 
 	if target_row then
-		vim.api.nvim_win_set_cursor(state.win, { target_row, 0 })
+		vim.api.nvim_win_set_cursor(win, { target_row, 0 })
 	end
 	M._apply_cursor_highlight()
 end
