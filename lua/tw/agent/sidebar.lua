@@ -81,7 +81,7 @@ end
 local function create_buffer()
 	local buf = vim.api.nvim_create_buf(false, true)
 	vim.bo[buf].buftype = "nofile"
-	vim.bo[buf].bufhidden = "wipe"
+	vim.bo[buf].bufhidden = "hide"
 	vim.bo[buf].swapfile = false
 	vim.bo[buf].filetype = "tw-agent-sidebar"
 	vim.bo[buf].modifiable = false
@@ -157,14 +157,10 @@ function M.close()
 		pcall(state.timer.close, state.timer)
 		state.timer = nil
 	end
-	if state.win and vim.api.nvim_win_is_valid(state.win) then
-		pcall(vim.api.nvim_win_close, state.win, true)
+	local win = state.buf and vim.fn.bufwinid(state.buf) or -1
+	if win ~= -1 then
+		pcall(vim.api.nvim_win_close, win, true)
 	end
-	state.win = nil
-	if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
-		pcall(vim.api.nvim_buf_delete, state.buf, { force = true })
-	end
-	state.buf = nil
 end
 
 -- The four local agent modes shown in the sidebar; docker variants are

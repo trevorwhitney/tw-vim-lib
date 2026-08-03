@@ -27,13 +27,14 @@ describe("sidebar lifecycle", function()
     assert.is_true(vim.api.nvim_buf_is_valid(state.buf))
   end)
 
-  it("close() is idempotent", function()
+  it("close() is idempotent and preserves the buffer", function()
     sidebar.open()
+    local buf = sidebar._state().buf
     sidebar.close()
     sidebar.close() -- second call must not error
-    local state = sidebar._state()
-    assert.is_nil(state.win)
-    assert.is_nil(state.buf)
+    -- Buffer persists (singleton); only the window is gone.
+    assert.is_true(vim.api.nvim_buf_is_valid(buf))
+    assert.equals(-1, vim.fn.bufwinid(buf))
   end)
 
   it("toggle() opens when closed, closes when open", function()
@@ -59,25 +60,19 @@ describe("sidebar lifecycle", function()
      assert.is_false(vim.bo[buf].modifiable)
    end)
 
-   it("handles external window close gracefully", function()
-      sidebar.open()
-      local win = sidebar._state().win
-      assert.is_true(vim.api.nvim_win_is_valid(win))
+  it("reuses the same buffer across close and reopen", function()
+    sidebar.open()
+    local buf1 = sidebar._state().buf
+    assert.is_true(vim.api.nvim_buf_is_valid(buf1))
 
-      -- Simulate the user running :q on the sidebar window
-      vim.api.nvim_win_close(win, true)
+    sidebar.close()
+    assert.equals(-1, vim.fn.bufwinid(buf1))
 
-      -- close() must not raise and must reset state
-      sidebar.close()
-      local state = sidebar._state()
-      assert.is_nil(state.win)
-      assert.is_nil(state.buf)
-
-      -- A subsequent open() must recreate a valid window/buffer
-      sidebar.open()
-      assert.is_true(vim.api.nvim_win_is_valid(sidebar._state().win))
-      assert.is_true(vim.api.nvim_buf_is_valid(sidebar._state().buf))
-    end)
+    sidebar.open()
+    local buf2 = sidebar._state().buf
+    assert.equals(buf1, buf2, "reopen must reuse the singleton buffer")
+    assert.is_true(vim.fn.bufwinid(buf2) ~= -1)
+  end)
 end)
 
 describe("sidebar rendering", function()
