@@ -1,5 +1,11 @@
 local M = {}
 
+-- Upper bound on a generated description's on-screen width. Descriptions are
+-- shown on their own line in the sidebar and after a "—" in agentmux, so this
+-- is a display guard against a runaway model response, not a "keep it terse"
+-- knob: it is deliberately roomy enough for a short, informative sentence.
+local MAX_DISPLAY_CHARS = 60
+
 -- Cache mapping buffer number to description string or "error"
 local descriptions = {}
 
@@ -96,11 +102,19 @@ function M.generate(buf, callback)
 
 	local request_body = vim.json.encode({
 		model = "claude-haiku-4-5-20251001",
-		max_tokens = 30,
+		max_tokens = 50,
 		messages = {
 			{
 				role = "user",
-				content = "Summarize what this agent/terminal is doing in 4-5 words:\n\n" .. text,
+				content = "You are labeling a terminal pane in an agent overview. "
+					.. "Below is a snapshot of the pane's output. In one concise "
+					.. "phrase (roughly 8-12 words, no trailing period), state the "
+					.. "specific task or goal the agent is working on, so someone "
+					.. "scanning many panes can tell them apart and spot stale ones. "
+					.. "Describe the work itself, not the tool. Do not copy the "
+					.. "text verbatim, do not echo headings or markdown, and reply "
+					.. "with only the phrase:\n\n"
+					.. text,
 			},
 		},
 	})
@@ -127,7 +141,7 @@ function M.generate(buf, callback)
 					local ok_parse, data = pcall(vim.json.decode, response.body)
 					if ok_parse and data.content and data.content[1] and data.content[1].text then
 						local desc = vim.trim(data.content[1].text)
-						desc = truncate(desc, 30)
+						desc = truncate(desc, MAX_DISPLAY_CHARS)
 						descriptions[buf] = desc
 						if callback then
 							callback(desc)
