@@ -110,3 +110,26 @@ func Test_AuthErrorClassification(t *testing.T) {
 		})
 	}
 }
+
+func TestDiff(t *testing.T) {
+	fe := newFakeExec()
+	fe.responses["pr diff 42 --repo a/b"] = "diff --git a/go.mod b/go.mod\n+new line\n"
+	c := New(fe.run)
+
+	diff, err := c.Diff("a/b", 42)
+	require.NoError(t, err)
+	require.Contains(t, diff, "diff --git")
+}
+
+func TestPRDetailFields(t *testing.T) {
+	fe := newFakeExec()
+	fe.responses["pr view 7"] = `{"number":7,"title":"t","body":"the body","url":"https://github.com/a/b/pull/7",
+		"isDraft":false,"headRefOid":"s7","baseRefName":"main","author":{"login":"alice"}}`
+	c := New(fe.run)
+
+	pr, err := c.GetPR("a/b", 7)
+	require.NoError(t, err)
+	require.Equal(t, "the body", pr.Body)
+	require.Equal(t, "https://github.com/a/b/pull/7", pr.URL)
+	require.Equal(t, "main", pr.BaseRef)
+}

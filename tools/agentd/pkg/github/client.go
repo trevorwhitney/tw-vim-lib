@@ -47,20 +47,24 @@ func (c *Client) gh(ctx context.Context, args ...string) (string, error) {
 }
 
 type rawPR struct {
-	Number     int    `json:"number"`
-	Title      string `json:"title"`
-	IsDraft    bool   `json:"isDraft"`
-	HeadRefOid string `json:"headRefOid"`
-	Author     struct {
+	Number      int    `json:"number"`
+	Title       string `json:"title"`
+	Body        string `json:"body"`
+	URL         string `json:"url"`
+	IsDraft     bool   `json:"isDraft"`
+	HeadRefOid  string `json:"headRefOid"`
+	BaseRefName string `json:"baseRefName"`
+	Author      struct {
 		Login string `json:"login"`
 	} `json:"author"`
 }
 
 func (r rawPR) pr() PR {
-	return PR{Number: r.Number, Title: r.Title, Draft: r.IsDraft, HeadSHA: r.HeadRefOid, Author: r.Author.Login}
+	return PR{Number: r.Number, Title: r.Title, Body: r.Body, URL: r.URL, Draft: r.IsDraft,
+		HeadSHA: r.HeadRefOid, BaseRef: r.BaseRefName, Author: r.Author.Login}
 }
 
-const prJSONFields = "number,title,isDraft,headRefOid,author"
+const prJSONFields = "number,title,body,url,isDraft,headRefOid,baseRefName,author"
 
 func (c *Client) ListOpenPRs(repo string) ([]PR, error) {
 	out, err := c.gh(context.Background(), "pr", "list", "--repo", repo, "--state", "open",
@@ -237,4 +241,8 @@ func (c *Client) ChangedFiles(repo string, number int) ([]string, bool, error) {
 		}
 	}
 	return files, len(files) >= fileListCap, nil
+}
+
+func (c *Client) Diff(repo string, number int) (string, error) {
+	return c.gh(context.Background(), "pr", "diff", strconv.Itoa(number), "--repo", repo)
 }

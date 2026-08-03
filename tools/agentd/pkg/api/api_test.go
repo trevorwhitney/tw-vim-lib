@@ -35,15 +35,18 @@ func (f *fakeGH) ChangedFiles(string, int) ([]string, bool, error) { return f.fi
 func (f *fakeGH) Facts(string, int) (github.Facts, error) {
 	return github.Facts{CI: github.CISuccess, Mergeable: github.MergeClean}, nil
 }
-func (f *fakeGH) Viewer() (string, error) { return "twhitney", nil }
+func (f *fakeGH) Diff(string, int) (string, error) { return "diff\n", nil }
+func (f *fakeGH) Viewer() (string, error)          { return "twhitney", nil }
 
 type okWriter struct{}
 
 var _ github.Writer = okWriter{}
 
-func (okWriter) MergePR(context.Context, string, int, string) (string, error)   { return "merged", nil }
-func (okWriter) ApprovePR(context.Context, string, int) (string, error)         { return "approved", nil }
-func (okWriter) CommentPR(context.Context, string, int, string) (string, error) { return "commented", nil }
+func (okWriter) MergePR(context.Context, string, int, string) (string, error) { return "merged", nil }
+func (okWriter) ApprovePR(context.Context, string, int) (string, error)       { return "approved", nil }
+func (okWriter) CommentPR(context.Context, string, int, string) (string, error) {
+	return "commented", nil
+}
 
 func setup(t *testing.T, files []string) (*Client, *store.Store) {
 	t.Helper()

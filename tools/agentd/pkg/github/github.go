@@ -8,8 +8,11 @@ import "context"
 type PR struct {
 	Number  int
 	Title   string
+	Body    string
+	URL     string
 	Draft   bool
 	HeadSHA string
+	BaseRef string
 	Author  string
 }
 
@@ -43,6 +46,8 @@ type Reader interface {
 	// GitHub's listing cap may have cut the list short.
 	ChangedFiles(repo string, number int) (files []string, truncated bool, err error)
 	Facts(repo string, number int) (Facts, error)
+	// Diff returns the PR's full unified diff.
+	Diff(repo string, number int) (string, error)
 	// Viewer returns the authenticated user's login.
 	Viewer() (string, error)
 }

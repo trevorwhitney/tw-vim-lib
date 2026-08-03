@@ -45,7 +45,8 @@ func (f *fakeGH) Facts(string, int) (github.Facts, error) {
 	f.factsCalls++
 	return f.facts, nil
 }
-func (f *fakeGH) Viewer() (string, error) { return "twhitney", nil }
+func (f *fakeGH) Diff(string, int) (string, error) { return "diff --git a/x b/x\n", nil }
+func (f *fakeGH) Viewer() (string, error)          { return "twhitney", nil }
 
 // fakeWriter satisfies github.Writer and records writes as one line each, so
 // tests can assert exact write activity.
