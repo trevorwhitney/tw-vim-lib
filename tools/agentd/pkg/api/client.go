@@ -83,9 +83,9 @@ func (c *Client) Retry(id int64) (store.Job, error) {
 	return out, c.do(http.MethodPost, fmt.Sprintf("/jobs/%d/retry", id), nil, &out)
 }
 
-func (c *Client) Resolve(escalationID int64, resolution, reason string) error {
+func (c *Client) Resolve(escalationID int64, resolution, reason, answer string) error {
 	return c.do(http.MethodPost, fmt.Sprintf("/escalations/%d/resolve", escalationID),
-		map[string]string{"resolution": resolution, "reason": reason}, nil)
+		map[string]string{"resolution": resolution, "reason": reason, "answer": answer}, nil)
 }
 
 func (c *Client) SetPolling(paused bool) error {

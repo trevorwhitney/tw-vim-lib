@@ -111,13 +111,13 @@ func Test_ResolveFlow(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, got.Escalation)
 
-	require.NoError(t, c.Resolve(got.Escalation.ID, "approve", ""))
+	require.NoError(t, c.Resolve(got.Escalation.ID, "approve", "", ""))
 
 	final, err := st.GetJob(job.ID)
 	require.NoError(t, err)
 	require.Equal(t, "done", final.State)
 
-	err = c.Resolve(got.Escalation.ID, "approve", "")
+	err = c.Resolve(got.Escalation.ID, "approve", "", "")
 	require.Error(t, err, "second resolve conflicts")
 }
 
@@ -128,8 +128,8 @@ func Test_ResolveRejectValidation(t *testing.T) {
 	got, err := c.Job(job.ID)
 	require.NoError(t, err)
 
-	require.Error(t, c.Resolve(got.Escalation.ID, "reject", ""), "reject without reason is a 400")
-	require.NoError(t, c.Resolve(got.Escalation.ID, "reject", "no thanks"))
+	require.Error(t, c.Resolve(got.Escalation.ID, "reject", "", ""), "reject without reason is a 400")
+	require.NoError(t, c.Resolve(got.Escalation.ID, "reject", "no thanks", ""))
 }
 
 func Test_PollingControl(t *testing.T) {

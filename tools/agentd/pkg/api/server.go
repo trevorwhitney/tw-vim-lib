@@ -140,12 +140,13 @@ func (s *Server) resolve(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Resolution string `json:"resolution"`
 		Reason     string `json:"reason"`
+		Answer     string `json:"answer"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
-	if err := s.Esc.Resolve(r.Context(), id, req.Resolution, req.Reason, s.Actor); err != nil {
+	if err := s.Esc.Resolve(r.Context(), id, req.Resolution, req.Reason, req.Answer, s.Actor); err != nil {
 		switch {
 		case errors.Is(err, escalate.ErrUnsupportedResolution):
 			writeErr(w, http.StatusBadRequest, err)

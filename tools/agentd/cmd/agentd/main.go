@@ -226,9 +226,9 @@ func resolveCmd() *cobra.Command {
 				return fmt.Errorf("job %d has no open escalation", jobID)
 			}
 			if approve {
-				return c.Resolve(resp.Escalation.ID, "approve", "")
+				return c.Resolve(resp.Escalation.ID, "approve", "", "")
 			}
-			return c.Resolve(resp.Escalation.ID, "reject", reason)
+			return c.Resolve(resp.Escalation.ID, "reject", reason, "")
 		},
 	}
 	cmd.Flags().BoolVar(&approve, "approve", false, "approve the attached action")

@@ -108,12 +108,12 @@ func (e *Engine) runChain(ctx context.Context, jobID int64, in policy.Input, cha
 		out, err := e.Actor.Execute(ctx, jobID, *res.Action, handler.Shadow)
 		if err != nil {
 			question := fmt.Sprintf("action %s failed after retries: %v — approve to retry", res.Action.Kind, err)
-			return e.Esc.Create(jobID, question, res.Rationale, res.Action)
+			return e.Esc.Create(jobID, "", question, res.Rationale, res.Action)
 		}
 		summary := fmt.Sprintf("%s via %s: %s", res.Action.Kind, handler.Policy.Name(), firstLine(out))
 		return e.Store.FinishJob(jobID, "done", "acted", summary)
 	case policy.Escalate:
-		return e.Esc.Create(jobID, res.Question, res.Rationale, res.Action)
+		return e.Esc.Create(jobID, "", res.Question, res.Rationale, res.Action)
 	}
 	return e.Store.FailJob(jobID, fmt.Sprintf("unknown verdict %q", res.Verdict))
 }
