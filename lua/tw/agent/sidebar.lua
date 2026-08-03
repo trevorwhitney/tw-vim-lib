@@ -3,7 +3,6 @@ local M = {}
 local DEFAULTS = {
 	enabled = true,
 	width = 45,
-	position = "left", -- "left" or "right"
 	refresh_ms = 1000,
 	icons = {
 		working = "", -- nf-fa-cog (\uf013)
@@ -47,6 +46,14 @@ end
 
 function M.is_open()
 	return sidebar_win() ~= -1
+end
+
+local function stop_timer()
+	if state.timer then
+		pcall(state.timer.stop, state.timer)
+		pcall(state.timer.close, state.timer)
+		state.timer = nil
+	end
 end
 
 local function merge_defaults(opts)
@@ -100,74 +107,18 @@ local function create_buffer()
 	return buf
 end
 
-local function open_window(buf, position, width)
-	-- nvim_open_win's split mode (0.10+) takes an existing buffer directly,
-	-- so no orphan/scratch buffer is created the way :vsplit would.
-	return vim.api.nvim_open_win(buf, true, {
-		split = position,
-		win = -1,
-		width = width,
-	})
-end
-
-local function set_window_options(win, stacked)
+local function set_window_options(win)
 	vim.wo[win].number = false
 	vim.wo[win].relativenumber = false
 	vim.wo[win].signcolumn = "no"
-	-- The built-in cursorline highlights only one screen line; the sidebar
-	-- highlights both rows of an entry via apply_cursor_highlight instead.
 	vim.wo[win].cursorline = false
 	vim.wo[win].wrap = false
-	vim.wo[win].winfixwidth = true
 	vim.wo[win].list = false
 	vim.wo[win].foldcolumn = "0"
-	-- Stacked under NERDTree: pin the height so window resizing elsewhere
-	-- doesn't grow/shrink the agents pane.
-	if stacked then
-		vim.wo[win].winfixheight = true
-	end
-end
-
--- 2 header lines + 10 agents * 2 rows (header + description) + 1 padding line.
-local _STACKED_HEIGHT = 23
-
--- Filetypes of the file-explorer plugins we stack the agents pane beneath.
--- Matched case-insensitively so "NvimTree" and "nvimtree" both qualify.
-local FILE_TREE_FILETYPES = {
-	nvimtree = true, -- nvim-tree.lua
-	nerdtree = true, -- NERDTree
-	["neo-tree"] = true, -- neo-tree.nvim
-}
-
--- Return the first window in the CURRENT tabpage whose buffer is a known
--- file-explorer (nvim-tree, NERDTree, neo-tree), or nil. Uses
--- nvim_tabpage_list_wins (not nvim_list_wins, which spans all tabpages) so a
--- file tree in another tab is ignored.
-local function find_nerdtree_win()
-	for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-		local buf = vim.api.nvim_win_get_buf(win)
-		local ft = vim.bo[buf].filetype
-		if ft and FILE_TREE_FILETYPES[ft:lower()] then
-			return win
-		end
-	end
-	return nil
-end
-
-function M._find_nerdtree_win()
-	return find_nerdtree_win()
-end
-
-function M._stacked_height()
-	return _STACKED_HEIGHT
 end
 
 function M.close()
-	if state.timer then
-		pcall(state.timer.stop, state.timer)
-		pcall(state.timer.close, state.timer)
-		state.timer = nil
-	end
+	stop_timer()
 	local win = state.buf and vim.fn.bufwinid(state.buf) or -1
 	if win ~= -1 then
 		pcall(vim.api.nvim_win_close, win, true)
@@ -301,46 +252,18 @@ function M.open()
 	if not (state.buf and vim.api.nvim_buf_is_valid(state.buf)) then
 		state.buf = create_buffer()
 	end
-	local nt_win = find_nerdtree_win()
-	-- Only stack below NERDTree when the sidebar is configured on the left;
-	-- a right-positioned sidebar must honour its own position.
-	local stacked = nt_win ~= nil and state.config.position == "left"
-	if stacked then
-		-- Stack the agents window below NERDTree, forming one left drawer.
-		-- No width is passed: the split inherits NERDTree's column width.
-		local ok, win = pcall(vim.api.nvim_open_win, state.buf, true, {
-			split = "below",
-			win = nt_win,
-			height = _STACKED_HEIGHT,
-		})
-		if ok then
-			state.win = win
-		else
-			-- NERDTree window vanished mid-open; fall back to full height.
-			local log_ok, log = pcall(require, "tw.log")
-			if log_ok and log and log.warn then
-				log.warn("sidebar stacked open failed, falling back: " .. tostring(win))
-			end
-			stacked = false
-			state.win = open_window(state.buf, state.config.position, state.config.width)
-		end
-	else
-		state.win = open_window(state.buf, state.config.position, state.config.width)
-	end
-	set_window_options(state.win, stacked)
+
+	vim.cmd("vsplit | buffer " .. state.buf)
+	local win = vim.fn.bufwinid(state.buf)
+	set_window_options(win)
 
 	set_buffer_keymaps(state.buf)
 
-	-- BufWinLeave catches the user closing the sidebar via :q. Schedule the
-	-- close call so we don't try to delete a window inside its own event.
-	vim.api.nvim_create_autocmd("BufWinLeave", {
-		buffer = state.buf,
+	vim.api.nvim_create_autocmd("WinClosed", {
+		pattern = tostring(win),
 		once = true,
-		callback = function()
-			vim.schedule(function()
-				M.close()
-			end)
-		end,
+		callback = stop_timer,
+		desc = "Stop agent sidebar refresh timer when its window closes",
 	})
 
 	vim.api.nvim_create_autocmd("CursorMoved", {
@@ -351,10 +274,8 @@ function M.open()
 		desc = "Highlight both rows of the agent entry under the cursor",
 	})
 
-	-- Initial render so the user doesn't see a blank window.
 	M.refresh()
 
-	-- Periodic refresh.
 	state.timer = vim.uv.new_timer()
 	if state.timer then
 		state.timer:start(
