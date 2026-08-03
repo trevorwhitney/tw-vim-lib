@@ -12,13 +12,20 @@ type Facts struct {
 	github.Facts
 }
 
+// Options relaxes individual universal checks.
+type Options struct {
+	// AllowOperatorPRs stops deferring PRs authored by the viewer
+	// (acceptance sandboxes; self-review workflows).
+	AllowOperatorPRs bool
+}
+
 // Eligible reports whether every universal check passes; when false, reason
 // names the failed check.
-func Eligible(f Facts) (bool, string) {
+func Eligible(f Facts, opts Options) (bool, string) {
 	switch {
 	case f.PR.Draft:
 		return false, "draft"
-	case f.PR.Author == f.Viewer:
+	case !opts.AllowOperatorPRs && f.PR.Author == f.Viewer:
 		return false, "authored by operator"
 	case f.Mergeable == github.MergeDirty:
 		return false, "conflicts with base branch"

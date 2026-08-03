@@ -46,18 +46,21 @@ type PolicyEntry struct {
 // chain.
 type Repository struct {
 	Repo     string
+	Local    string
 	Policies []PolicyEntry
 }
 
 func (r *Repository) UnmarshalYAML(n *yaml.Node) error {
 	var aux struct {
 		Repo     string    `yaml:"repo"`
+		Local    string    `yaml:"local"`
 		Policies yaml.Node `yaml:"policies"`
 	}
 	if err := n.Decode(&aux); err != nil {
 		return err
 	}
 	r.Repo = aux.Repo
+	r.Local = aux.Local
 	if aux.Policies.Kind == yaml.MappingNode {
 		for i := 0; i+1 < len(aux.Policies.Content); i += 2 {
 			r.Policies = append(r.Policies, PolicyEntry{
@@ -70,16 +73,19 @@ func (r *Repository) UnmarshalYAML(n *yaml.Node) error {
 }
 
 type Config struct {
-	PollInterval Duration     `yaml:"poll_interval"`
-	Concurrency  int          `yaml:"concurrency"`
-	Database     string       `yaml:"database"`
-	Socket       string       `yaml:"socket"`
-	Rules        string       `yaml:"rules"`
-	TmuxSession  string       `yaml:"tmux_session"`
-	OnRestart    string       `yaml:"on_restart"`
-	Notify       Notify       `yaml:"notify"`
-	Escalation   Escalation   `yaml:"escalation"`
-	Repositories []Repository `yaml:"repositories"`
+	PollInterval     Duration     `yaml:"poll_interval"`
+	Concurrency      int          `yaml:"concurrency"`
+	Database         string       `yaml:"database"`
+	Socket           string       `yaml:"socket"`
+	Rules            string       `yaml:"rules"`
+	TmuxSession      string       `yaml:"tmux_session"`
+	OnRestart        string       `yaml:"on_restart"`
+	OpencodeBin      string       `yaml:"opencode_bin"`
+	DropinCommand    string       `yaml:"dropin_command"`
+	AllowOperatorPRs bool         `yaml:"allow_operator_prs"`
+	Notify           Notify       `yaml:"notify"`
+	Escalation       Escalation   `yaml:"escalation"`
+	Repositories     []Repository `yaml:"repositories"`
 }
 
 // Load reads, defaults, and validates the config at path. Repositories come
@@ -151,6 +157,15 @@ func applyDefaults(c *Config) {
 	}
 	if c.Escalation.ParkAfter == 0 {
 		c.Escalation.ParkAfter = Duration(24 * time.Hour)
+	}
+	for i := range c.Repositories {
+		c.Repositories[i].Local = expandHome(c.Repositories[i].Local)
+	}
+	if c.OpencodeBin == "" {
+		c.OpencodeBin = "opencode"
+	}
+	if c.DropinCommand == "" {
+		c.DropinCommand = `nvim "+AgentFullscreen opencode"`
 	}
 	c.Database = expandHome(c.Database)
 	c.Socket = expandHome(c.Socket)

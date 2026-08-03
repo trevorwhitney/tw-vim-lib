@@ -69,7 +69,7 @@ func (e *Engine) ProcessPR(ctx context.Context, repo string, pr github.PR, chain
 		return err
 	}
 	facts := checks.Facts{PR: pr, Viewer: viewer, Facts: ghFacts}
-	if ok, reason := checks.Eligible(facts); !ok {
+	if ok, reason := checks.Eligible(facts, checks.Options{}); !ok {
 		e.markDeferred(key)
 		e.Log.Debug("deferred", "repo", repo, "pr", pr.Number, "reason", reason)
 		return nil

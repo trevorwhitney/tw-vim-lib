@@ -157,7 +157,7 @@ func (e *Engine) Retry(ctx context.Context, jobID int64) (store.Job, error) {
 		return store.Job{}, err
 	}
 	facts := checks.Facts{PR: pr, Viewer: viewer, Facts: ghFacts}
-	if ok, reason := checks.Eligible(facts); !ok {
+	if ok, reason := checks.Eligible(facts, checks.Options{}); !ok {
 		return store.Job{}, fmt.Errorf("PR is currently ineligible (%s); retry later", reason)
 	}
 	files, truncated, err := e.GH.ChangedFiles(job.Repo, pr.Number)

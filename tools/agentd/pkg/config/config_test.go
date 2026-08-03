@@ -78,3 +78,33 @@ func Test_Load_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestRepositoryLocalPath(t *testing.T) {
+	dir := t.TempDir()
+	p := write(t, dir, "config.yaml", `
+repositories:
+  - repo: grafana/loki
+    local: ~/workspace/loki/loki
+    policies:
+      consult-triage: {}
+`)
+	cfg, err := Load(p)
+	require.NoError(t, err)
+	require.NotContains(t, cfg.Repositories[0].Local, "~")
+	require.Contains(t, cfg.Repositories[0].Local, "workspace/loki/loki")
+}
+
+func TestSubprocessDefaults(t *testing.T) {
+	dir := t.TempDir()
+	p := write(t, dir, "config.yaml", `
+repositories:
+  - repo: a/b
+    policies:
+      consult-triage: {}
+`)
+	cfg, err := Load(p)
+	require.NoError(t, err)
+	require.Equal(t, "opencode", cfg.OpencodeBin)
+	require.Equal(t, `nvim "+AgentFullscreen opencode"`, cfg.DropinCommand)
+	require.False(t, cfg.AllowOperatorPRs)
+}
