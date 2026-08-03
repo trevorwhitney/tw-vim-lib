@@ -6,26 +6,31 @@ import (
 )
 
 type Job struct {
-	ID         int64  `json:"id"`
-	Kind       string `json:"kind"`
-	Repo       string `json:"repo"`
-	PRNumber   int    `json:"pr_number"`
-	HeadSHA    string `json:"head_sha"`
-	State      string `json:"state"`
-	Outcome    string `json:"outcome"`
-	Summary    string `json:"summary"`
-	Error      string `json:"error"`
-	CreatedTS  int64  `json:"created_ts"`
-	UpdatedTS  int64  `json:"updated_ts"`
-	FinishedTS int64  `json:"finished_ts"`
+	ID           int64  `json:"id"`
+	Kind         string `json:"kind"`
+	Repo         string `json:"repo"`
+	PRNumber     int    `json:"pr_number"`
+	HeadSHA      string `json:"head_sha"`
+	State        string `json:"state"`
+	Outcome      string `json:"outcome"`
+	Summary      string `json:"summary"`
+	Error        string `json:"error"`
+	WorktreePath string `json:"worktree_path"`
+	SessionID    string `json:"session_id"`
+	WindowID     string `json:"window_id"`
+	VerdictsJSON string `json:"verdicts_json"`
+	CreatedTS    int64  `json:"created_ts"`
+	UpdatedTS    int64  `json:"updated_ts"`
+	FinishedTS   int64  `json:"finished_ts"`
 }
 
-const jobCols = "id, kind, repo, pr_number, head_sha, state, outcome, summary, error, created_ts, updated_ts, COALESCE(finished_ts, 0)"
+const jobCols = "id, kind, repo, pr_number, head_sha, state, outcome, summary, error, worktree_path, session_id, window_id, verdicts_json, created_ts, updated_ts, COALESCE(finished_ts, 0)"
 
 func scanJob(row interface{ Scan(...any) error }) (Job, error) {
 	var j Job
 	err := row.Scan(&j.ID, &j.Kind, &j.Repo, &j.PRNumber, &j.HeadSHA, &j.State,
-		&j.Outcome, &j.Summary, &j.Error, &j.CreatedTS, &j.UpdatedTS, &j.FinishedTS)
+		&j.Outcome, &j.Summary, &j.Error, &j.WorktreePath, &j.SessionID, &j.WindowID,
+		&j.VerdictsJSON, &j.CreatedTS, &j.UpdatedTS, &j.FinishedTS)
 	return j, err
 }
 
@@ -113,6 +118,68 @@ func (s *Store) JobsInState(state string) ([]Job, error) {
 		out = append(out, j)
 	}
 	return out, rows.Err()
+}
+
+func (s *Store) SetJobSessionID(id int64, sessionID string) error {
+	_, err := s.db.Exec(`UPDATE jobs SET session_id=?, updated_ts=? WHERE id=?`, sessionID, s.now().Unix(), id)
+	return err
+}
+
+func (s *Store) SetJobWorktree(id int64, path string) error {
+	_, err := s.db.Exec(`UPDATE jobs SET worktree_path=?, updated_ts=? WHERE id=?`, path, s.now().Unix(), id)
+	return err
+}
+
+func (s *Store) SetJobWindowID(id int64, windowID string) error {
+	_, err := s.db.Exec(`UPDATE jobs SET window_id=?, updated_ts=? WHERE id=?`, windowID, s.now().Unix(), id)
+	return err
+}
+
+func (s *Store) SetJobVerdicts(id int64, verdictsJSON string) error {
+	_, err := s.db.Exec(`UPDATE jobs SET verdicts_json=?, updated_ts=? WHERE id=?`, verdictsJSON, s.now().Unix(), id)
+	return err
+}
+
+// NonTerminalJobs returns every job not yet in a terminal state (done,
+// failed, rejected, skipped). Parked and waiting jobs are non-terminal.
+func (s *Store) NonTerminalJobs() ([]Job, error) {
+	rows, err := s.db.Query(`SELECT ` + jobCols + ` FROM jobs
+		WHERE state NOT IN ('done', 'failed', 'rejected', 'skipped') ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Job
+	for rows.Next() {
+		j, err := scanJob(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, j)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) HasEvent(jobID int64, typ string) (bool, error) {
+	var one int
+	err := s.db.QueryRow(`SELECT 1 FROM events WHERE job_id=? AND type=? LIMIT 1`, jobID, typ).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// LatestEventPayload returns the payload of the most recent event of the
+// given type, with ok=false when none exists.
+func (s *Store) LatestEventPayload(jobID int64, typ string) (string, bool, error) {
+	var payload string
+	err := s.db.QueryRow(
+		`SELECT payload_json FROM events WHERE job_id=? AND type=? ORDER BY id DESC LIMIT 1`,
+		jobID, typ).Scan(&payload)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	return payload, err == nil, err
 }
 
 func (s *Store) AddEvent(jobID int64, typ, payloadJSON string) error {

@@ -76,7 +76,7 @@ func Test_Escalations_Lifecycle(t *testing.T) {
 
 	require.NoError(t, s.TouchEscalationNotified(id))
 
-	require.NoError(t, s.ResolveEscalation(id, "reject", "not today"))
+	require.NoError(t, s.ResolveEscalation(id, "reject", "not today", ""))
 	got, err := s.GetEscalation(id)
 	require.NoError(t, err)
 	require.Equal(t, "resolved", got.State)

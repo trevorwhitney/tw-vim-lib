@@ -92,7 +92,7 @@ func (m *Manager) Resolve(ctx context.Context, id int64, resolution, reason stri
 	default:
 		return fmt.Errorf("%q: %w", resolution, ErrUnsupportedResolution)
 	}
-	if err := m.Store.ResolveEscalation(id, resolution, reason); err != nil {
+	if err := m.Store.ResolveEscalation(id, resolution, reason, ""); err != nil {
 		return err
 	}
 	if err := m.Store.AddEvent(esc.JobID, "escalation_resolved", fmt.Sprintf(`{"resolution":%q}`, resolution)); err != nil {
