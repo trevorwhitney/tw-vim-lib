@@ -122,6 +122,15 @@ func (c *Client) GetPR(repo string, number int) (PR, error) {
 	return raw.pr(), nil
 }
 
+type statusCheck struct {
+	Typename   string `json:"__typename"`
+	Status     string `json:"status"`
+	Conclusion string `json:"conclusion"`
+	State      string `json:"state"`
+}
+
+// Facts reports mergeability and CI state for one PR. CI reflects the repo's
+// required checks when it defines any; otherwise every check counts.
 func (c *Client) Facts(repo string, number int) (Facts, error) {
 	out, err := c.gh(context.Background(), "pr", "view", strconv.Itoa(number), "--repo", repo,
 		"--json", "mergeable,statusCheckRollup")
@@ -129,13 +138,8 @@ func (c *Client) Facts(repo string, number int) (Facts, error) {
 		return Facts{}, err
 	}
 	var raw struct {
-		Mergeable         string `json:"mergeable"`
-		StatusCheckRollup []struct {
-			Typename   string `json:"__typename"`
-			Status     string `json:"status"`
-			Conclusion string `json:"conclusion"`
-			State      string `json:"state"`
-		} `json:"statusCheckRollup"`
+		Mergeable         string        `json:"mergeable"`
+		StatusCheckRollup []statusCheck `json:"statusCheckRollup"`
 	}
 	if err := json.Unmarshal([]byte(out), &raw); err != nil {
 		return Facts{}, err
@@ -150,21 +154,70 @@ func (c *Client) Facts(repo string, number int) (Facts, error) {
 	default:
 		facts.Mergeable = MergeUnknown
 	}
-	for _, s := range raw.StatusCheckRollup {
+
+	requiredCI, ok, err := c.requiredCI(repo, number)
+	if err != nil && !strings.Contains(err.Error(), "no required checks") {
+		return Facts{}, err
+	}
+	if ok {
+		facts.CI = requiredCI
+	} else {
+		facts.CI = allChecksCI(raw.StatusCheckRollup)
+	}
+
+	return facts, nil
+}
+
+// Failure always wins; pending survives later successes.
+func allChecksCI(rollup []statusCheck) CIState {
+	result := CISuccess
+	for _, s := range rollup {
 		verdict := s.Conclusion
 		if s.Typename == "StatusContext" {
 			verdict = s.State
 		}
 		switch verdict {
 		case "FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED":
-			facts.CI = CIFailure
-			return facts, nil
+			return CIFailure
 		case "SUCCESS", "NEUTRAL", "SKIPPED":
 		default:
-			facts.CI = CIPending
+			result = CIPending
 		}
 	}
-	return facts, nil
+	return result
+}
+
+func (c *Client) requiredCI(repo string, number int) (CIState, bool, error) {
+	out, err := c.gh(context.Background(), "pr", "checks", strconv.Itoa(number), "--repo", repo,
+		"--required", "--json", "bucket")
+	if err != nil {
+		return "", false, err
+	}
+
+	var checks []struct {
+		Bucket string `json:"bucket"`
+	}
+	if err := json.Unmarshal([]byte(out), &checks); err != nil {
+		return "", false, err
+	}
+
+	if len(checks) == 0 {
+		return "", false, nil
+	}
+
+	result := CISuccess
+	for _, check := range checks {
+		switch check.Bucket {
+		case "fail", "cancel":
+			return CIFailure, true, nil
+		case "pass", "skipping":
+		default:
+			// Unknown buckets count as pending: never merge on a verdict we
+			// don't understand.
+			result = CIPending
+		}
+	}
+	return result, true, nil
 }
 
 // fileListCap is GitHub's hard limit on the PR files listing; at the cap the
