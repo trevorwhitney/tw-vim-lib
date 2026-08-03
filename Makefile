@@ -1,4 +1,4 @@
-.PHONY: help lint lint-lua lint-nix format format-lua format-nix test test-lua test-plenary test-go
+.PHONY: help lint lint-lua lint-nix format format-lua format-nix test test-lua test-plenary test-go test-agentd test-agentd-integration install-agentd
 
 help:
 	@echo "Available targets:"
@@ -8,10 +8,13 @@ help:
 	@echo "  format        - Run all formatters (Lua and Nix)"
 	@echo "  format-lua    - Format Lua files with stylua"
 	@echo "  format-nix    - Format Nix files with nixpkgs-fmt"
-	@echo "  test          - Run all tests (lua, plenary, go)"
+	@echo "  test          - Run all tests (lua, plenary, go, agentd)"
 	@echo "  test-lua      - Run standalone Lua unit tests (test/*_test.lua)"
 	@echo "  test-plenary  - Run PlenaryBustedDirectory tests"
 	@echo "  test-go       - Run Go integration tests (from test/)"
+	@echo "  test-agentd   - Run agentd unit tests"
+	@echo "  test-agentd-integration - Run agentd integration tests (requires gh + network)"
+	@echo "  install-agentd - Install agentd to ~/.local/bin"
 
 lint: lint-lua lint-nix
 	@echo "All linting complete"
@@ -55,7 +58,7 @@ format-nix:
 		exit 1; \
 	fi
 
-test: test-lua test-plenary test-go
+test: test-lua test-plenary test-go test-agentd
 	@echo "All tests complete"
 
 test-lua:
@@ -79,3 +82,16 @@ test-plenary:
 test-go:
 	@echo "Running Go tests..."
 	@cd test && go test ./...
+
+test-agentd:
+	@echo "Running agentd tests..."
+	@cd tools/agentd && go test ./...
+
+test-agentd-integration:
+	@echo "Running agentd integration tests (requires authenticated gh + network)..."
+	@cd tools/agentd && go test -tags integration ./pkg/github/ -v
+
+install-agentd:
+	@echo "Installing agentd to ~/.local/bin..."
+	@mkdir -p ~/.local/bin ~/.local/state/agentd
+	@cd tools/agentd && go build -o ~/.local/bin/agentd ./cmd/agentd

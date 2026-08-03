@@ -13,3 +13,5 @@ docs/superpowers
 tests/.deps/
 
 nvim.log
+
+tools/agentd/agentd
