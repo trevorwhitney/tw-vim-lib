@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/checks"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/classify"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/config"
 )
 
@@ -16,6 +17,7 @@ const (
 	Pass     Verdict = "pass"
 	Act      Verdict = "act"
 	Escalate Verdict = "escalate"
+	Consult  Verdict = "consult"
 )
 
 // Action is a write the daemon may execute on the PR.
@@ -24,11 +26,22 @@ type Action struct {
 	Params map[string]string `json:"params"`
 }
 
+// VerdictAction maps one declared consult verdict to the action operator
+// approval executes. Action is approve_pr | merge_pr | comment_pr | none.
+type VerdictAction struct {
+	Action string `yaml:"action"`
+	Method string `yaml:"method"` // merge method for merge_pr; defaults to squash
+}
+
 type Result struct {
 	Verdict   Verdict
 	Rationale string
 	Action    *Action
 	Question  string
+	// Worktree requests code access for a Consult verdict; ignored otherwise.
+	Worktree bool
+	// Verdicts is the declared verdict->action menu for a Consult verdict.
+	Verdicts map[string]VerdictAction
 }
 
 type Input struct {
@@ -36,6 +49,8 @@ type Input struct {
 	Facts          checks.Facts
 	Files          []string
 	FilesTruncated bool
+	// Classify is the optional classifier hook; nil when unconfigured.
+	Classify classify.Func
 }
 
 type Policy interface {
@@ -90,6 +105,8 @@ func Build(entries []config.PolicyEntry) ([]WithMeta, error) {
 		switch e.Name {
 		case "merge-dependency-updates":
 			p, err = NewDepUpdates(e.Raw)
+		case "consult-triage":
+			p, err = NewConsultTriage(e.Raw)
 		default:
 			err = fmt.Errorf("unknown policy %q", e.Name)
 		}
