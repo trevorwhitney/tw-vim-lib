@@ -14,7 +14,7 @@ type fake struct {
 	res  Result
 }
 
-func (f fake) Name() string                  { return f.name }
+func (f fake) Name() string                   { return f.name }
 func (f fake) Evaluate(Input) (Result, error) { return f.res, nil }
 
 func Test_Chain_FirstMatchWins(t *testing.T) {
