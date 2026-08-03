@@ -3,6 +3,7 @@ module github.com/trevorwhitney/tw-vim-lib/agentd
 go 1.26.2
 
 require (
+	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/pressly/goose/v3 v3.27.3
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
