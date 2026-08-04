@@ -89,6 +89,8 @@ function M.setup_autocmds(claude_module)
 				return
 			end
 
+			vim.b[agent_buf].edgy_disable = false
+
 			-- The file buffer is now in the current window. Open the agent
 			-- buffer in a right-side vsplit so the layout becomes:
 			--   [file (left)]  |  [opencode (right)]

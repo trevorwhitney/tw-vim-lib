@@ -473,6 +473,10 @@ local function start_new_agent_job(args, window_type, mode, idx)
 	-- Configure the buffer with scrollback and resize handling
 	buffer_config.setup_buffer(buf, M.buffer_config)
 
+	if M.agent_fullscreen then
+		vim.b[buf].edgy_disable = true
+	end
+
 	-- Store via the multi-instance helper
 	set_instance(mode, idx, buf, job_id)
 	-- Set the agent:// buffer name for identification (must happen BEFORE
