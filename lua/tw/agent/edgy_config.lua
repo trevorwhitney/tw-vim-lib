@@ -4,6 +4,18 @@ return {
 		{ ft = "tw-agent-sidebar", title = "Agents", size = { height = 23 } },
 	},
 	right = {
-		{ ft = "AgentConsole", title = "Agent", size = { width = 80 } },
+		{ ft = "AgentConsole", title = "Agent", size = { width = 160 } },
+	},
+	keys = {
+		["<c-q>"] = false,
+		["<leader>q"] = function(win)
+			win:hide()
+		end,
+		[">"] = function(win)
+			win:resize("width", 2)
+		end,
+		["<lt>"] = function(win)
+			win:resize("width", -2)
+		end,
 	},
 }

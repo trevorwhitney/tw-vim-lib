@@ -41,4 +41,62 @@ if not (left_order["NvimTree"] and left_order["tw-agent-sidebar"]
 	fail("NvimTree must be ordered above tw-agent-sidebar in the left edgebar")
 end
 
+-- Look up a view by filetype across an edgebar list.
+local function find_view(views, ft)
+	for _, v in ipairs(views or {}) do
+		if type(v) == "table" and v.ft == ft then
+			return v
+		end
+	end
+	return nil
+end
+
+local agent_console = find_view(cfg.right, "AgentConsole")
+if not (agent_console and agent_console.size and agent_console.size.width == 160) then
+	fail("AgentConsole width must be 160, got " .. tostring(agent_console and agent_console.size and agent_console.size.width))
+end
+
+if cfg.keys["<c-q>"] ~= false then
+	fail("<c-q> must be disabled (false) to avoid the tmux prefix conflict")
+end
+if type(cfg.keys["<leader>q"]) ~= "function" then
+	fail("<leader>q must be a function that hides the edgy window")
+end
+if type(cfg.keys[">"]) ~= "function" then
+	fail("> must be a function that grows the edgy window width")
+end
+if type(cfg.keys["<lt>"]) ~= "function" then
+	fail("<lt> must be a function that shrinks the edgy window width")
+end
+
+-- Fake Edgy.Window recording the resize/hide calls the keymaps make.
+local function fake_win()
+	local win = { resized = nil, hidden = false }
+	function win:resize(dim, amount)
+		self.resized = { dim = dim, amount = amount }
+	end
+	function win:hide()
+		self.hidden = true
+	end
+	return win
+end
+
+local grow = fake_win()
+cfg.keys[">"](grow)
+if not (grow.resized and grow.resized.dim == "width" and grow.resized.amount > 0) then
+	fail("> must grow width by a positive amount")
+end
+
+local shrink = fake_win()
+cfg.keys["<lt>"](shrink)
+if not (shrink.resized and shrink.resized.dim == "width" and shrink.resized.amount < 0) then
+	fail("<lt> must shrink width by a negative amount")
+end
+
+local hide = fake_win()
+cfg.keys["<leader>q"](hide)
+if not hide.hidden then
+	fail("<leader>q must hide the edgy window")
+end
+
 print("ok - edgy_config contract")

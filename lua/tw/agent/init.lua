@@ -662,7 +662,7 @@ function M.Open(mode, args, window_type, idx)
 	local job_is_running = job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1
 
 	if buf and vim.api.nvim_buf_is_valid(buf) and job_is_running then
-		terminal.open_buffer_in_new_window(window_type, buf)
+		terminal.open_or_reuse_terminal_buffer(buf, window_type)
 		M.active_mode = mode
 		M.active_index = idx
 		M.active_buf = buf
