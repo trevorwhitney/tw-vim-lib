@@ -13,6 +13,8 @@ import (
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/actor"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/checks"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/classify"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/consult"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/escalate"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/github"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/policy"
@@ -31,13 +33,27 @@ type RepoStatus struct {
 	AuthError  bool   `json:"auth_error"`
 }
 
+// ConsultRunner is the engine's seam to the consult pipeline.
+type ConsultRunner interface {
+	Start(req consult.Request)
+	Wait()
+	SweepInteractive() error
+	Reconcile(onRestart string) error
+}
+
+var _ ConsultRunner = (*consult.Runner)(nil)
+
 type Engine struct {
-	Store  *store.Store
-	GH     github.Reader
-	Actor  *actor.Actor
-	Esc    *escalate.Manager
-	Chains map[string][]policy.WithMeta
-	Log    *slog.Logger
+	Store            *store.Store
+	GH               github.Reader
+	Actor            *actor.Actor
+	Esc              *escalate.Manager
+	Chains           map[string][]policy.WithMeta
+	Consult          ConsultRunner
+	Classify         classify.Func
+	OnRestart        string
+	AllowOperatorPRs bool
+	Log              *slog.Logger
 
 	mu       sync.Mutex
 	paused   bool
@@ -47,10 +63,57 @@ type Engine struct {
 	deferredAt map[string]time.Time
 }
 
+// chainSnapshot returns a copy of the repo's chain safe to evaluate while
+// SetShadow mutates the original under the same lock.
+func (e *Engine) chainSnapshot(repo string) ([]policy.WithMeta, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	chain, ok := e.Chains[repo]
+	if !ok {
+		return nil, false
+	}
+	return slices.Clone(chain), true
+}
+
+func (e *Engine) repos() []string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	out := make([]string, 0, len(e.Chains))
+	for repo := range e.Chains {
+		out = append(out, repo)
+	}
+	slices.Sort(out)
+	return out
+}
+
+// SetShadow toggles a policy's shadow flag at runtime.
+func (e *Engine) SetShadow(repo, policyName string, enabled bool) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	chain, ok := e.Chains[repo]
+	if !ok {
+		return fmt.Errorf("repo %q not configured", repo)
+	}
+	for i := range chain {
+		if chain[i].Policy.Name() == policyName {
+			chain[i].Shadow = enabled
+			return nil
+		}
+	}
+	return fmt.Errorf("policy %q not configured for %s", policyName, repo)
+}
+
 // ProcessPR evaluates one PR head. Ineligible PRs are deferred without a
 // ledger record (re-checked after deferRecheck); a head already recorded for
 // this repo/PR/kind is skipped.
 func (e *Engine) ProcessPR(ctx context.Context, repo string, pr github.PR, chain []policy.WithMeta) error {
+	if chain == nil {
+		snap, ok := e.chainSnapshot(repo)
+		if !ok {
+			return fmt.Errorf("repo %q not configured", repo)
+		}
+		chain = snap
+	}
 	seen, err := e.Store.HasJob(repo, pr.Number, pr.HeadSHA, "pr")
 	if err != nil || seen {
 		return err
@@ -69,7 +132,7 @@ func (e *Engine) ProcessPR(ctx context.Context, repo string, pr github.PR, chain
 		return err
 	}
 	facts := checks.Facts{PR: pr, Viewer: viewer, Facts: ghFacts}
-	if ok, reason := checks.Eligible(facts, checks.Options{}); !ok {
+	if ok, reason := checks.Eligible(facts, checks.Options{AllowOperatorPRs: e.AllowOperatorPRs}); !ok {
 		e.markDeferred(key)
 		e.Log.Debug("deferred", "repo", repo, "pr", pr.Number, "reason", reason)
 		return nil
@@ -83,7 +146,7 @@ func (e *Engine) ProcessPR(ctx context.Context, repo string, pr github.PR, chain
 	if err != nil {
 		return err
 	}
-	return e.runChain(ctx, jobID, policyInput(repo, facts, files, truncated), chain)
+	return e.runChain(ctx, jobID, e.policyInput(repo, facts, files, truncated), chain)
 }
 
 func (e *Engine) runChain(ctx context.Context, jobID int64, in policy.Input, chain []policy.WithMeta) error {
@@ -114,6 +177,25 @@ func (e *Engine) runChain(ctx context.Context, jobID int64, in policy.Input, cha
 		return e.Store.FinishJob(jobID, "done", "acted", summary)
 	case policy.Escalate:
 		return e.Esc.Create(jobID, "", res.Question, res.Rationale, res.Action)
+	case policy.Consult:
+		if e.Consult == nil {
+			return e.Store.FailJob(jobID, "consult verdict but no consult runner configured")
+		}
+		if err := e.Store.SetJobState(jobID, "preparing"); err != nil {
+			return err
+		}
+		if err := e.Store.AddEvent(jobID, "preparing", ""); err != nil {
+			return err
+		}
+		e.Consult.Start(consult.Request{
+			JobID:         jobID,
+			Repo:          in.Repo,
+			Number:        in.Facts.PR.Number,
+			Title:         in.Facts.PR.Title,
+			NeedsWorktree: res.Worktree,
+			Verdicts:      res.Verdicts,
+		})
+		return nil
 	}
 	return e.Store.FailJob(jobID, fmt.Sprintf("unknown verdict %q", res.Verdict))
 }
@@ -125,14 +207,13 @@ func firstLine(s string) string {
 	return s
 }
 
-// policyInput assembles the chain input from gathered facts. Shared by
-// ProcessPR and Retry.
-func policyInput(repo string, facts checks.Facts, files []string, truncated bool) policy.Input {
+func (e *Engine) policyInput(repo string, facts checks.Facts, files []string, truncated bool) policy.Input {
 	return policy.Input{
 		Repo:           repo,
 		Facts:          facts,
 		Files:          files,
 		FilesTruncated: truncated,
+		Classify:       e.Classify,
 	}
 }
 

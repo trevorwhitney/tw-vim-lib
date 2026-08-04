@@ -13,12 +13,16 @@ import (
 )
 
 // PollAll runs one pass over every configured repository, then sweeps
-// escalations. A repo that returned an auth error is skipped until restart.
+// escalations and interactive windows. A repo that returned an auth error is skipped until restart.
 func (e *Engine) PollAll(ctx context.Context) {
 	if e.Paused() {
 		return
 	}
-	for repo, chain := range e.Chains {
+	for _, repo := range e.repos() {
+		chain, ok := e.chainSnapshot(repo)
+		if !ok {
+			continue
+		}
 		e.mu.Lock()
 		st := e.statusLocked(repo)
 		skip := st.AuthError
@@ -45,6 +49,11 @@ func (e *Engine) PollAll(ctx context.Context) {
 	if err := e.Esc.Sweep(); err != nil {
 		e.Log.Error("escalation sweep", "err", err)
 	}
+	if e.Consult != nil {
+		if err := e.Consult.SweepInteractive(); err != nil {
+			e.Log.Error("interactive sweep", "err", err)
+		}
+	}
 }
 
 func (e *Engine) pollRepo(ctx context.Context, repo string, chain []policy.WithMeta) error {
@@ -66,6 +75,9 @@ func (e *Engine) Once(ctx context.Context) error {
 		return err
 	}
 	e.PollAll(ctx)
+	if e.Consult != nil {
+		e.Consult.Wait()
+	}
 	return nil
 }
 
@@ -99,12 +111,17 @@ func (e *Engine) Reconcile(ctx context.Context) error {
 			return err
 		}
 	}
+	if e.Consult != nil {
+		if err := e.Consult.Reconcile(e.OnRestart); err != nil {
+			return err
+		}
+	}
 	return e.Esc.Sweep()
 }
 
 // EnqueuePR processes a single PR immediately, outside the poll loop.
 func (e *Engine) EnqueuePR(ctx context.Context, repo string, number int) (store.Job, error) {
-	chain, ok := e.Chains[repo]
+	chain, ok := e.chainSnapshot(repo)
 	if !ok {
 		return store.Job{}, fmt.Errorf("repo %q not configured", repo)
 	}
@@ -136,7 +153,7 @@ func (e *Engine) Retry(ctx context.Context, jobID int64) (store.Job, error) {
 	if job.State != "failed" {
 		return store.Job{}, fmt.Errorf("job %d is %s; only failed jobs can be retried", jobID, job.State)
 	}
-	chain, ok := e.Chains[job.Repo]
+	chain, ok := e.chainSnapshot(job.Repo)
 	if !ok {
 		return store.Job{}, fmt.Errorf("repo %q no longer configured", job.Repo)
 	}
@@ -157,7 +174,7 @@ func (e *Engine) Retry(ctx context.Context, jobID int64) (store.Job, error) {
 		return store.Job{}, err
 	}
 	facts := checks.Facts{PR: pr, Viewer: viewer, Facts: ghFacts}
-	if ok, reason := checks.Eligible(facts, checks.Options{}); !ok {
+	if ok, reason := checks.Eligible(facts, checks.Options{AllowOperatorPRs: e.AllowOperatorPRs}); !ok {
 		return store.Job{}, fmt.Errorf("PR is currently ineligible (%s); retry later", reason)
 	}
 	files, truncated, err := e.GH.ChangedFiles(job.Repo, pr.Number)
@@ -170,7 +187,7 @@ func (e *Engine) Retry(ctx context.Context, jobID int64) (store.Job, error) {
 	if err := e.Store.AddEvent(jobID, "retried", ""); err != nil {
 		return store.Job{}, err
 	}
-	in := policyInput(job.Repo, facts, files, truncated)
+	in := e.policyInput(job.Repo, facts, files, truncated)
 	if err := e.runChain(ctx, jobID, in, chain); err != nil {
 		return store.Job{}, err
 	}
