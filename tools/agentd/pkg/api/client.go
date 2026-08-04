@@ -91,3 +91,37 @@ func (c *Client) Resolve(escalationID int64, resolution, reason, answer string) 
 func (c *Client) SetPolling(paused bool) error {
 	return c.do(http.MethodPost, "/control/polling", map[string]bool{"paused": paused}, nil)
 }
+
+func (c *Client) RegisterSession(jobID int64, sessionID string) error {
+	return c.do(http.MethodPost, fmt.Sprintf("/jobs/%d/session", jobID),
+		map[string]string{"session_id": sessionID}, nil)
+}
+
+func (c *Client) Report(jobID int64, verdict, summary, details string) error {
+	return c.do(http.MethodPost, fmt.Sprintf("/jobs/%d/report", jobID),
+		map[string]string{"verdict": verdict, "summary": summary, "details": details}, nil)
+}
+
+func (c *Client) EscalateJob(jobID int64, kind, question, context string) error {
+	return c.do(http.MethodPost, fmt.Sprintf("/jobs/%d/escalate", jobID),
+		map[string]string{"kind": kind, "question": question, "context": context}, nil)
+}
+
+func (c *Client) DropIn(jobID int64) error {
+	return c.do(http.MethodPost, fmt.Sprintf("/jobs/%d/dropin", jobID), struct{}{}, nil)
+}
+
+func (c *Client) Handback(jobID int64) error {
+	return c.do(http.MethodPost, fmt.Sprintf("/jobs/%d/handback", jobID), struct{}{}, nil)
+}
+
+func (c *Client) GC(jobID int64, force bool) error {
+	return c.do(http.MethodPost, "/control/gc",
+		map[string]any{"job_id": jobID, "force": force}, nil)
+}
+
+// SetShadow toggles a policy's shadow flag. repo must be exactly owner/name.
+func (c *Client) SetShadow(repo, policy string, enabled bool) error {
+	return c.do(http.MethodPost, fmt.Sprintf("/policies/%s/%s/shadow", repo, policy),
+		map[string]bool{"enabled": enabled}, nil)
+}

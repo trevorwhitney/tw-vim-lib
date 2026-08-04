@@ -13,16 +13,18 @@ import (
 	"strconv"
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/actor"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/consult"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/engine"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/escalate"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/store"
 )
 
 type Server struct {
-	Engine *engine.Engine
-	Esc    *escalate.Manager
-	Actor  *actor.Actor
-	Store  *store.Store
+	Engine  *engine.Engine
+	Esc     *escalate.Manager
+	Actor   *actor.Actor
+	Store   *store.Store
+	Consult *consult.Runner
 }
 
 type StatusResponse struct {
@@ -62,6 +64,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /jobs/{id}/retry", s.retry)
 	mux.HandleFunc("POST /escalations/{id}/resolve", s.resolve)
 	mux.HandleFunc("POST /control/polling", s.polling)
+	mux.HandleFunc("POST /jobs/{id}/session", s.session)
+	mux.HandleFunc("POST /jobs/{id}/report", s.report)
+	mux.HandleFunc("POST /jobs/{id}/escalate", s.escalate)
+	mux.HandleFunc("POST /jobs/{id}/dropin", s.dropin)
+	mux.HandleFunc("POST /jobs/{id}/handback", s.handback)
+	mux.HandleFunc("POST /control/gc", s.gc)
+	mux.HandleFunc("POST /policies/{owner}/{name}/{policy}/shadow", s.shadow)
 	return mux
 }
 
@@ -182,4 +191,157 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 
 func writeErr(w http.ResponseWriter, code int, err error) {
 	writeJSON(w, code, map[string]string{"error": err.Error()})
+}
+
+func (s *Server) needConsult(w http.ResponseWriter) bool {
+	if s.Consult == nil {
+		writeErr(w, http.StatusServiceUnavailable, errors.New("consult runner not configured"))
+		return false
+	}
+	return true
+}
+
+func (s *Server) session(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	var req struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.SessionID == "" {
+		writeErr(w, http.StatusBadRequest, errors.New("body must be {session_id}"))
+		return
+	}
+	if !s.needConsult(w) {
+		return
+	}
+	if err := s.Consult.RegisterSession(id, req.SessionID); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) report(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	var req struct {
+		Verdict string `json:"verdict"`
+		Summary string `json:"summary"`
+		Details string `json:"details"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Verdict == "" {
+		writeErr(w, http.StatusBadRequest, errors.New("body must be {verdict, summary, details}"))
+		return
+	}
+	if !s.needConsult(w) {
+		return
+	}
+	if err := s.Consult.Report(id, req.Verdict, req.Summary, req.Details); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) escalate(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	var req struct {
+		Kind     string `json:"kind"`
+		Question string `json:"question"`
+		Context  string `json:"context"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Question == "" {
+		writeErr(w, http.StatusBadRequest, errors.New("body must be {kind, question, context}"))
+		return
+	}
+	if !s.needConsult(w) {
+		return
+	}
+	if err := s.Consult.EscalateQuestion(id, req.Kind, req.Question, req.Context); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) dropin(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if !s.needConsult(w) {
+		return
+	}
+	if err := s.Consult.DropIn(id); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) handback(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if !s.needConsult(w) {
+		return
+	}
+	if err := s.Consult.Handback(id); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) gc(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		JobID int64 `json:"job_id"`
+		Force bool  `json:"force"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	if !s.needConsult(w) {
+		return
+	}
+	if req.JobID != 0 {
+		if err := s.Consult.GCJob(req.JobID, req.Force); err != nil {
+			writeErr(w, http.StatusConflict, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+		return
+	}
+	removed, problems := s.Consult.GCAll()
+	writeJSON(w, http.StatusOK, map[string]any{"removed": removed, "problems": problems})
+}
+
+func (s *Server) shadow(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	repo := r.PathValue("owner") + "/" + r.PathValue("name")
+	if err := s.Engine.SetShadow(repo, r.PathValue("policy"), req.Enabled); err != nil {
+		writeErr(w, http.StatusNotFound, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
