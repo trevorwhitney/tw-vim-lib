@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
@@ -16,13 +17,17 @@ import (
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/actor"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/api"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/config"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/consult"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/engine"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/escalate"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/execx"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/github"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/notify"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/opencode"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/policy"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/store"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/tmuxctl"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/workspace"
 )
 
 func main() {
@@ -40,7 +45,7 @@ func rootCmd() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.PersistentFlags().String("config", defaultConfigPath(), "path to config file")
-	root.AddCommand(serveCmd(), onceCmd(), enqueueCmd(), resolveCmd(), statusCmd())
+	root.AddCommand(serveCmd(), onceCmd(), enqueueCmd(), resolveCmd(), statusCmd(), gcCmd())
 	return root
 }
 
@@ -54,14 +59,15 @@ func defaultConfigPath() string {
 
 // stack is the assembled daemon: every component wired per config.
 type stack struct {
-	cfg    *config.Config
-	store  *store.Store
-	engine *engine.Engine
-	esc    *escalate.Manager
-	actor  *actor.Actor
+	cfg     *config.Config
+	store   *store.Store
+	engine  *engine.Engine
+	esc     *escalate.Manager
+	actor   *actor.Actor
+	consult *consult.Runner
 }
 
-func buildStack(cmd *cobra.Command, dryRun bool) (*stack, error) {
+func buildStack(ctx context.Context, cmd *cobra.Command, dryRun bool) (*stack, error) {
 	cfgPath, _ := cmd.Flags().GetString("config")
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
@@ -89,10 +95,43 @@ func buildStack(cmd *cobra.Command, dryRun bool) (*stack, error) {
 		ParkAfter:     time.Duration(cfg.Escalation.ParkAfter),
 		Now:           time.Now,
 	}
-	eng := &engine.Engine{
-		Store: st, GH: gh, Actor: act, Esc: esc, Chains: chains, Log: slog.Default(),
+
+	locals := map[string]string{}
+	for _, r := range cfg.Repositories {
+		if r.Local != "" {
+			locals[r.Repo] = r.Local
+		}
 	}
-	return &stack{cfg: cfg, store: st, engine: eng, esc: esc, actor: act}, nil
+	ws := &workspace.Manager{StateDir: filepath.Dir(cfg.Database), Exec: execx.Run}
+	oc := &opencode.CLI{Exec: execx.Run, Bin: cfg.OpencodeBin}
+	runner := consult.New(ctx, consult.Deps{
+		Store:         st,
+		GH:            gh,
+		Esc:           esc,
+		WS:            ws,
+		Tmux:          &tmuxctl.Client{Exec: execx.Run},
+		OC:            oc,
+		Log:           slog.Default(),
+		Socket:        cfg.Socket,
+		Session:       cfg.TmuxSession,
+		DropinCommand: cfg.DropinCommand,
+		Locals:        locals,
+	}, cfg.Concurrency)
+	esc.Final = runner
+	esc.Cont = runner
+
+	eng := &engine.Engine{
+		Store:            st,
+		GH:               gh,
+		Actor:            act,
+		Esc:              esc,
+		Chains:           chains,
+		Consult:          runner,
+		OnRestart:        cfg.OnRestart,
+		AllowOperatorPRs: cfg.AllowOperatorPRs,
+		Log:              slog.Default(),
+	}
+	return &stack{cfg: cfg, store: st, engine: eng, esc: esc, actor: act, consult: runner}, nil
 }
 
 func serveCmd() *cobra.Command {
@@ -100,7 +139,10 @@ func serveCmd() *cobra.Command {
 		Use:   "serve",
 		Short: "run the daemon",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			s, err := buildStack(cmd, false)
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+
+			s, err := buildStack(ctx, cmd, false)
 			if err != nil {
 				return err
 			}
@@ -111,13 +153,11 @@ func serveCmd() *cobra.Command {
 				return err
 			}
 			srv := &http.Server{Handler: (&api.Server{
-				Engine: s.engine, Esc: s.esc, Actor: s.actor, Store: s.store,
+				Engine: s.engine, Esc: s.esc, Actor: s.actor, Store: s.store, Consult: s.consult,
 			}).Handler()}
 			go func() { _ = srv.Serve(ln) }()
 			defer srv.Close()
 
-			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
 			slog.Info("agentd serving", "socket", s.cfg.Socket,
 				"repos", len(s.cfg.Repositories),
 				"poll_interval", time.Duration(s.cfg.PollInterval).String())
@@ -132,7 +172,7 @@ func onceCmd() *cobra.Command {
 		Use:   "once",
 		Short: "single poll pass over all repos, then exit",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			s, err := buildStack(cmd, dryRun)
+			s, err := buildStack(cmd.Context(), cmd, dryRun)
 			if err != nil {
 				return err
 			}
@@ -197,19 +237,25 @@ func enqueueCmd() *cobra.Command {
 }
 
 func resolveCmd() *cobra.Command {
-	var approve, reject bool
-	var reason string
+	var approve, reject, done bool
+	var reason, answer string
 	cmd := &cobra.Command{
 		Use:   "resolve <job-id>",
-		Short: "resolve a job's escalation",
+		Short: "resolve a job's escalation (approve / reject / answer / done)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			jobID, err := strconv.ParseInt(args[0], 10, 64)
 			if err != nil {
 				return fmt.Errorf("invalid job id %q", args[0])
 			}
-			if approve == reject {
-				return fmt.Errorf("exactly one of --approve or --reject is required")
+			modes := 0
+			for _, on := range []bool{approve, reject, answer != "", done} {
+				if on {
+					modes++
+				}
+			}
+			if modes != 1 {
+				return fmt.Errorf("exactly one of --approve, --reject, --answer, --done is required")
 			}
 			if reject && reason == "" {
 				return fmt.Errorf("--reject requires --reason")
@@ -218,6 +264,9 @@ func resolveCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if done {
+				return c.Handback(jobID)
+			}
 			resp, err := c.Job(jobID)
 			if err != nil {
 				return err
@@ -225,15 +274,40 @@ func resolveCmd() *cobra.Command {
 			if resp.Escalation == nil {
 				return fmt.Errorf("job %d has no open escalation", jobID)
 			}
-			if approve {
+			switch {
+			case approve:
 				return c.Resolve(resp.Escalation.ID, "approve", "", "")
+			case reject:
+				return c.Resolve(resp.Escalation.ID, "reject", reason, "")
+			default:
+				return c.Resolve(resp.Escalation.ID, "answer", "", answer)
 			}
-			return c.Resolve(resp.Escalation.ID, "reject", reason, "")
 		},
 	}
-	cmd.Flags().BoolVar(&approve, "approve", false, "approve the attached action")
+	cmd.Flags().BoolVar(&approve, "approve", false, "approve the attached action (or acknowledge advice)")
 	cmd.Flags().BoolVar(&reject, "reject", false, "reject the escalation")
 	cmd.Flags().StringVar(&reason, "reason", "", "reason (required with --reject)")
+	cmd.Flags().StringVar(&answer, "answer", "", "answer text for a waiting question")
+	cmd.Flags().BoolVar(&done, "done", false, "hand an interactive job back to the daemon")
+	return cmd
+}
+
+func gcCmd() *cobra.Command {
+	var jobID int64
+	var force bool
+	cmd := &cobra.Command{
+		Use:   "gc",
+		Short: "sweep orphaned worktrees and scratch dirs",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			c, err := socketClient(cmd)
+			if err != nil {
+				return err
+			}
+			return c.GC(jobID, force)
+		},
+	}
+	cmd.Flags().Int64Var(&jobID, "job", 0, "target a single job's workspace")
+	cmd.Flags().BoolVar(&force, "force", false, "remove even with uncommitted changes")
 	return cmd
 }
 
