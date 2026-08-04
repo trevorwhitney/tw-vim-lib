@@ -424,6 +424,14 @@ local function start_new_agent_job(args, window_type, mode, idx)
 			if #args > 0 then
 				log.debug("Args: " .. vim.inspect(args))
 			end
+
+			local resume = get_resume()
+			if resume and resume.explicit_session_args then
+				local explicit = resume.explicit_session_args()
+				if explicit then
+					vim.list_extend(args, explicit)
+				end
+			end
 		end
 	end
 

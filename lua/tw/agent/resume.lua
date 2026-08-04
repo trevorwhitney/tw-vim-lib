@@ -115,4 +115,16 @@ function M.args_for(mode, _idx, cwd, opts)
 	return { "--continue" }
 end
 
+-- Trusted explicit-session launch: when AGENTD_SESSION_ID is present the
+-- daemon (or `oc --session`) chose the session, so no listing or cwd
+-- filtering applies. getenv is injectable for tests.
+function M.explicit_session_args(getenv)
+	getenv = getenv or os.getenv
+	local id = getenv("AGENTD_SESSION_ID")
+	if type(id) == "string" and id ~= "" then
+		return { "--session", id }
+	end
+	return nil
+end
+
 return M

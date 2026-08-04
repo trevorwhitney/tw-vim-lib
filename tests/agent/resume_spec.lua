@@ -194,4 +194,24 @@ describe("resume", function()
     })
     assert.same({ "--continue" }, args)
   end)
+
+  describe("explicit_session_args", function()
+    it("returns --session args when AGENTD_SESSION_ID is set", function()
+      local args = resume.explicit_session_args(function(name)
+        if name == "AGENTD_SESSION_ID" then
+          return "ses_abc"
+        end
+      end)
+      assert.are.same({ "--session", "ses_abc" }, args)
+    end)
+
+    it("returns nil when unset or empty", function()
+      assert.is_nil(resume.explicit_session_args(function()
+        return nil
+      end))
+      assert.is_nil(resume.explicit_session_args(function()
+        return ""
+      end))
+    end)
+  end)
 end)

@@ -463,4 +463,22 @@ test("reap never raises even when readdir fails", function()
 	eq(true, ok, "reap swallowed the error")
 end)
 
+test("derive_identity recognizes agentd worktrees", function()
+	local id = global._derive_identity("/Users/tw/.local/state/agentd/worktrees/loki/123")
+	eq("loki", id.project, "project from agentd worktree path")
+	eq("123", id.worktree, "worktree is the job id")
+	eq("123", id.handle, "handle is the job id")
+end)
+
+test("derive_identity recognizes agentd scratch dirs", function()
+	local id = global._derive_identity("/Users/tw/.local/state/agentd/jobs/456/scratch")
+	eq("agentd", id.project, "scratch jobs group under the agentd project")
+	eq("456", id.worktree, "worktree is the job id")
+end)
+
+test("derive_identity still requires the workspace convention otherwise", function()
+	eq(nil, global._derive_identity("/Users/tw/.local/state/agentd/jobs/456"), "artifact dir is not a workspace")
+	eq(nil, global._derive_identity("/opt/something/else"), "unrelated path")
+end)
+
 H.finish("global.lua")

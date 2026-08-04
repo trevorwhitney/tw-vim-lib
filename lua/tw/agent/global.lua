@@ -40,6 +40,18 @@ function M._derive_identity(path)
 	if type(path) ~= "string" or path == "" then
 		return nil
 	end
+
+	-- Daemon-owned workspaces: agentd worktrees carry the project in the
+	-- path; scratch jobs group under the "agentd" project.
+	local wt_project, wt_job = path:match("/agentd/worktrees/([^/]+)/([^/]+)$")
+	if wt_project and wt_job then
+		return { project = wt_project, worktree = wt_job, handle = wt_job }
+	end
+	local scratch_job = path:match("/agentd/jobs/([^/]+)/scratch$")
+	if scratch_job then
+		return { project = "agentd", worktree = scratch_job, handle = scratch_job }
+	end
+
 	local segments = {}
 	for seg in path:gmatch("[^/]+") do
 		table.insert(segments, seg)
