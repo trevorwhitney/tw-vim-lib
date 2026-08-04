@@ -52,8 +52,8 @@ local function find_view(views, ft)
 end
 
 local agent_console = find_view(cfg.right, "AgentConsole")
-if not (agent_console and agent_console.size and agent_console.size.width == 160) then
-	fail("AgentConsole width must be 160, got " .. tostring(agent_console and agent_console.size and agent_console.size.width))
+if not (agent_console and agent_console.size and agent_console.size.width == 0.4) then
+	fail("AgentConsole width must be 0.4 (40%), got " .. tostring(agent_console and agent_console.size and agent_console.size.width))
 end
 
 if cfg.keys["<c-q>"] ~= false then

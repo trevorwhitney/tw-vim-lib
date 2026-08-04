@@ -70,6 +70,22 @@ describe("agent instance lifecycle (Open / Toggle)", function()
     assert.equals(0, agent.active_index)
   end)
 
+  it("Toggle hides a fullscreen agent that is the only window", function()
+    vim.cmd("only")
+    vim.cmd("enew")
+    agent.agent_fullscreen = true
+    agent.Open("opencode", nil, "current", 0)
+    agent.agent_fullscreen = false
+    local inst = agent._get_instance("opencode", 0)
+    assert.is_true(helpers.buf_visible(inst.buf))
+    assert.equals(1, #vim.api.nvim_tabpage_list_wins(0))
+
+    agent.Toggle("opencode", nil, "vsplit", 0)
+    assert.is_false(helpers.buf_visible(inst.buf))
+    assert.is_table(agent._get_instance("opencode", 0), "instance should still exist in background")
+    assert.equals("none", agent.active_mode)
+  end)
+
   it("OnExit clears the instance and resets active state if it was active", function()
     agent.Open("pi", nil, "vsplit", 1)
     local inst = agent._get_instance("pi", 1)

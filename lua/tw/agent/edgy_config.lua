@@ -4,7 +4,7 @@ return {
 		{ ft = "tw-agent-sidebar", title = "Agents", size = { height = 23 } },
 	},
 	right = {
-		{ ft = "AgentConsole", title = "Agent", size = { width = 160 } },
+		{ ft = "AgentConsole", title = "Agent", size = { width = 0.4 } },
 	},
 	keys = {
 		["<c-q>"] = false,

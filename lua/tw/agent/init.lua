@@ -747,7 +747,14 @@ function M.Toggle(mode, args, window_type, idx)
 		end
 
 		if visible_win then
-			vim.api.nvim_win_close(visible_win, false)
+			local tabpage = vim.api.nvim_win_get_tabpage(visible_win)
+			if #vim.api.nvim_tabpage_list_wins(tabpage) > 1 then
+				vim.api.nvim_win_close(visible_win, false)
+			else
+				vim.api.nvim_win_call(visible_win, function()
+					vim.cmd("enew")
+				end)
+			end
 			if M.active_mode == mode and M.active_index == idx then
 				M.active_mode = "none"
 				M.active_index = 0
