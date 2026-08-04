@@ -26,7 +26,7 @@ func DefaultKeyMap() KeyMap {
 		Bottom:  key.NewBinding(key.WithKeys("G"), key.WithHelp("G", "bottom")),
 		Jump:    key.NewBinding(key.WithKeys("enter", "o"), key.WithHelp("⏎/o", "jump")),
 		Toggle:  key.NewBinding(key.WithKeys("tab", "h", "l"), key.WithHelp("⇥", "expand/collapse")),
-		Purge:   key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "purge gone record")),
+		Purge:   key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete agent/gone worktree record")),
 		Refresh: key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),
 		Filter:  key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
 		Help:    key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),

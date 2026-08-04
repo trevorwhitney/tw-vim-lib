@@ -26,3 +26,8 @@ func ParseRecord(data []byte) (Record, error) {
 	}
 	return r, nil
 }
+
+// EncodeRecord serializes a record to its mirror file representation.
+func EncodeRecord(r Record) ([]byte, error) {
+	return json.Marshal(r)
+}

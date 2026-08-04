@@ -249,25 +249,47 @@ func (m Model) jump() (tea.Model, tea.Cmd) {
 
 func (m *Model) purge() {
 	n, ok := m.current()
-	if !ok || n.Kind != tree.KindWorktree || n.Validity != "gone" {
-		m.status = "purge: select a removed worktree"
+	if !ok {
 		return
 	}
-	// Delete every mirror file whose parsed record matches this worktree.
-	// Parse-and-compare (not filename prefix matching) so it is symmetric with
-	// the producer's percent-encoded worktrees regardless of encoding.
-	dir := m.dir
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		m.status = "purge: " + err.Error()
+	var match func(store.Record) bool
+	switch {
+	case n.Kind == tree.KindAgent:
+		// Delete just this agent's session record. An agent is uniquely
+		// identified by project + worktree + mode + idx.
+		r := n.Record
+		match = func(rec store.Record) bool {
+			return rec.Project == r.Project && rec.Worktree == r.Worktree &&
+				rec.Mode == r.Mode && rec.Idx == r.Idx
+		}
+	case n.Kind == tree.KindWorktree && n.Validity == "gone":
+		match = func(rec store.Record) bool {
+			return rec.Project == n.Project && rec.Worktree == n.Worktree
+		}
+	default:
+		m.status = "purge: select a removed worktree or a saved agent"
 		return
+	}
+	if err := m.removeRecords(match); err != nil {
+		m.status = "purge: " + err.Error()
+	}
+}
+
+// removeRecords deletes every mirror file whose parsed record satisfies match.
+// It parses and compares record fields (not filename prefixes) so it stays
+// symmetric with the producer's percent-encoded worktrees regardless of
+// filename encoding.
+func (m *Model) removeRecords(match func(store.Record) bool) error {
+	entries, err := os.ReadDir(m.dir)
+	if err != nil {
+		return err
 	}
 	var firstRemoveErr error
 	for _, e := range entries {
 		if e.IsDir() || filepath.Ext(e.Name()) != ".json" {
 			continue
 		}
-		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		data, err := os.ReadFile(filepath.Join(m.dir, e.Name()))
 		if err != nil {
 			continue
 		}
@@ -275,15 +297,16 @@ func (m *Model) purge() {
 		if err != nil {
 			continue
 		}
-		if rec.Project == n.Project && rec.Worktree == n.Worktree {
-			if err := os.Remove(filepath.Join(dir, e.Name())); err != nil && firstRemoveErr == nil {
+		if match(rec) {
+			if err := os.Remove(filepath.Join(m.dir, e.Name())); err != nil && firstRemoveErr == nil {
 				firstRemoveErr = err
 			}
 		}
 	}
 	if firstRemoveErr != nil {
-		m.status = "purge: failed to remove: " + firstRemoveErr.Error()
+		return firstRemoveErr
 	}
+	return nil
 }
 
 func (m Model) View() tea.View {
@@ -311,7 +334,7 @@ func (m Model) View() tea.View {
 		if m.status != "" {
 			b = append(b, styleStatus.Render(m.status))
 		}
-		b = append(b, styleFooter.Render("⏎ jump · ⇥ collapse · d purge · r refresh · / filter · ? help · q quit"))
+		b = append(b, styleFooter.Render("⏎ jump · ⇥ collapse · d delete · r refresh · / filter · ? help · q quit"))
 		content = lipgloss.JoinVertical(lipgloss.Left, b...)
 	}
 	v := tea.NewView(content)
@@ -327,7 +350,7 @@ func helpView() string {
 		"g/G       first/last",
 		"⏎ / o     jump to worktree",
 		"⇥ h l     collapse/expand",
-		"d         purge a removed (gone) record",
+		"d         delete selected agent, or purge a removed (gone) worktree",
 		"r         refresh",
 		"/         filter (Enter apply, Esc clear)",
 		"?         this help",
