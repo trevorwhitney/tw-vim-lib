@@ -27,6 +27,19 @@ var (
 	styleFilter = lipgloss.NewStyle().Faint(true)
 )
 
+// Mission-control role styles. Same foreground-only, theme-adaptive rules as
+// the block above: never a background, never truecolor.
+var (
+	styleStateActive  = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+	styleStateWaiting = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	styleTerminalOK   = lipgloss.NewStyle().Faint(true)
+	styleTerminalBad  = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+	styleVerdict      = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
+	styleRepo         = lipgloss.NewStyle().Bold(true)
+	styleTabActive    = lipgloss.NewStyle().Bold(true)
+	styleTabInactive  = lipgloss.NewStyle().Faint(true)
+)
+
 var roleStyles = map[SegmentRole]lipgloss.Style{
 	RoleProject:      styleProject,
 	RoleWorktree:     stylePlain,
@@ -42,6 +55,15 @@ var roleStyles = map[SegmentRole]lipgloss.Style{
 	RoleRemoved:      styleRemoved,
 	RoleSep:          styleFaint,
 	RoleDefault:      stylePlain,
+
+	RoleStateActive:      styleStateActive,
+	RoleStateWaiting:     styleStateWaiting,
+	RoleStateTerminalOK:  styleTerminalOK,
+	RoleStateTerminalBad: styleTerminalBad,
+	RoleVerdict:          styleVerdict,
+	RoleRepo:             styleRepo,
+	RoleTabActive:        styleTabActive,
+	RoleTabInactive:      styleTabInactive,
 }
 
 // styleSegments renders each segment's text with the style for its role and

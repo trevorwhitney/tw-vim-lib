@@ -27,6 +27,16 @@ const (
 	RoleAge
 	RoleRemoved
 	RoleSep
+
+	// Mission-control roles.
+	RoleStateActive      // running/preparing/interactive — green
+	RoleStateWaiting     // waiting_input/waiting_approval/parked — yellow
+	RoleStateTerminalOK  // done — faint
+	RoleStateTerminalBad // failed/rejected — red
+	RoleVerdict          // decision verdict / consult verdict — magenta
+	RoleRepo             // repo#pr — plain-bold
+	RoleTabActive        // active tab label — bold
+	RoleTabInactive      // inactive tab label — faint
 )
 
 // Segment is a run of text plus the role that determines its style.
