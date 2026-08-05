@@ -12,6 +12,7 @@ type Runner interface {
 	ListPanes() (string, error)
 	SelectWindow(windowID string) error
 	WorkmuxOpen(handle string) error
+	OpenURL(url string) error
 }
 
 // resolve finds the window id whose pane path equals path or is a subdirectory
@@ -95,3 +96,4 @@ func (ExecRunner) WorkmuxOpen(handle string) error {
 	}
 	return nil
 }
+func (ExecRunner) OpenURL(url string) error { return exec.Command("open", url).Run() }

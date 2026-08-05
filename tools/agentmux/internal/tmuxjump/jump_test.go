@@ -36,6 +36,7 @@ func (f *fakeRunner) WorkmuxOpen(handle string) error {
 	f.opened = true
 	return nil
 }
+func (f *fakeRunner) OpenURL(string) error { return nil }
 
 func Test_Jump(t *testing.T) {
 	t.Run("selects the window whose pane path matches exactly", func(t *testing.T) {

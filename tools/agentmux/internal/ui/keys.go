@@ -17,6 +17,11 @@ type KeyMap struct {
 	Quit    key.Binding
 	NextTab key.Binding
 	PrevTab key.Binding
+	Approve key.Binding
+	Reject  key.Binding
+	Answer  key.Binding
+	Dropin  key.Binding
+	OpenPR  key.Binding
 }
 
 // DefaultKeyMap returns the overview's default key bindings.
@@ -35,5 +40,10 @@ func DefaultKeyMap() KeyMap {
 		Quit:    key.NewBinding(key.WithKeys("q", "esc", "ctrl+c"), key.WithHelp("q", "quit")),
 		NextTab: key.NewBinding(key.WithKeys("]"), key.WithHelp("]", "next tab")),
 		PrevTab: key.NewBinding(key.WithKeys("["), key.WithHelp("[", "prev tab")),
+		Approve: key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "approve")),
+		Reject:  key.NewBinding(key.WithKeys("x"), key.WithHelp("x", "reject")),
+		Answer:  key.NewBinding(key.WithKeys("A"), key.WithHelp("A", "answer")),
+		Dropin:  key.NewBinding(key.WithKeys("i"), key.WithHelp("i", "drop-in")),
+		OpenPR:  key.NewBinding(key.WithKeys("o"), key.WithHelp("o", "open PR")),
 	}
 }

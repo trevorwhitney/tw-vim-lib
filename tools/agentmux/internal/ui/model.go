@@ -17,6 +17,14 @@ import (
 
 const refreshInterval = 1500 * time.Millisecond
 
+type promptK int
+
+const (
+	promptNone promptK = iota
+	promptReject
+	promptAnswer
+)
+
 type refreshMsg struct {
 	nodes     []tree.Node
 	summaries map[string]string
@@ -84,6 +92,11 @@ type Model struct {
 	inboxCur   int
 	fleetCur   int
 	historyCur int
+
+	prompting   bool
+	promptKind  promptK
+	promptValue string
+	promptEsc   int64 // escalation id the prompt resolves
 }
 
 // New builds the model for the given deps.
@@ -222,6 +235,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = msg.status
 			m.clampCursors()
 		}
+	case mutationDoneMsg:
+		if msg.err != nil {
+			m.footer = msg.label + ": " + msg.err.Error()
+			return m, nil
+		}
+		m.footer = msg.label + " ✓"
+		return m, m.loadData() // re-query immediately on ACK
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 	}
@@ -233,6 +253,10 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.activeTab == TabInteractive {
 		return m.handleInteractiveKey(msg)
 	}
+	// A prompt is modal: it captures every key until enter/esc.
+	if m.prompting {
+		return m.handlePrompt(msg)
+	}
 	switch {
 	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
@@ -243,9 +267,19 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.activeTab = m.activeTab.prev()
 		return m, nil
 	}
-	// The Inbox, Fleet, and History tabs have no key bindings yet.
+	switch m.activeTab {
+	case TabInbox:
+		return m.handleInboxKey(msg)
+	case TabFleet:
+		return m.handleFleetKey(msg)
+	case TabHistory:
+		return m.handleHistoryKey(msg)
+	}
 	return m, nil
 }
+
+func (m Model) handleFleetKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd)   { return m, nil }
+func (m Model) handleHistoryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) { return m, nil }
 
 func (m Model) handleInteractiveKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// Filter input mode captures typing until Enter (apply) or Esc (cancel).
@@ -309,6 +343,103 @@ func (m Model) handleInteractiveKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.activeTab = m.activeTab.next()
 	case key.Matches(msg, m.keys.PrevTab):
 		m.activeTab = m.activeTab.prev()
+	}
+	return m, nil
+}
+
+func (m *Model) currentInbox() (apitypes.InboxItem, bool) {
+	if m.inboxCur < 0 || m.inboxCur >= len(m.inbox) {
+		return apitypes.InboxItem{}, false
+	}
+	return m.inbox[m.inboxCur], true
+}
+
+func (m Model) handleInboxKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Quit):
+		return m, tea.Quit
+	case key.Matches(msg, m.keys.Down):
+		if m.inboxCur < len(m.inbox)-1 {
+			m.inboxCur++
+		}
+	case key.Matches(msg, m.keys.Up):
+		if m.inboxCur > 0 {
+			m.inboxCur--
+		}
+	case key.Matches(msg, m.keys.Top):
+		m.inboxCur = 0
+	case key.Matches(msg, m.keys.Bottom):
+		m.inboxCur = len(m.inbox) - 1
+	case key.Matches(msg, m.keys.Approve):
+		if it, ok := m.currentInbox(); ok && m.client != nil {
+			esc := it.Escalation.ID
+			return m, mutate("approve", func() error { return m.client.Resolve(esc, "approve", "", "") })
+		}
+	case key.Matches(msg, m.keys.Reject):
+		if it, ok := m.currentInbox(); ok {
+			m.prompting, m.promptKind, m.promptValue, m.promptEsc = true, promptReject, "", it.Escalation.ID
+		}
+	case key.Matches(msg, m.keys.Answer):
+		if it, ok := m.currentInbox(); ok {
+			m.prompting, m.promptKind, m.promptValue, m.promptEsc = true, promptAnswer, "", it.Escalation.ID
+		}
+	case key.Matches(msg, m.keys.Dropin):
+		if it, ok := m.currentInbox(); ok && m.client != nil {
+			id := it.Job.ID
+			return m, mutate("drop-in", func() error { return m.client.DropIn(id) })
+		}
+	case key.Matches(msg, m.keys.OpenPR):
+		if it, ok := m.currentInbox(); ok {
+			if it.Job.PRNumber == 0 || it.Job.Repo == "" {
+				m.footer = "no PR for this item"
+				return m, nil
+			}
+			if err := m.runner.OpenURL(prURL(it.Job.Repo, it.Job.PRNumber)); err != nil {
+				m.footer = "open PR: " + err.Error()
+			}
+		}
+	case key.Matches(msg, m.keys.Refresh):
+		return m, m.loadData()
+	case key.Matches(msg, m.keys.Help):
+		m.showHelp = true
+	}
+	return m, nil
+}
+
+func (m *Model) clearPrompt() {
+	m.prompting, m.promptKind, m.promptValue, m.promptEsc = false, promptNone, "", 0
+}
+
+func (m Model) handlePrompt(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		esc := m.promptEsc
+		val := m.promptValue
+		kind := m.promptKind
+		m.clearPrompt()
+		if m.client == nil {
+			return m, nil
+		}
+		switch kind {
+		case promptReject:
+			if val == "" {
+				m.footer = "reject needs a reason"
+				return m, nil
+			}
+			return m, mutate("reject", func() error { return m.client.Resolve(esc, "reject", val, "") })
+		case promptAnswer:
+			return m, mutate("answer", func() error { return m.client.Resolve(esc, "answer", "", val) })
+		}
+	case "esc":
+		m.clearPrompt()
+	case "backspace":
+		if len(m.promptValue) > 0 {
+			m.promptValue = m.promptValue[:len(m.promptValue)-1]
+		}
+	default:
+		if s := msg.String(); len(s) == 1 {
+			m.promptValue += s
+		}
 	}
 	return m, nil
 }
@@ -494,6 +625,13 @@ func (m Model) inboxView() string {
 			row = lipgloss.NewStyle().Reverse(true).Render(row)
 		}
 		b = append(b, row)
+	}
+	if m.prompting {
+		label := "reason> "
+		if m.promptKind == promptAnswer {
+			label = "answer> "
+		}
+		b = append(b, styleFilter.Render(label+m.promptValue))
 	}
 	if m.footer != "" {
 		b = append(b, styleStatus.Render(m.footer))
