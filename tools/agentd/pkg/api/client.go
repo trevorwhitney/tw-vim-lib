@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/store"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/apitypes"
 )
 
 type Client struct {
@@ -62,24 +62,24 @@ func (c *Client) do(method, path string, body, out any) error {
 	return nil
 }
 
-func (c *Client) Status() (StatusResponse, error) {
-	var out StatusResponse
-	return out, c.do(http.MethodGet, "/status", nil, &out)
+func (c *Client) Status() (apitypes.Status, error) {
+	var out apitypes.Status
+	return out, c.do(http.MethodGet, apitypes.PathStatus, nil, &out)
 }
 
-func (c *Client) Enqueue(repo string, prNumber int) (store.Job, error) {
-	var out store.Job
+func (c *Client) Enqueue(repo string, prNumber int) (apitypes.Job, error) {
+	var out apitypes.Job
 	return out, c.do(http.MethodPost, "/jobs",
 		map[string]any{"repo": repo, "pr_number": prNumber}, &out)
 }
 
-func (c *Client) Job(id int64) (JobResponse, error) {
-	var out JobResponse
+func (c *Client) Job(id int64) (apitypes.JobResponse, error) {
+	var out apitypes.JobResponse
 	return out, c.do(http.MethodGet, fmt.Sprintf("/jobs/%d", id), nil, &out)
 }
 
-func (c *Client) Retry(id int64) (store.Job, error) {
-	var out store.Job
+func (c *Client) Retry(id int64) (apitypes.Job, error) {
+	var out apitypes.Job
 	return out, c.do(http.MethodPost, fmt.Sprintf("/jobs/%d/retry", id), nil, &out)
 }
 

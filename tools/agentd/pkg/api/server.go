@@ -13,6 +13,7 @@ import (
 	"strconv"
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/actor"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/apitypes"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/consult"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/engine"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/escalate"
@@ -27,16 +28,10 @@ type Server struct {
 	Consult *consult.Runner
 }
 
-type StatusResponse struct {
-	Paused          bool                `json:"paused"`
-	OpenEscalations int                 `json:"open_escalations"`
-	Repos           []engine.RepoStatus `json:"repos"`
-}
-
-type JobResponse struct {
-	Job        store.Job         `json:"job"`
-	Escalation *store.Escalation `json:"escalation,omitempty"`
-}
+// Aliases keep existing api.StatusResponse/api.JobResponse references working
+// while apitypes owns the canonical wire definitions.
+type StatusResponse = apitypes.Status
+type JobResponse = apitypes.JobResponse
 
 // Listen binds the unix socket at path with 0600 permissions, replacing any
 // stale socket file.
@@ -80,10 +75,10 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, StatusResponse{
+	writeJSON(w, http.StatusOK, apitypes.Status{
 		Paused:          s.Engine.Paused(),
 		OpenEscalations: n,
-		Repos:           s.Engine.Statuses(),
+		Repos:           repoStatusDTOs(s.Engine.Statuses()),
 	})
 }
 
@@ -101,7 +96,7 @@ func (s *Server) enqueue(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusUnprocessableEntity, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, job)
+	writeJSON(w, http.StatusOK, jobDTO(job))
 }
 
 func (s *Server) getJob(w http.ResponseWriter, r *http.Request) {
@@ -119,9 +114,10 @@ func (s *Server) getJob(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
-	resp := JobResponse{Job: job}
+	resp := JobResponse{Job: jobDTO(job)}
 	if esc, ok, err := s.Store.OpenEscalationForJob(id); err == nil && ok {
-		resp.Escalation = &esc
+		e := escalationDTO(esc)
+		resp.Escalation = &e
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -137,7 +133,7 @@ func (s *Server) retry(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusConflict, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, job)
+	writeJSON(w, http.StatusOK, jobDTO(job))
 }
 
 func (s *Server) resolve(w http.ResponseWriter, r *http.Request) {
