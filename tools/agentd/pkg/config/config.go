@@ -79,6 +79,7 @@ type Config struct {
 	Socket           string       `yaml:"socket"`
 	Rules            string       `yaml:"rules"`
 	TmuxSession      string       `yaml:"tmux_session"`
+	TmuxSocketName   string       `yaml:"tmux_socket_name"`
 	OnRestart        string       `yaml:"on_restart"`
 	OpencodeBin      string       `yaml:"opencode_bin"`
 	DropinCommand    string       `yaml:"dropin_command"`

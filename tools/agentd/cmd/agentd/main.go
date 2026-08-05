@@ -109,7 +109,7 @@ func buildStack(ctx context.Context, cmd *cobra.Command, dryRun bool) (*stack, e
 		GH:            gh,
 		Esc:           esc,
 		WS:            ws,
-		Tmux:          &tmuxctl.Client{Exec: execx.Run},
+		Tmux:          &tmuxctl.Client{Exec: execx.Run, SocketName: cfg.TmuxSocketName},
 		OC:            oc,
 		Log:           slog.Default(),
 		Socket:        cfg.Socket,

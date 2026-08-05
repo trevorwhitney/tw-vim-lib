@@ -1,4 +1,4 @@
-.PHONY: help lint lint-lua lint-nix format format-lua format-nix test test-lua test-plenary test-go test-agentd test-agentd-integration install-agentd
+.PHONY: help lint lint-lua lint-nix format format-lua format-nix test test-lua test-plenary test-go test-agentd test-agentd-acceptance test-agentd-integration install-agentd
 
 help:
 	@echo "Available targets:"
@@ -13,6 +13,7 @@ help:
 	@echo "  test-plenary  - Run PlenaryBustedDirectory tests"
 	@echo "  test-go       - Run Go integration tests (from test/)"
 	@echo "  test-agentd   - Run agentd unit tests"
+	@echo "  test-agentd-acceptance - Run agentd acceptance suite (requires gh + git + tmux + curl)"
 	@echo "  test-agentd-integration - Run agentd integration tests (requires gh + network)"
 	@echo "  install-agentd - Install agentd to ~/.local/bin"
 
@@ -86,6 +87,10 @@ test-go:
 test-agentd:
 	@echo "Running agentd tests..."
 	@cd tools/agentd && go test ./...
+
+test-agentd-acceptance:
+	@echo "Running agentd acceptance suite (requires gh auth, git, tmux, curl)..."
+	@cd tools/agentd && go test -tags acceptance ./acceptance/ -v -timeout 15m
 
 test-agentd-integration:
 	@echo "Running agentd integration tests (requires authenticated gh + network)..."

@@ -107,4 +107,5 @@ repositories:
 	require.Equal(t, "opencode", cfg.OpencodeBin)
 	require.Equal(t, `nvim "+AgentFullscreen opencode"`, cfg.DropinCommand)
 	require.False(t, cfg.AllowOperatorPRs)
+	require.Equal(t, "", cfg.TmuxSocketName)
 }
