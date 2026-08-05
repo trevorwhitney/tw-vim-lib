@@ -54,6 +54,9 @@ func Listen(path string) (net.Listener, error) {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /status", s.status)
+	mux.HandleFunc("GET /inbox", s.inbox)
+	mux.HandleFunc("GET /fleet", s.fleet)
+	mux.HandleFunc("GET /history", s.history)
 	mux.HandleFunc("POST /jobs", s.enqueue)
 	mux.HandleFunc("GET /jobs/{id}", s.getJob)
 	mux.HandleFunc("POST /jobs/{id}/retry", s.retry)

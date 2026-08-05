@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/apitypes"
@@ -124,4 +125,32 @@ func (c *Client) GC(jobID int64, force bool) error {
 func (c *Client) SetShadow(repo, policy string, enabled bool) error {
 	return c.do(http.MethodPost, fmt.Sprintf("/policies/%s/%s/shadow", repo, policy),
 		map[string]bool{"enabled": enabled}, nil)
+}
+
+func (c *Client) Inbox() ([]apitypes.InboxItem, error) {
+	var out apitypes.InboxResponse
+	if err := c.do(http.MethodGet, apitypes.PathInbox, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Items, nil
+}
+
+func (c *Client) Fleet() ([]apitypes.Job, error) {
+	var out apitypes.JobsResponse
+	if err := c.do(http.MethodGet, apitypes.PathFleet, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Jobs, nil
+}
+
+func (c *Client) History(limit int) ([]apitypes.Job, error) {
+	var out apitypes.JobsResponse
+	path := apitypes.PathHistory
+	if limit > 0 {
+		path += "?limit=" + strconv.Itoa(limit)
+	}
+	if err := c.do(http.MethodGet, path, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Jobs, nil
 }
