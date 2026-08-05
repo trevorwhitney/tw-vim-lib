@@ -54,3 +54,44 @@ func Test_InboxItems(t *testing.T) {
 	assert.Equal(t, "merge_pr", items[0].Escalation.ActionKind)
 	assert.Equal(t, "open", items[0].Escalation.State)
 }
+
+func Test_DetailReaders(t *testing.T) {
+	s := seedReads(t)
+	_, err := s.db.Exec(`INSERT INTO decisions (id, job_id, ts, policy, verdict, rationale)
+		VALUES (1, 3, 210, 'merge-dependency-updates', 'act', 'ok')`)
+	require.NoError(t, err)
+	_, err = s.db.Exec(`INSERT INTO actions (id, job_id, ts, kind, params_json, params_hash, simulated, executed_ts, result)
+		VALUES (1, 3, 220, 'merge_pr', '{}', 'h', 0, 230, 'merged')`)
+	require.NoError(t, err)
+	// an unexecuted action: executed_ts is NULL -> must read back as 0
+	_, err = s.db.Exec(`INSERT INTO actions (id, job_id, ts, kind, params_json, params_hash, simulated)
+		VALUES (2, 3, 240, 'comment_pr', '{}', 'h2', 0)`)
+	require.NoError(t, err)
+	_, err = s.db.Exec(`INSERT INTO events (id, job_id, ts, type, payload_json)
+		VALUES (1, 3, 205, 'preparing', '')`)
+	require.NoError(t, err)
+
+	t.Run("DecisionsForJob", func(t *testing.T) {
+		ds, err := s.DecisionsForJob(3)
+		require.NoError(t, err)
+		require.Len(t, ds, 1)
+		assert.Equal(t, "act", ds[0].Verdict)
+	})
+	t.Run("ActionsForJob includes ts and executed_ts", func(t *testing.T) {
+		as, err := s.ActionsForJob(3)
+		require.NoError(t, err)
+		require.Len(t, as, 2)
+		assert.Equal(t, "merge_pr", as[0].Kind)
+		assert.Equal(t, int64(220), as[0].TS)
+		assert.Equal(t, int64(230), as[0].ExecutedTS)
+		assert.Equal(t, "merged", as[0].Result)
+		assert.Equal(t, "comment_pr", as[1].Kind)
+		assert.Equal(t, int64(0), as[1].ExecutedTS) // NULL coalesced to 0
+	})
+	t.Run("EventsForJob", func(t *testing.T) {
+		es, err := s.EventsForJob(3)
+		require.NoError(t, err)
+		require.Len(t, es, 1)
+		assert.Equal(t, "preparing", es[0].Type)
+	})
+}

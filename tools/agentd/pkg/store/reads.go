@@ -65,3 +65,94 @@ func (s *Store) InboxItems() ([]InboxItem, error) {
 	}
 	return out, rows.Err()
 }
+
+// Decision is a read view of one policy-chain decision.
+type Decision struct {
+	ID               int64
+	JobID            int64
+	TS               int64
+	Policy           string
+	Classifier       string
+	ClassifierResult string
+	Verdict          string
+	Rationale        string
+}
+
+func (s *Store) DecisionsForJob(jobID int64) ([]Decision, error) {
+	rows, err := s.db.Query(`SELECT id, job_id, ts, policy, classifier,
+		classifier_result, verdict, rationale FROM decisions WHERE job_id=? ORDER BY id`, jobID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Decision
+	for rows.Next() {
+		var d Decision
+		if err := rows.Scan(&d.ID, &d.JobID, &d.TS, &d.Policy, &d.Classifier,
+			&d.ClassifierResult, &d.Verdict, &d.Rationale); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
+// ActionRead is a read view of one action, including ts and executed_ts which
+// the writer-side Action struct omits.
+type ActionRead struct {
+	ID         int64
+	JobID      int64
+	TS         int64
+	Kind       string
+	ParamsJSON string
+	Simulated  bool
+	ExecutedTS int64
+	Result     string
+	Error      string
+}
+
+func (s *Store) ActionsForJob(jobID int64) ([]ActionRead, error) {
+	rows, err := s.db.Query(`SELECT id, job_id, ts, kind, params_json, simulated,
+		COALESCE(executed_ts, 0), result, error FROM actions WHERE job_id=? ORDER BY id`, jobID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []ActionRead
+	for rows.Next() {
+		var a ActionRead
+		if err := rows.Scan(&a.ID, &a.JobID, &a.TS, &a.Kind, &a.ParamsJSON,
+			&a.Simulated, &a.ExecutedTS, &a.Result, &a.Error); err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// Event is a read view of one lifecycle event.
+type Event struct {
+	ID          int64
+	JobID       int64
+	TS          int64
+	Type        string
+	PayloadJSON string
+}
+
+func (s *Store) EventsForJob(jobID int64) ([]Event, error) {
+	rows, err := s.db.Query(`SELECT id, job_id, ts, type, payload_json
+		FROM events WHERE job_id=? ORDER BY id`, jobID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Event
+	for rows.Next() {
+		var e Event
+		if err := rows.Scan(&e.ID, &e.JobID, &e.TS, &e.Type, &e.PayloadJSON); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
