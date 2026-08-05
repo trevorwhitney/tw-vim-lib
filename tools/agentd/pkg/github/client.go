@@ -160,7 +160,10 @@ func (c *Client) Facts(repo string, number int) (Facts, error) {
 	}
 
 	requiredCI, ok, err := c.requiredCI(repo, number)
-	if err != nil && !strings.Contains(err.Error(), "no required checks") {
+	// Ignore errors about no required or no checks - fall back to all checks
+	ignoreErr := err != nil && (strings.Contains(err.Error(), "no required checks") ||
+		strings.Contains(err.Error(), "no checks reported"))
+	if err != nil && !ignoreErr {
 		return Facts{}, err
 	}
 	if ok {
