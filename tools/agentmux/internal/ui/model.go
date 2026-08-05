@@ -24,6 +24,14 @@ type refreshMsg struct {
 }
 type tickMsg struct{}
 
+type dataMsg struct {
+	inbox   []apitypes.InboxItem
+	fleet   []apitypes.Job
+	history []apitypes.Job
+	status  apitypes.Status
+	err     error
+}
+
 // Deps are the model's external collaborators. Client can be nil in tests that
 // only exercise the Interactive tab.
 type Deps struct {
@@ -95,7 +103,7 @@ func New(d Deps) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.load(), tick())
+	return tea.Batch(m.load(), m.loadData(), tick())
 }
 
 func tick() tea.Cmd {
@@ -135,6 +143,31 @@ func (m Model) load() tea.Cmd {
 	}
 }
 
+const historyLimit = 200
+
+// loadData reads inbox/fleet/history and daemon status off the event loop. A
+// nil client yields an empty dataMsg so the Interactive-only mode still ticks.
+func (m Model) loadData() tea.Cmd {
+	cl := m.client
+	return func() tea.Msg {
+		if cl == nil {
+			return dataMsg{}
+		}
+		var d dataMsg
+		if d.inbox, d.err = cl.Inbox(); d.err != nil {
+			return d
+		}
+		if d.fleet, d.err = cl.Fleet(); d.err != nil {
+			return d
+		}
+		if d.history, d.err = cl.History(historyLimit); d.err != nil {
+			return d
+		}
+		d.status, _ = cl.Status() // status is best-effort; daemon may be down
+		return d
+	}
+}
+
 func (m *Model) rebuildVisible() {
 	nodes := m.nodes
 	if m.filter != "" {
@@ -149,12 +182,27 @@ func (m *Model) rebuildVisible() {
 	}
 }
 
+func (m *Model) clampCursors() {
+	clamp := func(cur, n int) int {
+		if cur >= n {
+			cur = n - 1
+		}
+		if cur < 0 {
+			cur = 0
+		}
+		return cur
+	}
+	m.inboxCur = clamp(m.inboxCur, len(m.inbox))
+	m.fleetCur = clamp(m.fleetCur, len(m.fleet))
+	m.historyCur = clamp(m.historyCur, len(m.history))
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 	case tickMsg:
-		return m, tea.Batch(m.load(), tick())
+		return m, tea.Batch(m.load(), m.loadData(), tick())
 	case refreshMsg:
 		if msg.err != nil {
 			m.footer = "load error: " + msg.err.Error()
@@ -163,6 +211,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.summaries = msg.summaries
 			m.footer = ""
 			m.rebuildVisible()
+		}
+	case dataMsg:
+		if msg.err != nil {
+			m.footer = "load error: " + msg.err.Error()
+		} else {
+			m.inbox = msg.inbox
+			m.fleet = msg.fleet
+			m.history = msg.history
+			m.status = msg.status
+			m.clampCursors()
 		}
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
@@ -424,7 +482,26 @@ func (m Model) interactiveView() string {
 	return lipgloss.JoinVertical(lipgloss.Left, b...)
 }
 
-func (m Model) inboxView() string   { return styleFooter.Render("(inbox — not yet available)") }
+func (m Model) inboxView() string {
+	if len(m.inbox) == 0 {
+		return styleFooter.Render("inbox empty — nothing waiting")
+	}
+	now := time.Now().Unix()
+	var b []string
+	for i, it := range m.inbox {
+		row := styleSegments(renderInboxRow(it, now))
+		if i == m.inboxCur {
+			row = lipgloss.NewStyle().Reverse(true).Render(row)
+		}
+		b = append(b, row)
+	}
+	if m.footer != "" {
+		b = append(b, styleStatus.Render(m.footer))
+	}
+	b = append(b, styleFooter.Render("a approve · x reject · A answer · i drop-in · o open PR · ↑↓ move · [ ] tabs · ⌃P palette · q quit"))
+	return lipgloss.JoinVertical(lipgloss.Left, b...)
+}
+
 func (m Model) fleetView() string   { return styleFooter.Render("(fleet — not yet available)") }
 func (m Model) historyView() string { return styleFooter.Render("(history — not yet available)") }
 
