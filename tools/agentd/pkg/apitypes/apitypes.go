@@ -62,3 +62,79 @@ type JobResponse struct {
 	Job        Job         `json:"job"`
 	Escalation *Escalation `json:"escalation,omitempty"`
 }
+
+// Decision is one policy-chain decision on the wire.
+type Decision struct {
+	ID               int64  `json:"id"`
+	JobID            int64  `json:"job_id"`
+	TS               int64  `json:"ts"`
+	Policy           string `json:"policy"`
+	Classifier       string `json:"classifier"`
+	ClassifierResult string `json:"classifier_result"`
+	Verdict          string `json:"verdict"`
+	Rationale        string `json:"rationale"`
+}
+
+// Action is one executed-or-simulated write action on the wire.
+type Action struct {
+	ID         int64  `json:"id"`
+	JobID      int64  `json:"job_id"`
+	TS         int64  `json:"ts"`
+	Kind       string `json:"kind"`
+	ParamsJSON string `json:"params_json"`
+	Simulated  bool   `json:"simulated"`
+	ExecutedTS int64  `json:"executed_ts"`
+	Result     string `json:"result"`
+	Error      string `json:"error"`
+}
+
+// Event is one lifecycle event on the wire.
+type Event struct {
+	ID          int64  `json:"id"`
+	JobID       int64  `json:"job_id"`
+	TS          int64  `json:"ts"`
+	Type        string `json:"type"`
+	PayloadJSON string `json:"payload_json"`
+}
+
+// Artifact is one on-disk artifact index entry on the wire.
+type Artifact struct {
+	ID    int64  `json:"id"`
+	JobID int64  `json:"job_id"`
+	Name  string `json:"name"`
+	Path  string `json:"path"`
+}
+
+// JobDetail is the full decision chain for one job (GET /jobs/{id}?detail=1).
+type JobDetail struct {
+	Job        Job         `json:"job"`
+	Escalation *Escalation `json:"escalation,omitempty"`
+	Decisions  []Decision  `json:"decisions"`
+	Actions    []Action    `json:"actions"`
+	Events     []Event     `json:"events"`
+	Artifacts  []Artifact  `json:"artifacts"`
+}
+
+// InboxItem is an open escalation joined to its job.
+type InboxItem struct {
+	Escalation Escalation `json:"escalation"`
+	Job        Job        `json:"job"`
+}
+
+// InboxResponse is the GET /inbox response.
+type InboxResponse struct {
+	Items []InboxItem `json:"items"`
+}
+
+// JobsResponse is the GET /fleet and GET /history response.
+type JobsResponse struct {
+	Jobs []Job `json:"jobs"`
+}
+
+// Route paths shared by server and clients.
+const (
+	PathStatus  = "/status"
+	PathInbox   = "/inbox"
+	PathFleet   = "/fleet"
+	PathHistory = "/history"
+)

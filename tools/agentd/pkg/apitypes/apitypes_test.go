@@ -75,3 +75,43 @@ func Test_JobResponseJSON(t *testing.T) {
 		assert.True(t, hasEsc, "escalation must be present when non-nil")
 	})
 }
+
+func Test_DetailAndListDTOs(t *testing.T) {
+	d := JobDetail{
+		Job:       Job{ID: 3},
+		Decisions: []Decision{{Policy: "p", Verdict: "act"}},
+		Actions:   []Action{{Kind: "merge_pr", Simulated: true}},
+		Events:    []Event{{Type: "preparing"}},
+		Artifacts: []Artifact{{Name: "diff.patch", Path: "/x"}},
+	}
+	b, err := json.Marshal(d)
+	require.NoError(t, err)
+	var m map[string]any
+	require.NoError(t, json.Unmarshal(b, &m))
+	for _, k := range []string{"job", "decisions", "actions", "events", "artifacts"} {
+		_, ok := m[k]
+		assert.True(t, ok, "JobDetail must carry %q", k)
+	}
+	// escalation is a *Escalation with omitempty: absent when nil.
+	_, hasEsc := m["escalation"]
+	assert.False(t, hasEsc, "JobDetail.escalation must be omitted when nil")
+}
+
+func Test_InboxItemDTO(t *testing.T) {
+	it := InboxItem{Escalation: Escalation{ID: 10}, Job: Job{ID: 2}}
+	b, err := json.Marshal(it)
+	require.NoError(t, err)
+	var m map[string]any
+	require.NoError(t, json.Unmarshal(b, &m))
+	_, hasEsc := m["escalation"]
+	_, hasJob := m["job"]
+	assert.True(t, hasEsc)
+	assert.True(t, hasJob)
+}
+
+func Test_RouteConstants(t *testing.T) {
+	assert.Equal(t, "/inbox", PathInbox)
+	assert.Equal(t, "/fleet", PathFleet)
+	assert.Equal(t, "/history", PathHistory)
+	assert.Equal(t, "/status", PathStatus)
+}
