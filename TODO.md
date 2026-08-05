@@ -28,11 +28,13 @@ reviewed (spec + quality per batch), and committed across four repos.
       Real session ids self-registered over the socket; real verdicts with
       analysis; `resolve --approve` posted the mapped comment_pr on PRs
       47/49/50; transcript.json is a real `opencode export`; scratch cleaned.
-- [x] Drop-in: window materialized in `agents` session (agentd-2, job cwd);
-      session-resume chain proven via an rtp-test window running this
-      branch's lua (resumed the live consult session).
-- [ ] Drop-in close → implicit hand-back (waiting on operator to close @84)
-- [ ] Sandbox teardown clean (PRs closed, no agentd-accept server, gc clean)
+- [x] Drop-in spot check (operator-verified): window resumed the consult
+      session, sidebar showed the agent under the `agentd` project, closing
+      the window handed back within one poll (done/handled).
+- [x] `oc --session <id>` resumed the correct session when run from the
+      job's workspace (with the rtp override until the flake bump).
+- [x] Sandbox teardown clean: no open PRs, `agentd gc` clean, no
+      agentd-accept tmux server, demo daemons killed.
 
 ## Deviations discovered in live smoke (fixed + committed)
 - `opencode run` binds its project via `--dir`, not process cwd; the runner
@@ -48,12 +50,17 @@ reviewed (spec + quality per batch), and committed across four repos.
   IN_PROGRESS for minutes; the harness waits for check settlement and
   replaces wedged PRs.
 
-## Remaining operator steps (sandbox blocks these)
-- [ ] `make install-agentd` (writes ~/.local/bin) — run from repo root
-- [ ] dotfiles `home-manager switch` to activate the `oc --session` function,
-      then `zsh -ic 'type oc'` and optionally `oc --session <id>`
+## Remaining operator steps
+- [x] `make install-agentd` — installed to ~/.local/bin
+- [x] dotfiles `home-manager switch` — `oc` is a shell function
 - [ ] nvim flake input `github:trevorwhitney/tw-vim-lib` must be bumped after
-      this branch merges for the drop-in resume to work in daily nvim
+      this branch merges for drop-in/oc resume to work without the rtp
+      override in daily nvim
+
+## Usage notes
+- `oc --session <id>` must run from the session's workspace (opencode
+  sessions are project-scoped); a finalized job's scratch is already
+  removed, so resume applies to live jobs (or export the transcript).
 
 ## Follow-ups (review findings accepted at prototype scope)
 - [ ] consult: add SetJobStateIf (CAS) — afterExit vs late Report, Handback vs
