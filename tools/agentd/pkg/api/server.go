@@ -108,6 +108,10 @@ func (s *Server) getJob(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
+	if r.URL.Query().Get("detail") == "1" {
+		s.jobDetail(id, w)
+		return
+	}
 	job, err := s.Store.GetJob(id)
 	if errors.Is(err, sql.ErrNoRows) {
 		writeErr(w, http.StatusNotFound, err)

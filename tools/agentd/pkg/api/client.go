@@ -143,6 +143,11 @@ func (c *Client) Fleet() ([]apitypes.Job, error) {
 	return out.Jobs, nil
 }
 
+func (c *Client) JobDetail(id int64) (apitypes.JobDetail, error) {
+	var out apitypes.JobDetail
+	return out, c.do(http.MethodGet, fmt.Sprintf("/jobs/%d?detail=1", id), nil, &out)
+}
+
 func (c *Client) History(limit int) ([]apitypes.Job, error) {
 	var out apitypes.JobsResponse
 	path := apitypes.PathHistory

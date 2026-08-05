@@ -90,3 +90,31 @@ func Test_ReadEndpoints(t *testing.T) {
 		assert.Equal(t, "done", jobs[0].State)
 	})
 }
+
+func Test_JobDetail(t *testing.T) {
+	s := seedServer(t)
+	require.NoError(t, s.st.AddDecision(s.terminalID, "merge-dependency-updates", "act", "ok"))
+	_, executed, err := s.st.UpsertAction(s.terminalID, "merge_pr", "{}")
+	require.NoError(t, err)
+	require.False(t, executed)
+	acts, err := s.st.ActionsForJob(s.terminalID)
+	require.NoError(t, err)
+	require.Len(t, acts, 1)
+	require.NoError(t, s.st.MarkActionExecuted(acts[0].ID, "merged", false))
+	require.NoError(t, s.st.AddArtifact(s.terminalID, "diff.patch", "/x"))
+	require.NoError(t, s.st.AddEvent(s.terminalID, "preparing", ""))
+
+	c := serveClient(t, s.srv)
+	d, err := c.JobDetail(s.terminalID)
+	require.NoError(t, err)
+	assert.Equal(t, s.terminalID, d.Job.ID)
+	require.Len(t, d.Decisions, 1)
+	assert.Equal(t, "act", d.Decisions[0].Verdict)
+	require.Len(t, d.Actions, 1)
+	assert.Equal(t, "merge_pr", d.Actions[0].Kind)
+	assert.Equal(t, "merged", d.Actions[0].Result)
+	require.Len(t, d.Artifacts, 1)
+	assert.Equal(t, "diff.patch", d.Artifacts[0].Name)
+	require.Len(t, d.Events, 1)
+	assert.Equal(t, "preparing", d.Events[0].Type)
+}
