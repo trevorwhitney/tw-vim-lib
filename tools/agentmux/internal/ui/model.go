@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/apitypes"
 	"github.com/trevorwhitney/tw-vim-lib/agentmux/internal/store"
 	"github.com/trevorwhitney/tw-vim-lib/agentmux/internal/tmuxjump"
 	"github.com/trevorwhitney/tw-vim-lib/agentmux/internal/tree"
@@ -23,6 +24,31 @@ type refreshMsg struct {
 }
 type tickMsg struct{}
 
+// Deps are the model's external collaborators. Client can be nil in tests that
+// only exercise the Interactive tab.
+type Deps struct {
+	MirrorDir string
+	Client    Client
+	Runner    tmuxjump.Runner
+}
+
+// Client reads from and mutates agentd over the socket with apitypes DTOs.
+// *socket.Client satisfies it.
+type Client interface {
+	Inbox() ([]apitypes.InboxItem, error)
+	Fleet() ([]apitypes.Job, error)
+	History(limit int) ([]apitypes.Job, error)
+	JobDetail(id int64) (apitypes.JobDetail, error)
+	Status() (apitypes.Status, error)
+	Resolve(escalationID int64, resolution, reason, answer string) error
+	DropIn(jobID int64) error
+	Handback(jobID int64) error
+	Retry(jobID int64) error
+	SetPolling(paused bool) error
+	GC(jobID int64, force bool) error
+	SetShadow(repo, policy string, enabled bool) error
+}
+
 // Model is the overview's Bubble Tea model.
 type Model struct {
 	dir       string
@@ -33,21 +59,38 @@ type Model struct {
 	cursor    int
 	width     int
 	height    int
-	status    string // footer error/info
+	footer    string // footer error/info
 	runner    tmuxjump.Runner
 	filtering bool   // true while the / filter input is active
 	filter    string // current filter query
 	showHelp  bool   // true while ? full-help is shown
 	summaries map[string]string
+
+	activeTab Tab
+	client    Client
+	// Per-tab state for the Inbox, Fleet, and History tabs.
+	inbox      []apitypes.InboxItem
+	fleet      []apitypes.Job
+	history    []apitypes.Job
+	status     apitypes.Status // daemon status for Fleet header
+	inboxCur   int
+	fleetCur   int
+	historyCur int
 }
 
-// New builds the model for the given mirror directory.
-func New(dir string) Model {
+// New builds the model for the given deps.
+func New(d Deps) Model {
+	runner := d.Runner
+	if runner == nil {
+		runner = tmuxjump.ExecRunner{}
+	}
 	return Model{
-		dir:       dir,
+		dir:       d.MirrorDir,
 		keys:      DefaultKeyMap(),
 		collapsed: map[string]bool{},
-		runner:    tmuxjump.ExecRunner{},
+		runner:    runner,
+		client:    d.Client,
+		activeTab: TabInbox,
 	}
 }
 
@@ -114,11 +157,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(m.load(), tick())
 	case refreshMsg:
 		if msg.err != nil {
-			m.status = "load error: " + msg.err.Error()
+			m.footer = "load error: " + msg.err.Error()
 		} else {
 			m.nodes = msg.nodes
 			m.summaries = msg.summaries
-			m.status = ""
+			m.footer = ""
 			m.rebuildVisible()
 		}
 	case tea.KeyPressMsg:
@@ -128,6 +171,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	// Interactive tab keeps its own modal filter/help handling.
+	if m.activeTab == TabInteractive {
+		return m.handleInteractiveKey(msg)
+	}
+	switch {
+	case key.Matches(msg, m.keys.Quit):
+		return m, tea.Quit
+	case key.Matches(msg, m.keys.NextTab):
+		m.activeTab = m.activeTab.next()
+		return m, nil
+	case key.Matches(msg, m.keys.PrevTab):
+		m.activeTab = m.activeTab.prev()
+		return m, nil
+	}
+	// The Inbox, Fleet, and History tabs have no key bindings yet.
+	return m, nil
+}
+
+func (m Model) handleInteractiveKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// Filter input mode captures typing until Enter (apply) or Esc (cancel).
 	if m.filtering {
 		switch msg.String() {
@@ -185,6 +247,10 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.filtering = true
 	case key.Matches(msg, m.keys.Help):
 		m.showHelp = true
+	case key.Matches(msg, m.keys.NextTab):
+		m.activeTab = m.activeTab.next()
+	case key.Matches(msg, m.keys.PrevTab):
+		m.activeTab = m.activeTab.prev()
 	}
 	return m, nil
 }
@@ -223,7 +289,7 @@ func (m Model) jump() (tea.Model, tea.Cmd) {
 	var wt *tree.Node
 	switch n.Kind {
 	case tree.KindProject:
-		m.status = "select a worktree or agent to jump"
+		m.footer = "select a worktree or agent to jump"
 		return m, nil
 	case tree.KindWorktree:
 		wt = &n
@@ -237,11 +303,11 @@ func (m Model) jump() (tea.Model, tea.Cmd) {
 		}
 	}
 	if wt == nil || wt.Path == "" {
-		m.status = "no path for selection"
+		m.footer = "no path for selection"
 		return m, nil
 	}
 	if err := tmuxjump.Jump(wt.Path, wt.Handle, m.runner); err != nil {
-		m.status = err.Error()
+		m.footer = err.Error()
 		return m, nil
 	}
 	return m, tea.Quit
@@ -267,11 +333,11 @@ func (m *Model) purge() {
 			return rec.Project == n.Project && rec.Worktree == n.Worktree
 		}
 	default:
-		m.status = "purge: select a removed worktree or a saved agent"
+		m.footer = "purge: select a removed worktree or a saved agent"
 		return
 	}
 	if err := m.removeRecords(match); err != nil {
-		m.status = "purge: " + err.Error()
+		m.footer = "purge: " + err.Error()
 	}
 }
 
@@ -310,37 +376,57 @@ func (m *Model) removeRecords(match func(store.Record) bool) error {
 }
 
 func (m Model) View() tea.View {
-	content := ""
+	var content string
 	if m.showHelp {
 		content = helpView()
 	} else {
-		now := time.Now().Unix()
-		var b []string
-		b = append(b, styleTitle.Render("agentmux — agents across worktrees"))
-		if m.filtering || m.filter != "" {
-			b = append(b, styleFilter.Render("/"+m.filter))
+		bar := styleSegments(tabBar(m.activeTab, len(m.inbox)))
+		var body string
+		switch m.activeTab {
+		case TabInteractive:
+			body = m.interactiveView()
+		case TabInbox:
+			body = m.inboxView()
+		case TabFleet:
+			body = m.fleetView()
+		case TabHistory:
+			body = m.historyView()
 		}
-		for i, n := range m.visible {
-			summary := m.summaries[n.Project+"/"+n.Worktree]
-			if summary == "" {
-				summary = n.Worktree
-			}
-			row := styleSegments(RenderRow(n, summary, now))
-			if i == m.cursor {
-				row = lipgloss.NewStyle().Reverse(true).Render(row)
-			}
-			b = append(b, row)
-		}
-		if m.status != "" {
-			b = append(b, styleStatus.Render(m.status))
-		}
-		b = append(b, styleFooter.Render("⏎ jump · ⇥ collapse · d delete · r refresh · / filter · ? help · q quit"))
-		content = lipgloss.JoinVertical(lipgloss.Left, b...)
+		content = lipgloss.JoinVertical(lipgloss.Left, bar, body)
 	}
 	v := tea.NewView(content)
 	v.AltScreen = true
 	return v
 }
+
+func (m Model) interactiveView() string {
+	now := time.Now().Unix()
+	var b []string
+	b = append(b, styleTitle.Render("agentmux — agents across worktrees"))
+	if m.filtering || m.filter != "" {
+		b = append(b, styleFilter.Render("/"+m.filter))
+	}
+	for i, n := range m.visible {
+		summary := m.summaries[n.Project+"/"+n.Worktree]
+		if summary == "" {
+			summary = n.Worktree
+		}
+		row := styleSegments(RenderRow(n, summary, now))
+		if i == m.cursor {
+			row = lipgloss.NewStyle().Reverse(true).Render(row)
+		}
+		b = append(b, row)
+	}
+	if m.footer != "" {
+		b = append(b, styleStatus.Render(m.footer))
+	}
+	b = append(b, styleFooter.Render("⏎ jump · ⇥ collapse · d delete · r refresh · / filter · ? help · q quit"))
+	return lipgloss.JoinVertical(lipgloss.Left, b...)
+}
+
+func (m Model) inboxView() string   { return styleFooter.Render("(inbox — not yet available)") }
+func (m Model) fleetView() string   { return styleFooter.Render("(fleet — not yet available)") }
+func (m Model) historyView() string { return styleFooter.Render("(history — not yet available)") }
 
 func helpView() string {
 	lines := []string{

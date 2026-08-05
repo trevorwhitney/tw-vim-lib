@@ -27,7 +27,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "agentmux:", err)
 		os.Exit(1)
 	}
-	p := tea.NewProgram(ui.New(dir))
+	p := tea.NewProgram(ui.New(ui.Deps{MirrorDir: dir}))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "agentmux:", err)
 		os.Exit(1)

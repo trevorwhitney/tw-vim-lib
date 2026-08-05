@@ -37,7 +37,7 @@ func Test_purge(t *testing.T) {
 		writeRecord(t, dir, "loki__wt__opencode#1.json", rec("loki", "wt", "opencode", 1))
 		writeRecord(t, dir, "loki__wt__claude#0.json", rec("loki", "wt", "claude", 0))
 
-		m := New(dir)
+		m := New(Deps{MirrorDir: dir})
 		m.visible = []tree.Node{
 			{Kind: tree.KindAgent, Project: "loki", Worktree: "wt", Record: rec("loki", "wt", "opencode", 1)},
 		}
@@ -55,7 +55,7 @@ func Test_purge(t *testing.T) {
 		writeRecord(t, dir, "loki__wt__opencode#1.json", rec("loki", "wt", "opencode", 1))
 		writeRecord(t, dir, "loki__other__opencode#0.json", rec("loki", "other", "opencode", 0))
 
-		m := New(dir)
+		m := New(Deps{MirrorDir: dir})
 		m.visible = []tree.Node{
 			{Kind: tree.KindWorktree, Project: "loki", Worktree: "wt", Validity: "gone"},
 		}
@@ -71,7 +71,7 @@ func Test_purge(t *testing.T) {
 		dir := t.TempDir()
 		writeRecord(t, dir, "loki__wt__opencode#0.json", rec("loki", "wt", "opencode", 0))
 
-		m := New(dir)
+		m := New(Deps{MirrorDir: dir})
 		m.visible = []tree.Node{
 			{Kind: tree.KindWorktree, Project: "loki", Worktree: "wt", Validity: "valid"},
 		}
@@ -79,14 +79,14 @@ func Test_purge(t *testing.T) {
 		m.purge()
 
 		assert.FileExists(t, filepath.Join(dir, "loki__wt__opencode#0.json"))
-		assert.Contains(t, m.status, "purge")
+		assert.Contains(t, m.footer, "purge")
 	})
 
 	t.Run("project node is rejected", func(t *testing.T) {
 		dir := t.TempDir()
 		writeRecord(t, dir, "loki__wt__opencode#0.json", rec("loki", "wt", "opencode", 0))
 
-		m := New(dir)
+		m := New(Deps{MirrorDir: dir})
 		m.visible = []tree.Node{{Kind: tree.KindProject, Project: "loki"}}
 		m.cursor = 0
 		m.purge()
