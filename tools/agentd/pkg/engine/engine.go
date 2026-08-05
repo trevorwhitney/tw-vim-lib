@@ -227,6 +227,12 @@ func (e *Engine) recentlyDeferred(key string) bool {
 	return time.Since(e.deferredAt[key]) < deferRecheck
 }
 
+func (e *Engine) clearDeferred(key string) {
+	e.deferMu.Lock()
+	defer e.deferMu.Unlock()
+	delete(e.deferredAt, key)
+}
+
 func (e *Engine) markDeferred(key string) {
 	e.deferMu.Lock()
 	defer e.deferMu.Unlock()

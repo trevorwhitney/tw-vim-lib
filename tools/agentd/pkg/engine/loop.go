@@ -129,6 +129,9 @@ func (e *Engine) EnqueuePR(ctx context.Context, repo string, number int) (store.
 	if err != nil {
 		return store.Job{}, err
 	}
+	// An explicit enqueue is a request to re-evaluate now: the poller's
+	// defer backoff must not suppress it.
+	e.clearDeferred(fmt.Sprintf("%s#%d@%s", repo, number, pr.HeadSHA))
 	if err := e.ProcessPR(ctx, repo, pr, chain); err != nil {
 		return store.Job{}, err
 	}

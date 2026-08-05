@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/consult"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/github"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/policy"
 )
 
@@ -95,4 +96,29 @@ func TestSetShadow(t *testing.T) {
 	require.Contains(t, job.Summary, "shadow")
 	require.Empty(t, fw.calls)
 	_ = fmt.Sprint()
+}
+
+func TestEnqueueBypassesDeferBackoff(t *testing.T) {
+	pr := renovatePR()
+	gh := greenGH(pr, []string{"go.mod"})
+	gh.facts = github.Facts{CI: github.CIPending, Mergeable: github.MergeClean}
+	e, st, _ := fixture(t, gh, false)
+	fc := &fakeConsult{}
+	e.Consult = fc
+	e.Chains["grafana/loki"] = triageChain(t)
+
+	require.NoError(t, e.ProcessPR(context.Background(), "grafana/loki", pr, nil))
+	_, ok, err := st.JobForHead("grafana/loki", 42, "abc", "pr")
+	require.NoError(t, err)
+	require.False(t, ok, "pending CI defers without a job")
+
+	gh.facts = github.Facts{CI: github.CISuccess, Mergeable: github.MergeClean}
+	require.NoError(t, e.ProcessPR(context.Background(), "grafana/loki", pr, nil))
+	_, ok, err = st.JobForHead("grafana/loki", 42, "abc", "pr")
+	require.NoError(t, err)
+	require.False(t, ok, "poller re-evaluation stays suppressed by the backoff")
+
+	job, err := e.EnqueuePR(context.Background(), "grafana/loki", 42)
+	require.NoError(t, err, "explicit enqueue bypasses the backoff")
+	require.Equal(t, "preparing", job.State)
 }
