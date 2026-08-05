@@ -13,6 +13,11 @@ describe("agent instance lifecycle (Open / Toggle)", function()
     end
     pcall(vim.cmd, "enew")
     pcall(vim.cmd, "only")
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_get_name(buf):match("agent://") then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
+    end
   end)
 
   it("Open writes to instances[mode][idx]", function()
@@ -129,6 +134,11 @@ describe("toggle_with_count wrappers", function()
     end
     pcall(vim.cmd, "enew")
     pcall(vim.cmd, "only")
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_get_name(buf):match("agent://") then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
+    end
   end)
 
   it("_toggle_with_count_explicit(pi, 0, false) toggles pi#0", function()
@@ -210,5 +220,56 @@ describe("toggle_with_count wrappers", function()
 
     assert.is_false(helpers.buf_visible(i0.buf))
     assert.is_false(helpers.buf_visible(i1.buf))
+  end)
+
+  it("_collapse_pane_explicit with count 0 hides the current pane", function()
+    local hidden = false
+    local pane = { win = vim.api.nvim_get_current_win() }
+    function pane:hide()
+      hidden = true
+    end
+    agent._collapse_pane_explicit(pane, 0)
+    assert.is_true(hidden)
+  end)
+
+  it("_collapse_pane_explicit with a count targets that index of the pane's mode", function()
+    vim.cmd("only")
+    vim.cmd("enew")
+    agent.Open("opencode", nil, "vsplit", 0)
+    agent.Open("opencode", nil, "vsplit", 1)
+    local i0 = agent._get_instance("opencode", 0)
+    local i1 = agent._get_instance("opencode", 1)
+    local function win_for(buf)
+      for _, w in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_get_buf(w) == buf then
+          return w
+        end
+      end
+    end
+
+    -- Current pane is opencode#0; asking to collapse index 1 must resolve the
+    -- opencode#1 window and hide THAT (not the current pane). Stub edgy.get_win
+    -- so the resolution branch runs in the edgy-less harness.
+    local hidden_current = false
+    local pane = { win = win_for(i0.buf) }
+    function pane:hide()
+      hidden_current = true
+    end
+    local hidden_winid = nil
+    package.loaded["edgy"] = {
+      get_win = function(winid)
+        return {
+          win = winid,
+          hide = function(self)
+            hidden_winid = self.win
+          end,
+        }
+      end,
+    }
+    agent._collapse_pane_explicit(pane, 1)
+    package.loaded["edgy"] = nil
+
+    assert.is_false(hidden_current, "count N must not hide the current pane")
+    assert.equals(win_for(i1.buf), hidden_winid, "count 1 must hide the opencode#1 window")
   end)
 end)

@@ -791,6 +791,68 @@ local function agent_console_wins()
 	return wins
 end
 
+-- Parse "agent://<mode>#<idx>" from a buffer name into mode, idx. The same
+-- pattern is duplicated in edgy_config.lua, which stays vim/agent-free at load
+-- time; keep both in sync if the agent buffer naming changes.
+local function parse_agent_buf_name(name)
+	local mode, idx = tostring(name):match("agent://(%w+)#(%d+)")
+	if mode and idx then
+		return mode, tonumber(idx)
+	end
+	return nil, nil
+end
+
+-- Window in the current tabpage showing agent <mode>#<idx>, or nil.
+local function agent_win_for(mode, idx)
+	for _, win in ipairs(agent_console_wins()) do
+		local name = vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win))
+		local m, i = parse_agent_buf_name(name)
+		if m == mode and i == idx then
+			return win
+		end
+	end
+	return nil
+end
+
+-- Collapse an agent edgy pane. count is passed in directly so this is testable
+-- without a read-only vim.v.count. With count 0 it hides the current pane; with
+-- count N it hides index N of the current pane's mode (when that pane is shown).
+function M._collapse_pane_explicit(current_win, count)
+	if count == 0 then
+		if current_win and current_win.hide then
+			current_win:hide()
+		end
+		return
+	end
+	local mode
+	if current_win and current_win.win and vim.api.nvim_win_is_valid(current_win.win) then
+		local name = vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(current_win.win))
+		mode = parse_agent_buf_name(name)
+	end
+	if not mode then
+		return
+	end
+	local target = agent_win_for(mode, count)
+	if not target then
+		return
+	end
+	local ok, edgy = pcall(require, "edgy")
+	if ok and edgy.get_win then
+		local ewin = edgy.get_win(target)
+		if ewin and ewin.hide then
+			ewin:hide()
+		end
+	end
+end
+
+-- Entry point for the edgy buffer-local <leader>q keymap. Reads vim.v.count
+-- then delegates: no count hides the current pane, N hides index N of its mode.
+-- count 0 means "no count" here (hide current), unlike the drawer toggle where
+-- a typed 0 closes the whole drawer.
+function M.CollapsePane(current_win)
+	M._collapse_pane_explicit(current_win, vim.v.count)
+end
+
 -- Close the whole right agent drawer (all stacked AgentConsole panes). Prefers
 -- edgy's edgebar close; falls back to closing the windows directly. The whole
 -- drawer closing deactivates whatever agent was active, so active state is

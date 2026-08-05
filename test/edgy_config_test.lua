@@ -93,11 +93,20 @@ if not (shrink.resized and shrink.resized.dim == "width" and shrink.resized.amou
 	fail("<lt> must shrink width by a negative amount")
 end
 
-local hide = fake_win()
-cfg.keys["<leader>q"](hide)
-if not hide.hidden then
-	fail("<leader>q must hide the edgy window")
+-- <leader>q delegates to the agent module's CollapsePane, passing the current
+-- pane's Edgy.Window (count handling lives in the agent module, tested there).
+local collapse_arg = nil
+package.loaded["tw.agent"] = {
+	CollapsePane = function(win)
+		collapse_arg = win
+	end,
+}
+local pane = fake_win()
+cfg.keys["<leader>q"](pane)
+if collapse_arg ~= pane then
+	fail("<leader>q must delegate to tw.agent.CollapsePane with the current pane")
 end
+package.loaded["tw.agent"] = nil
 
 -- AgentConsole title is dynamic: it derives mode#idx from the rendering pane's
 -- agent:// buffer name (via vim.g.statusline_winid).

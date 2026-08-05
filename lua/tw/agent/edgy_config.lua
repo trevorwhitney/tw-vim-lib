@@ -25,7 +25,7 @@ return {
 	keys = {
 		["<c-q>"] = false,
 		["<leader>q"] = function(win)
-			win:hide()
+			require("tw.agent").CollapsePane(win)
 		end,
 		[">"] = function(win)
 			win:resize("width", 2)
