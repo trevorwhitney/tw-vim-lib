@@ -136,6 +136,9 @@ func TestConsultReportAttachesMappedAction(t *testing.T) {
 	require.Equal(t, job.WorktreePath, req.Dir)
 	require.Equal(t, strconv.FormatInt(jobID, 10), req.Env["AGENTD_JOB_TOKEN"])
 	require.Equal(t, "/tmp/agentd.sock", req.Env["AGENTD_SOCKET"])
+	blanked, ok := req.Env["OPENCODE"]
+	require.True(t, ok, "nested-opencode env must be neutralized")
+	require.Empty(t, blanked)
 	require.Contains(t, req.Prompt, "grafana/loki#42")
 	require.Contains(t, req.Prompt, "pr.json")
 	require.Contains(t, req.Prompt, "approve")

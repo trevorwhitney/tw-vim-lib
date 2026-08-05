@@ -41,6 +41,11 @@ func (c *CLI) bin() string {
 
 func (c *CLI) Run(ctx context.Context, req Request) (string, error) {
 	args := []string{"run"}
+	// Process cwd does not bind the session's project; --dir is the
+	// documented contract for where a run executes.
+	if req.Dir != "" {
+		args = append(args, "--dir", req.Dir)
+	}
 	if req.Pure {
 		args = append(args, "--pure")
 	}

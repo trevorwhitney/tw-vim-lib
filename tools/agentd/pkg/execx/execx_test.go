@@ -35,3 +35,13 @@ func TestRunErrorCarriesOutput(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "boom")
 }
+
+func TestRunOverridesAndUnsetsEnv(t *testing.T) {
+	t.Setenv("AGENTD_OVERRIDE_VAR", "parent")
+	t.Setenv("AGENTD_UNSET_VAR", "parent")
+	out, err := Run(context.Background(),
+		Options{Env: map[string]string{"AGENTD_OVERRIDE_VAR": "child", "AGENTD_UNSET_VAR": ""}},
+		"sh", "-c", `printf '%s|%s' "$AGENTD_OVERRIDE_VAR" "${AGENTD_UNSET_VAR-GONE}"`)
+	require.NoError(t, err)
+	require.Equal(t, "child|GONE", out)
+}

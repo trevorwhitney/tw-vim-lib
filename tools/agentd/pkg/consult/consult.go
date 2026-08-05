@@ -83,6 +83,11 @@ func (r *Runner) jobEnv(jobID int64) map[string]string {
 	return map[string]string{
 		"AGENTD_JOB_TOKEN": strconv.FormatInt(jobID, 10),
 		"AGENTD_SOCKET":    r.Socket,
+		// When the daemon itself runs inside an opencode session these leak
+		// into the consult subprocess, which then attaches to the parent
+		// session's server and project instead of its own workspace.
+		"OPENCODE":     "",
+		"OPENCODE_PID": "",
 	}
 }
 

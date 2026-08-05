@@ -30,7 +30,7 @@ func TestRunAgent(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "ok", out)
-	require.Equal(t, [][]string{{"opencode", "run", "--agent", "consult", "analyze this"}}, *calls)
+	require.Equal(t, [][]string{{"opencode", "run", "--dir", "/tmp/wt", "--agent", "consult", "analyze this"}}, *calls)
 	require.Equal(t, "/tmp/wt", (*opts)[0].Dir)
 	require.Equal(t, "7", (*opts)[0].Env["AGENTD_JOB_TOKEN"])
 }

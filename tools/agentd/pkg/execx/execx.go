@@ -24,7 +24,8 @@ func Command(ctx context.Context, name string, args ...string) (string, error) {
 }
 
 // Options controls where and with what extra environment a subprocess runs.
-// Env entries are appended to the parent environment.
+// Env entries override the parent environment; an empty value removes the
+// variable entirely (some tools treat set-but-empty as set).
 type Options struct {
 	Dir string
 	Env map[string]string
@@ -40,14 +41,22 @@ func Run(ctx context.Context, opts Options, name string, args ...string) (string
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = opts.Dir
 	if len(opts.Env) > 0 {
-		env := os.Environ()
+		env := make([]string, 0, len(os.Environ())+len(opts.Env))
+		for _, kv := range os.Environ() {
+			key := kv[:strings.IndexByte(kv, '=')]
+			if _, overridden := opts.Env[key]; !overridden {
+				env = append(env, kv)
+			}
+		}
 		keys := make([]string, 0, len(opts.Env))
 		for k := range opts.Env {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			env = append(env, k+"="+opts.Env[k])
+			if opts.Env[k] != "" {
+				env = append(env, k+"="+opts.Env[k])
+			}
 		}
 		cmd.Env = env
 	}
