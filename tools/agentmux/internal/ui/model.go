@@ -97,6 +97,8 @@ type Model struct {
 	promptKind  promptK
 	promptValue string
 	promptEsc   int64 // escalation id the prompt resolves
+
+	showDetail bool
 }
 
 // New builds the model for the given deps.
@@ -257,6 +259,10 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.prompting {
 		return m.handlePrompt(msg)
 	}
+	// The History detail overlay is modal: it captures every key until esc/q.
+	if m.showDetail {
+		return m.handleHistoryKey(msg)
+	}
 	switch {
 	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
@@ -333,7 +339,47 @@ func (m Model) handleFleetKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleHistoryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) { return m, nil }
+func (m *Model) currentHistory() (apitypes.Job, bool) {
+	if m.historyCur < 0 || m.historyCur >= len(m.history) {
+		return apitypes.Job{}, false
+	}
+	return m.history[m.historyCur], true
+}
+
+func (m Model) handleHistoryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if m.showDetail {
+		switch msg.String() {
+		case "esc", "q":
+			m.showDetail = false
+		}
+		return m, nil
+	}
+	switch {
+	case key.Matches(msg, m.keys.Quit):
+		return m, tea.Quit
+	case key.Matches(msg, m.keys.Down):
+		if m.historyCur < len(m.history)-1 {
+			m.historyCur++
+		}
+	case key.Matches(msg, m.keys.Up):
+		if m.historyCur > 0 {
+			m.historyCur--
+		}
+	case key.Matches(msg, m.keys.Top):
+		m.historyCur = 0
+	case key.Matches(msg, m.keys.Bottom):
+		m.historyCur = len(m.history) - 1
+	case msg.String() == "enter": // enter opens detail (NOT the Jump binding)
+		if _, ok := m.currentHistory(); ok {
+			m.showDetail = true
+		}
+	case key.Matches(msg, m.keys.Refresh):
+		return m, m.loadData()
+	case key.Matches(msg, m.keys.Help):
+		m.showHelp = true
+	}
+	return m, nil
+}
 
 func (m Model) handleInteractiveKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// Filter input mode captures typing until Enter (apply) or Esc (cancel).
@@ -719,7 +765,27 @@ func (m Model) fleetView() string {
 	return lipgloss.JoinVertical(lipgloss.Left, b...)
 }
 
-func (m Model) historyView() string { return styleFooter.Render("(history — not yet available)") }
+func (m Model) historyView() string {
+	if m.showDetail {
+		return m.detailView() // Batch G
+	}
+	if len(m.history) == 0 {
+		return styleFooter.Render("history empty")
+	}
+	now := time.Now().Unix()
+	var b []string
+	for i, j := range m.history {
+		row := styleSegments(renderHistoryRow(j, now))
+		if i == m.historyCur {
+			row = lipgloss.NewStyle().Reverse(true).Render(row)
+		}
+		b = append(b, row)
+	}
+	b = append(b, styleFooter.Render("⏎ detail · ↑↓ move · [ ] tabs · ⌃P palette · q quit"))
+	return lipgloss.JoinVertical(lipgloss.Left, b...)
+}
+
+func (m Model) detailView() string { return styleFooter.Render("(detail — Batch G)") }
 
 func helpView() string {
 	lines := []string{

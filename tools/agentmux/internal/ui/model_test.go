@@ -138,6 +138,48 @@ func Test_TabSwitching(t *testing.T) {
 	})
 }
 
+func Test_HistoryTab(t *testing.T) {
+	fc := &fakeClient{}
+	m := New(Deps{MirrorDir: t.TempDir(), Client: fc})
+	m.activeTab = TabHistory
+	m.history = []apitypes.Job{{ID: 3, Repo: "grafana/loki", PRNumber: 44, State: "done"}}
+
+	t.Run("enter opens detail", func(t *testing.T) {
+		after, _ := m.Update(tea.KeyPressMsg{Text: "enter"})
+		assert.True(t, after.(Model).showDetail)
+	})
+	t.Run("cursor keys do not dismiss detail", func(t *testing.T) {
+		mm := m
+		mm.showDetail = true
+		after, _ := mm.Update(pressRune('j'))
+		assert.True(t, after.(Model).showDetail)
+	})
+	t.Run("esc closes detail", func(t *testing.T) {
+		mm := m
+		mm.showDetail = true
+		after, _ := mm.Update(tea.KeyPressMsg{Text: "esc"})
+		assert.False(t, after.(Model).showDetail)
+	})
+	t.Run("q closes detail", func(t *testing.T) {
+		mm := m
+		mm.showDetail = true
+		after, _ := mm.Update(pressRune('q'))
+		assert.False(t, after.(Model).showDetail)
+	})
+	t.Run("enter on empty history does not open detail", func(t *testing.T) {
+		em := m
+		em.history = nil
+		em.showDetail = false
+		after, _ := em.Update(tea.KeyPressMsg{Text: "enter"})
+		assert.False(t, after.(Model).showDetail)
+	})
+	t.Run("empty history shows placeholder", func(t *testing.T) {
+		em := m
+		em.history = nil
+		assert.Contains(t, em.historyView(), "history empty")
+	})
+}
+
 func Test_LoadData(t *testing.T) {
 	t.Run("nil client yields an empty dataMsg", func(t *testing.T) {
 		m := New(Deps{MirrorDir: t.TempDir()})
