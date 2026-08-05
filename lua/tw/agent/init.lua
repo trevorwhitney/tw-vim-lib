@@ -412,7 +412,11 @@ local function start_new_agent_job(args, window_type, mode, idx)
 		log.debug("Git root: " .. tostring(git_root))
 		if git_root then
 			log.debug("Initial args count: " .. #args)
-			local project_path = git_root
+			-- shellescape the path: claude.command joins args with spaces into a
+			-- single string for termopen, so a root containing spaces (e.g. a
+			-- Google Drive path) would word-split into extra positionals and make
+			-- opencode reject the arguments. Matches the --prompt escaping below.
+			local project_path = vim.fn.shellescape(git_root)
 			log.debug("Project path: " .. project_path)
 
 			-- Prepend project path to args if not already present
