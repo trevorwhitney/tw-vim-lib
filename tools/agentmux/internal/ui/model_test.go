@@ -27,6 +27,8 @@ type fakeClient struct {
 	resolves []string
 	dropins  []int64
 	retries  []int64
+	pollings []bool
+	gcs      []int64
 }
 
 func (f *fakeClient) Inbox() ([]apitypes.InboxItem, error)        { return f.inbox, f.inboxErr }
@@ -41,9 +43,65 @@ func (f *fakeClient) Resolve(id int64, res, reason, answer string) error {
 func (f *fakeClient) DropIn(id int64) error                { f.dropins = append(f.dropins, id); return nil }
 func (f *fakeClient) Handback(int64) error                 { return nil }
 func (f *fakeClient) Retry(id int64) error                 { f.retries = append(f.retries, id); return nil }
-func (f *fakeClient) SetPolling(bool) error                { return nil }
-func (f *fakeClient) GC(int64, bool) error                 { return nil }
+func (f *fakeClient) SetPolling(p bool) error              { f.pollings = append(f.pollings, p); return nil }
+func (f *fakeClient) GC(id int64, force bool) error        { f.gcs = append(f.gcs, id); return nil }
 func (f *fakeClient) SetShadow(string, string, bool) error { return nil }
+
+func fleetModel(t *testing.T, fc *fakeClient) Model {
+	m := New(Deps{MirrorDir: t.TempDir(), Client: fc})
+	m.activeTab = TabFleet
+	m.fleet = []apitypes.Job{{ID: 4, Repo: "grafana/loki", PRNumber: 45, State: "failed"}}
+	return m
+}
+
+func Test_FleetRetryAndPause(t *testing.T) {
+	fc := &fakeClient{}
+	m := fleetModel(t, fc)
+	t.Run("R retries the selected failed job", func(t *testing.T) {
+		_, cmd := m.Update(tea.KeyPressMsg{Text: "R"})
+		require.NotNil(t, cmd)
+		cmd()
+		assert.Equal(t, []int64{4}, fc.retries)
+	})
+	t.Run("p pauses when currently live", func(t *testing.T) {
+		mm := m
+		mm.status.Paused = false
+		_, cmd := mm.Update(pressRune('p'))
+		require.NotNil(t, cmd)
+		cmd()
+		assert.Equal(t, []bool{true}, fc.pollings)
+	})
+	t.Run("p resumes when currently paused", func(t *testing.T) {
+		fc.pollings = nil
+		mm := m
+		mm.status.Paused = true
+		_, cmd := mm.Update(pressRune('p'))
+		require.NotNil(t, cmd)
+		cmd()
+		assert.Equal(t, []bool{false}, fc.pollings)
+	})
+	t.Run("d garbage-collects the selected job", func(t *testing.T) {
+		_, cmd := m.Update(pressRune('d'))
+		require.NotNil(t, cmd)
+		cmd()
+		assert.Equal(t, []int64{4}, fc.gcs)
+	})
+	t.Run("i drops in on the selected job", func(t *testing.T) {
+		fc.dropins = nil
+		_, cmd := m.Update(pressRune('i'))
+		require.NotNil(t, cmd)
+		cmd()
+		assert.Equal(t, []int64{4}, fc.dropins)
+	})
+	t.Run("view shows header and row", func(t *testing.T) {
+		assert.Contains(t, m.fleetView(), "grafana/loki#45")
+	})
+	t.Run("empty fleet shows placeholder", func(t *testing.T) {
+		em := fleetModel(t, fc)
+		em.fleet = nil
+		assert.Contains(t, em.fleetView(), "fleet empty")
+	})
+}
 
 func Test_InboxRefreshAndView(t *testing.T) {
 	fc := &fakeClient{inbox: []apitypes.InboxItem{

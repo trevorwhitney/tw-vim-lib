@@ -278,7 +278,61 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleFleetKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd)   { return m, nil }
+func (m *Model) currentFleet() (apitypes.Job, bool) {
+	if m.fleetCur < 0 || m.fleetCur >= len(m.fleet) {
+		return apitypes.Job{}, false
+	}
+	return m.fleet[m.fleetCur], true
+}
+
+func (m Model) handleFleetKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Quit):
+		return m, tea.Quit
+	case key.Matches(msg, m.keys.Down):
+		if m.fleetCur < len(m.fleet)-1 {
+			m.fleetCur++
+		}
+	case key.Matches(msg, m.keys.Up):
+		if m.fleetCur > 0 {
+			m.fleetCur--
+		}
+	case key.Matches(msg, m.keys.Top):
+		m.fleetCur = 0
+	case key.Matches(msg, m.keys.Bottom):
+		m.fleetCur = len(m.fleet) - 1
+	case key.Matches(msg, m.keys.RetryJob):
+		if j, ok := m.currentFleet(); ok && j.State == "failed" && m.client != nil {
+			id := j.ID
+			return m, mutate("retry", func() error { return m.client.Retry(id) })
+		}
+	case key.Matches(msg, m.keys.Dropin):
+		if j, ok := m.currentFleet(); ok && m.client != nil {
+			id := j.ID
+			return m, mutate("drop-in", func() error { return m.client.DropIn(id) })
+		}
+	case key.Matches(msg, m.keys.Pause):
+		if m.client != nil {
+			paused := !m.status.Paused
+			return m, mutate("polling", func() error { return m.client.SetPolling(paused) })
+		}
+	case key.Matches(msg, m.keys.GC):
+		if j, ok := m.currentFleet(); ok && m.client != nil {
+			id := j.ID
+			return m, mutate("gc", func() error { return m.client.GC(id, false) })
+		}
+	case key.Matches(msg, m.keys.OpenPR):
+		if j, ok := m.currentFleet(); ok {
+			_ = m.runner.OpenURL(prURL(j.Repo, j.PRNumber))
+		}
+	case key.Matches(msg, m.keys.Refresh):
+		return m, m.loadData()
+	case key.Matches(msg, m.keys.Help):
+		m.showHelp = true
+	}
+	return m, nil
+}
+
 func (m Model) handleHistoryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) { return m, nil }
 
 func (m Model) handleInteractiveKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -640,7 +694,31 @@ func (m Model) inboxView() string {
 	return lipgloss.JoinVertical(lipgloss.Left, b...)
 }
 
-func (m Model) fleetView() string   { return styleFooter.Render("(fleet — not yet available)") }
+func (m Model) fleetView() string {
+	now := time.Now().Unix()
+	var b []string
+	for _, line := range fleetHeader(m.status, now) {
+		b = append(b, styleSegments(line))
+	}
+	b = append(b, "")
+	if len(m.fleet) == 0 {
+		b = append(b, styleFooter.Render("fleet empty — no active jobs"))
+	} else {
+		for i, j := range m.fleet {
+			row := styleSegments(renderFleetRow(j, now))
+			if i == m.fleetCur {
+				row = lipgloss.NewStyle().Reverse(true).Render(row)
+			}
+			b = append(b, row)
+		}
+	}
+	if m.footer != "" {
+		b = append(b, styleStatus.Render(m.footer))
+	}
+	b = append(b, styleFooter.Render("R retry · i drop-in · p pause · d gc · o open PR · [ ] tabs · ⌃P palette · q quit"))
+	return lipgloss.JoinVertical(lipgloss.Left, b...)
+}
+
 func (m Model) historyView() string { return styleFooter.Render("(history — not yet available)") }
 
 func helpView() string {
