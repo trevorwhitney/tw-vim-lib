@@ -35,6 +35,12 @@ function M.setup_buffer(buf, opts)
 	vim.bo[buf].scrollback = config.scrollback
 	vim.bo[buf].filetype = "AgentConsole"
 
+	-- gf on a file path in the agent output opens it in an editor pane rather
+	-- than replacing the agent terminal inside its edgy drawer.
+	vim.keymap.set("n", "gf", function()
+		require("tw.agent.gf").gf()
+	end, { buffer = buf, silent = true, desc = "Open file under cursor in editor pane" })
+
 	-- Create buffer-local autocmds for this specific buffer
 	local augroup = vim.api.nvim_create_augroup("ClaudeBuffer_" .. buf, { clear = true })
 
