@@ -777,6 +777,52 @@ function M.Toggle(mode, args, window_type, idx)
 	end
 end
 
+-- Windows in the current tabpage showing an agent terminal (AgentConsole).
+local function agent_console_wins()
+	local wins = {}
+	for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+		if vim.api.nvim_win_is_valid(win) then
+			local buf = vim.api.nvim_win_get_buf(win)
+			if vim.bo[buf].filetype == "AgentConsole" then
+				wins[#wins + 1] = win
+			end
+		end
+	end
+	return wins
+end
+
+-- Close the whole right agent drawer (all stacked AgentConsole panes). Prefers
+-- edgy's edgebar close; falls back to closing the windows directly. The whole
+-- drawer closing deactivates whatever agent was active, so active state is
+-- always cleared.
+function M.CloseDrawer()
+	local wins = agent_console_wins()
+	if #wins == 0 then
+		return false
+	end
+	M.active_mode = "none"
+	M.active_index = 0
+	M.active_buf = nil
+	M.active_job_id = nil
+	local ok = pcall(function()
+		require("edgy").close("right")
+	end)
+	if not ok then
+		for _, win in ipairs(wins) do
+			if vim.api.nvim_win_is_valid(win) then
+				if #vim.api.nvim_tabpage_list_wins(0) > 1 then
+					pcall(vim.api.nvim_win_close, win, false)
+				else
+					vim.api.nvim_win_call(win, function()
+						vim.cmd("enew")
+					end)
+				end
+			end
+		end
+	end
+	return true
+end
+
 -- Explicit-count entry point used by tests and by _toggle_with_count.
 -- count is passed in directly so callers don't need to manipulate the
 -- read-only vim.v.count.
@@ -784,6 +830,10 @@ function M._toggle_with_count_explicit(mode, count, visual)
 	local idx = visual and 0 or count
 	if idx > 9 then
 		vim.notify(string.format("Agent instance index must be 0-9 (got %d)", idx), vim.log.levels.WARN)
+		return
+	end
+	if not visual and count == 0 and #agent_console_wins() > 0 then
+		M.CloseDrawer()
 		return
 	end
 	M.Toggle(mode, nil, "vsplit", idx)

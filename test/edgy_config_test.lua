@@ -99,4 +99,36 @@ if not hide.hidden then
 	fail("<leader>q must hide the edgy window")
 end
 
+-- AgentConsole title is dynamic: it derives mode#idx from the rendering pane's
+-- agent:// buffer name (via vim.g.statusline_winid).
+if type(agent_console.title) ~= "function" then
+	fail("AgentConsole title must be a function for per-pane mode#idx labels")
+end
+
+-- Stub the minimal vim surface the title function reads, then assert it parses
+-- the agent buffer name into a mode#idx label.
+_G.vim = {
+	g = { statusline_winid = 1000 },
+	api = {
+		nvim_win_is_valid = function()
+			return true
+		end,
+		nvim_win_get_buf = function()
+			return 7
+		end,
+		nvim_buf_get_name = function()
+			return "agent://opencode#1"
+		end,
+	},
+}
+if agent_console.title() ~= "opencode#1" then
+	fail("AgentConsole title must render 'opencode#1', got " .. tostring(agent_console.title()))
+end
+
+-- Non-agent / invalid window falls back to a static label.
+vim.g.statusline_winid = nil
+if agent_console.title() ~= "Agent" then
+	fail("AgentConsole title must fall back to 'Agent' when no agent pane is rendering")
+end
+
 print("ok - edgy_config contract")

@@ -11,6 +11,8 @@ describe("agent instance lifecycle (Open / Toggle)", function()
     for _, _, _, job_id in agent._iter_all_instances() do
       if job_id then pcall(vim.fn.jobstop, job_id) end
     end
+    pcall(vim.cmd, "enew")
+    pcall(vim.cmd, "only")
   end)
 
   it("Open writes to instances[mode][idx]", function()
@@ -125,6 +127,8 @@ describe("toggle_with_count wrappers", function()
     for _, _, _, job_id in agent._iter_all_instances() do
       if job_id then pcall(vim.fn.jobstop, job_id) end
     end
+    pcall(vim.cmd, "enew")
+    pcall(vim.cmd, "only")
   end)
 
   it("_toggle_with_count_explicit(pi, 0, false) toggles pi#0", function()
@@ -162,5 +166,49 @@ describe("toggle_with_count wrappers", function()
     assert.is_table(agent._get_instance("opencode", 2))
     assert.equals("opencode", agent.active_mode)
     assert.equals(2, agent.active_index)
+  end)
+
+  it("bare toggle (count 0) closes the whole drawer when agents are stacked", function()
+    vim.cmd("only")
+    vim.cmd("enew")
+    agent.Open("opencode", nil, "vsplit", 0)
+    agent.Open("opencode", nil, "vsplit", 1)
+    local i0 = agent._get_instance("opencode", 0)
+    local i1 = agent._get_instance("opencode", 1)
+    assert.is_true(helpers.buf_visible(i0.buf))
+    assert.is_true(helpers.buf_visible(i1.buf))
+
+    agent._toggle_with_count_explicit("opencode", 0, false)
+
+    assert.is_false(helpers.buf_visible(i0.buf))
+    assert.is_false(helpers.buf_visible(i1.buf))
+    assert.is_table(agent._get_instance("opencode", 0), "instances stay alive in background")
+    assert.is_table(agent._get_instance("opencode", 1))
+    assert.equals("none", agent.active_mode)
+  end)
+
+  it("bare toggle (count 0) opens the default instance when no drawer is open", function()
+    vim.cmd("only")
+    vim.cmd("enew")
+    agent._toggle_with_count_explicit("opencode", 0, false)
+    assert.is_table(agent._get_instance("opencode", 0))
+    assert.equals("opencode", agent.active_mode)
+    assert.equals(0, agent.active_index)
+  end)
+
+  -- count 0 is both "no count" and a typed "0": with the drawer open it closes
+  -- the whole drawer rather than toggling only instance 0.
+  it("count 0 with an open drawer closes the drawer, not just instance 0", function()
+    vim.cmd("only")
+    vim.cmd("enew")
+    agent.Open("opencode", nil, "vsplit", 0)
+    agent.Open("opencode", nil, "vsplit", 1)
+    local i0 = agent._get_instance("opencode", 0)
+    local i1 = agent._get_instance("opencode", 1)
+
+    agent._toggle_with_count_explicit("opencode", 0, false)
+
+    assert.is_false(helpers.buf_visible(i0.buf))
+    assert.is_false(helpers.buf_visible(i1.buf))
   end)
 end)
