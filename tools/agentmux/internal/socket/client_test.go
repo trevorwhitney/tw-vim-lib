@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +21,10 @@ type captured struct {
 
 func serve(t *testing.T, mux *http.ServeMux) string {
 	t.Helper()
-	sock := filepath.Join(t.TempDir(), "agentd.sock")
+	// A relative socket path keeps sun_path under the OS limit even in deep
+	// sandboxed build directories.
+	t.Chdir(t.TempDir())
+	const sock = "agentd.sock"
 	ln, err := net.Listen("unix", sock)
 	require.NoError(t, err)
 	srv := &http.Server{Handler: mux}

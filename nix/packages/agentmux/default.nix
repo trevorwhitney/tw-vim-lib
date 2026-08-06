@@ -3,9 +3,12 @@
   pname = "agentmux";
   version = "0.1.0";
 
-  src = ../../../tools/agentmux;
+  # src spans both modules so the go.mod replace on ../agentd resolves in the
+  # build sandbox; modRoot keeps the build rooted at the agentmux module.
+  src = ../../../tools;
+  modRoot = "agentmux";
 
-  vendorHash = "sha256-aUIGBb0ZCs9CmAB+KyJWcOUEYf6dQEFrQOkuq9qZ/QY=";
+  vendorHash = "sha256-m++g0YIoIwOF8UzMRhz4d6cYVqeHkRbgCMIrk9ZjQdo=";
 
   meta = {
     description = "Cross-worktree agent overview TUI";
