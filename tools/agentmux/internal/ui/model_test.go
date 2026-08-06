@@ -22,6 +22,7 @@ type fakeClient struct {
 	inboxErr   error
 	fleetErr   error
 	historyErr error
+	detailErr  error
 	statusErr  error
 	// recorded mutations:
 	resolves []string
@@ -34,7 +35,7 @@ type fakeClient struct {
 func (f *fakeClient) Inbox() ([]apitypes.InboxItem, error)        { return f.inbox, f.inboxErr }
 func (f *fakeClient) Fleet() ([]apitypes.Job, error)              { return f.fleet, f.fleetErr }
 func (f *fakeClient) History(int) ([]apitypes.Job, error)         { return f.history, f.historyErr }
-func (f *fakeClient) JobDetail(int64) (apitypes.JobDetail, error) { return f.detail, nil }
+func (f *fakeClient) JobDetail(int64) (apitypes.JobDetail, error) { return f.detail, f.detailErr }
 func (f *fakeClient) Status() (apitypes.Status, error)            { return f.status, f.statusErr }
 func (f *fakeClient) Resolve(id int64, res, reason, answer string) error {
 	f.resolves = append(f.resolves, res)
@@ -199,5 +200,37 @@ func Test_LoadData(t *testing.T) {
 		after, _ := m.Update(d)
 		assert.Contains(t, after.(Model).footer, "load error")
 		assert.Contains(t, after.(Model).footer, "socket down")
+	})
+}
+
+func Test_LoadDetail(t *testing.T) {
+	t.Run("nil client yields an empty detailMsg", func(t *testing.T) {
+		m := New(Deps{MirrorDir: t.TempDir()})
+		msg := m.loadDetail(3)()
+		d, ok := msg.(detailMsg)
+		require.True(t, ok)
+		assert.Nil(t, d.err)
+		assert.Zero(t, d.data.job.ID)
+	})
+	t.Run("populated detail projects into the model", func(t *testing.T) {
+		fc := &fakeClient{detail: apitypes.JobDetail{
+			Job:       apitypes.Job{ID: 3, Repo: "grafana/loki", PRNumber: 44, State: "done"},
+			Decisions: []apitypes.Decision{{Policy: "p", Verdict: "act"}},
+		}}
+		m := New(Deps{MirrorDir: t.TempDir(), Client: fc})
+		msg := m.loadDetail(3)()
+		after, _ := m.Update(msg)
+		mm := after.(Model)
+		assert.Equal(t, int64(3), mm.detail.job.ID)
+		require.Len(t, mm.detail.decisions, 1)
+		assert.Equal(t, "act", mm.detail.decisions[0].Verdict)
+	})
+	t.Run("a JobDetail error surfaces in the footer", func(t *testing.T) {
+		fc := &fakeClient{detailErr: errors.New("no such job")}
+		m := New(Deps{MirrorDir: t.TempDir(), Client: fc})
+		msg := m.loadDetail(9)()
+		after, _ := m.Update(msg)
+		assert.Contains(t, after.(Model).footer, "detail error")
+		assert.Contains(t, after.(Model).footer, "no such job")
 	})
 }

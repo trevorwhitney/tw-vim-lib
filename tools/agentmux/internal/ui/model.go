@@ -40,6 +40,37 @@ type dataMsg struct {
 	err     error
 }
 
+// a message carrying the loaded detail.
+type detailMsg struct {
+	data detailData
+	err  error
+}
+
+// loadDetail fetches one job's full decision chain in a single call off the
+// event loop. agentd's /jobs/{id}?detail=1 returns the whole apitypes.JobDetail
+// (job + escalation + decisions/actions/events/artifacts), so there is one
+// round-trip, not five.
+func (m Model) loadDetail(jobID int64) tea.Cmd {
+	cl := m.client
+	return func() tea.Msg {
+		if cl == nil {
+			return detailMsg{}
+		}
+		jd, err := cl.JobDetail(jobID)
+		if err != nil {
+			return detailMsg{err: err}
+		}
+		return detailMsg{data: detailData{
+			job:        jd.Job,
+			escalation: jd.Escalation,
+			decisions:  jd.Decisions,
+			actions:    jd.Actions,
+			events:     jd.Events,
+			artifacts:  jd.Artifacts,
+		}}
+	}
+}
+
 // Deps are the model's external collaborators. Client can be nil in tests that
 // only exercise the Interactive tab.
 type Deps struct {
@@ -99,6 +130,7 @@ type Model struct {
 	promptEsc   int64 // escalation id the prompt resolves
 
 	showDetail bool
+	detail     detailData
 }
 
 // New builds the model for the given deps.
@@ -244,6 +276,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.footer = msg.label + " ✓"
 		return m, m.loadData() // re-query immediately on ACK
+	case detailMsg:
+		if msg.err != nil {
+			m.footer = "detail error: " + msg.err.Error()
+		} else {
+			m.detail = msg.data
+		}
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 	}
@@ -370,8 +408,9 @@ func (m Model) handleHistoryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Bottom):
 		m.historyCur = len(m.history) - 1
 	case msg.String() == "enter": // enter opens detail (NOT the Jump binding)
-		if _, ok := m.currentHistory(); ok {
+		if j, ok := m.currentHistory(); ok {
 			m.showDetail = true
+			return m, m.loadDetail(j.ID)
 		}
 	case key.Matches(msg, m.keys.Refresh):
 		return m, m.loadData()
@@ -785,7 +824,7 @@ func (m Model) historyView() string {
 	return lipgloss.JoinVertical(lipgloss.Left, b...)
 }
 
-func (m Model) detailView() string { return styleFooter.Render("(detail — Batch G)") }
+func (m Model) detailView() string { return renderDetail(m.detail) }
 
 func helpView() string {
 	lines := []string{
