@@ -1,3 +1,34 @@
+# TODO: agentmux mission control (Plan 3 of 3)
+
+Plan: `docs/superpowers/plans/2026-08-05-agentmux-mission-control.md`
+Workflow: prototype-driven subagent development. **COMPLETE** — all 20 tasks
+implemented, reviewed (spec + quality per task), and committed. Consumes the
+agentd apitypes contract + read endpoints from Plan 2b — agentmux is a pure
+socket client, no SQLite.
+
+## Batches
+- [x] Batch A: Task 1 (depend on agentd/pkg/apitypes via local replace)
+- [x] Batch B: Task 2 (socket client — reads + mutations)
+- [x] Batch C: Tasks 3-5 (roles/styles, tab enum, tab scaffolding)
+- [x] Batch D: Tasks 6-8 (inbox row, refresh/view, mutations)
+- [x] Batch E: Tasks 9-10 (fleet row/header, view/keys)
+- [x] Batch F: Task 11 (history row/view/keys)
+- [x] Batch G: Task 12 (detail panel)
+- [x] Batch H: Tasks 13-16 (fuzzy, palette, search, cross-session jump)
+- [x] Batch I: Tasks 17-20 (main wiring, help, vendorHash, TODO)
+
+## /goal checklist
+- [x] `cd tools/agentmux && go build ./... && go test ./...` green
+- [x] `make lint` green
+- [x] Socket client imports only stdlib + apitypes (no store/engine/api):
+      `go list -deps ./internal/socket/ | grep -E 'pkg/(store|engine|consult|api)$'` empty
+- [x] `nix build .#agentmux` green; `result/bin/agentmux -h` lists `-socket`
+- [ ] Live check against a running agentd: Inbox lists open escalations,
+      approve/reject/answer post over the socket and re-query on ACK, Fleet
+      shows non-terminal jobs + poller health, History detail renders the
+      decision chain, ⌃P palette runs actions, ? search unions tabs + mirror,
+      Interactive tab behaves exactly as before, cross-session drop-in jump works.
+
 # TODO: agentd apitypes + read endpoints (Plan 2b)
 
 Plan: `docs/superpowers/plans/2026-08-05-agentd-apitypes-read-endpoints.md`
