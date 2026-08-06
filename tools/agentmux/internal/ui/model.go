@@ -675,7 +675,7 @@ func (m Model) jump() (tea.Model, tea.Cmd) {
 		m.footer = "no path for selection"
 		return m, nil
 	}
-	if err := tmuxjump.Jump(wt.Path, wt.Handle, m.runner); err != nil {
+	if err := tmuxjump.JumpSession(wt.Path, wt.Handle, m.runner); err != nil {
 		m.footer = err.Error()
 		return m, nil
 	}

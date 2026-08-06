@@ -3,6 +3,8 @@ package ui
 import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+
+	"github.com/trevorwhitney/tw-vim-lib/agentmux/internal/tmuxjump"
 )
 
 // command is one palette entry: a label and the action it runs against the model.
@@ -74,6 +76,16 @@ func (m Model) paletteCommands() []command {
 				mm.paletteOpen = false
 				return mm, mutate("gc", func() error { return mm.client.GC(id, true) })
 			}})
+			if j.State == "interactive" && j.WorktreePath != "" {
+				path := j.WorktreePath
+				cmds = append(cmds, command{"Jump to selected session", func(mm Model) (tea.Model, tea.Cmd) {
+					mm.paletteOpen = false
+					if err := tmuxjump.JumpSession(path, "", mm.runner); err != nil {
+						mm.footer = err.Error()
+					}
+					return mm, nil
+				}})
+			}
 		}
 	}
 	return cmds
