@@ -131,6 +131,13 @@ type Model struct {
 
 	showDetail bool
 	detail     detailData
+
+	paletteOpen  bool
+	paletteQuery string
+	paletteCur   int
+
+	searching   bool
+	searchQuery string
 }
 
 // New builds the model for the given deps.
@@ -289,9 +296,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if m.paletteOpen {
+		return m.handlePalette(msg)
+	}
+	if !m.filtering && !m.prompting && !m.searching && !m.showDetail && !m.showHelp &&
+		key.Matches(msg, m.keys.Palette) {
+		m.paletteOpen = true
+		m.paletteQuery = ""
+		m.paletteCur = 0
+		return m, nil
+	}
 	// Interactive tab keeps its own modal filter/help handling.
 	if m.activeTab == TabInteractive {
 		return m.handleInteractiveKey(msg)
+	}
+	// Help overlay: any key dismisses it.
+	if m.showHelp {
+		m.showHelp = false
+		return m, nil
 	}
 	// A prompt is modal: it captures every key until enter/esc.
 	if m.prompting {
@@ -705,7 +727,11 @@ func (m *Model) removeRecords(match func(store.Record) bool) error {
 
 func (m Model) View() tea.View {
 	var content string
-	if m.showHelp {
+	if m.paletteOpen {
+		content = m.paletteView()
+	} else if m.searching {
+		content = m.searchView()
+	} else if m.showHelp {
 		content = helpView()
 	} else {
 		bar := styleSegments(tabBar(m.activeTab, len(m.inbox)))
@@ -825,6 +851,8 @@ func (m Model) historyView() string {
 }
 
 func (m Model) detailView() string { return renderDetail(m.detail) }
+
+func (m Model) searchView() string { return "" }
 
 func helpView() string {
 	lines := []string{

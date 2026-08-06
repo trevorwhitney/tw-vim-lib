@@ -25,6 +25,7 @@ type KeyMap struct {
 	RetryJob key.Binding
 	Pause    key.Binding
 	GC       key.Binding
+	Palette  key.Binding
 }
 
 // DefaultKeyMap returns the overview's default key bindings.
@@ -51,5 +52,6 @@ func DefaultKeyMap() KeyMap {
 		RetryJob: key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "retry")),
 		Pause:    key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "pause/resume polling")),
 		GC:       key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "gc workspace")),
+		Palette:  key.NewBinding(key.WithKeys("ctrl+p"), key.WithHelp("⌃P", "command palette")),
 	}
 }
