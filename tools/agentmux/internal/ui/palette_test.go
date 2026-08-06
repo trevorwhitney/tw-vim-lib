@@ -137,3 +137,16 @@ func Test_PaletteRespectsOverlays(t *testing.T) {
 		assert.False(t, am.showHelp) // the keypress dismissed help instead
 	})
 }
+
+func Test_PaletteHelpCommand(t *testing.T) {
+	m := New(Deps{MirrorDir: t.TempDir()})
+	m.activeTab = TabFleet
+	m.paletteOpen = true
+	m.paletteQuery = "help"
+	vis := m.paletteVisible()
+	require.NotEmpty(t, vis)
+	next, _ := vis[0].run(m)
+	am := next.(Model)
+	assert.True(t, am.showHelp)
+	assert.False(t, am.paletteOpen)
+}

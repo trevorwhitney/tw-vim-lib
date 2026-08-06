@@ -234,3 +234,11 @@ func Test_LoadDetail(t *testing.T) {
 		assert.Contains(t, after.(Model).footer, "no such job")
 	})
 }
+
+func Test_HelpMentionsAllTabs(t *testing.T) {
+	m := New(Deps{MirrorDir: t.TempDir()})
+	h := helpView(m.activeTab)
+	assert.Contains(t, h, "[ ]") // tab nav
+	assert.Contains(t, h, "⌃P")  // palette
+	assert.Contains(t, h, "?")   // global search
+}

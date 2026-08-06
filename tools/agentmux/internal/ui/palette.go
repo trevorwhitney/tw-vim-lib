@@ -29,6 +29,11 @@ func (m Model) paletteCommands() []command {
 			mm.searchCur = 0
 			return mm, nil
 		}},
+		{"Help", func(mm Model) (tea.Model, tea.Cmd) {
+			mm.paletteOpen = false
+			mm.showHelp = true
+			return mm, nil
+		}},
 	}
 	if m.client != nil {
 		paused := m.status.Paused

@@ -751,7 +751,7 @@ func (m Model) View() tea.View {
 	} else if m.searching {
 		content = m.searchView()
 	} else if m.showHelp {
-		content = helpView()
+		content = helpView(m.activeTab)
 	} else {
 		bar := styleSegments(tabBar(m.activeTab, len(m.inbox)))
 		var body string
@@ -871,21 +871,26 @@ func (m Model) historyView() string {
 
 func (m Model) detailView() string { return renderDetail(m.detail) }
 
-func helpView() string {
-	lines := []string{
-		"agentmux — keys",
+func helpView(active Tab) string {
+	global := []string{
+		"agentmux mission control — keys",
 		"",
-		"j/k ↑/↓   move",
-		"g/G       first/last",
-		"⏎ / o     jump to worktree",
-		"⇥ h l     collapse/expand",
-		"d         delete selected agent, or purge a removed (gone) worktree",
-		"r         refresh",
-		"/         filter (Enter apply, Esc clear)",
-		"?         this help",
-		"q / Esc   quit",
+		"[ ]        previous / next tab",
+		"⌃P         command palette (every action)",
+		"?          global search (Inbox/Fleet/History)",
+		"j/k ↑/↓    move    g/G first/last    r refresh    q quit",
 		"",
-		"(any key to dismiss)",
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, lines...)
+	var tab []string
+	switch active {
+	case TabInbox:
+		tab = []string{"Inbox:", "a approve · x reject (reason) · A answer · i drop-in · o open PR"}
+	case TabFleet:
+		tab = []string{"Fleet:", "R retry · i drop-in · p pause/resume · d gc · o open PR"}
+	case TabHistory:
+		tab = []string{"History:", "⏎ open decision-chain detail · esc/q close detail"}
+	case TabInteractive:
+		tab = []string{"Interactive:", "⏎/o jump · ⇥ collapse · d delete record · / filter · ? help"}
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, append(global, tab...)...)
 }
