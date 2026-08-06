@@ -9,14 +9,15 @@ import (
 )
 
 type fakeRunner struct {
-	panes        string // list-panes output
-	panesAfter   string // list-panes output after a workmux open
-	listErr      error  // error on first ListPanes
-	listAfterErr error  // error on ListPanes after WorkmuxOpen
-	opened       bool
-	selected     string // window id passed to select-window
-	selectErr    error  // error on SelectWindow
-	openErr      error
+	panes           string // list-panes output
+	panesAfter      string // list-panes output after a workmux open
+	listErr         error  // error on first ListPanes
+	listAfterErr    error  // error on ListPanes after WorkmuxOpen
+	opened          bool
+	selected        string // window id passed to select-window
+	selectErr       error  // error on SelectWindow
+	openErr         error
+	switchedSession string // session passed to SwitchClient
 }
 
 func (f *fakeRunner) ListPanes() (string, error) {
@@ -36,6 +37,14 @@ func (f *fakeRunner) WorkmuxOpen(handle string) error {
 	f.opened = true
 	return nil
 }
+func (f *fakeRunner) OpenURL(string) error { return nil }
+func (f *fakeRunner) ListPanesSession() (string, error) {
+	if f.opened {
+		return f.panesAfter, f.listAfterErr
+	}
+	return f.panes, f.listErr
+}
+func (f *fakeRunner) SwitchClient(s string) error { f.switchedSession = s; return nil }
 
 func Test_Jump(t *testing.T) {
 	t.Run("selects the window whose pane path matches exactly", func(t *testing.T) {
@@ -84,5 +93,52 @@ func Test_Jump(t *testing.T) {
 		r := &fakeRunner{panes: "@3 /w/loki/wt\n", selectErr: errors.New("bad target")}
 		err := Jump("/w/loki/wt", "wt", r)
 		require.Error(t, err)
+	})
+}
+
+func Test_JumpCrossSession(t *testing.T) {
+	t.Run("switches to the owning session then selects the window", func(t *testing.T) {
+		// list-panes -a includes a session column now: "<session> <window_id> <path>".
+		fr := &fakeRunner{
+			panes: "agents @7 /Users/me/.local/state/agentd/worktrees/loki/42\n" +
+				"main @2 /Users/me/workspace/loki/feature",
+		}
+		err := JumpSession("/Users/me/.local/state/agentd/worktrees/loki/42", "", fr)
+		require.NoError(t, err)
+		assert.Equal(t, "agents", fr.switchedSession)
+		assert.Equal(t, "@7", fr.selected) // JumpSession calls SelectWindow, which sets f.selected
+	})
+	t.Run("falls back to workmux open and re-resolves", func(t *testing.T) {
+		fr := &fakeRunner{
+			panes:      "main @2 /w/other/x\n",
+			panesAfter: "agents @9 /w/loki/wt\n",
+		}
+		err := JumpSession("/w/loki/wt", "wt", fr)
+		require.NoError(t, err)
+		assert.True(t, fr.opened)
+		assert.Equal(t, "agents", fr.switchedSession)
+		assert.Equal(t, "@9", fr.selected)
+	})
+	t.Run("errors when no window exists and no handle to open", func(t *testing.T) {
+		fr := &fakeRunner{panes: "main @2 /w/other/x\n"}
+		err := JumpSession("/w/loki/wt", "", fr)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "/w/loki/wt")
+	})
+	t.Run("initial list error still tries the workmux fallback", func(t *testing.T) {
+		fr := &fakeRunner{
+			listErr:    errors.New("no server"),
+			panesAfter: "agents @9 /w/loki/wt\n",
+		}
+		err := JumpSession("/w/loki/wt", "wt", fr)
+		require.NoError(t, err)
+		assert.True(t, fr.opened)
+		assert.Equal(t, "@9", fr.selected)
+	})
+	t.Run("initial list error without a handle is fatal", func(t *testing.T) {
+		fr := &fakeRunner{listErr: errors.New("no server")}
+		err := JumpSession("/w/loki/wt", "", fr)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no server")
 	})
 }

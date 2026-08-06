@@ -8,9 +8,10 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 
-	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/store"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/apitypes"
 )
 
 type Client struct {
@@ -62,24 +63,24 @@ func (c *Client) do(method, path string, body, out any) error {
 	return nil
 }
 
-func (c *Client) Status() (StatusResponse, error) {
-	var out StatusResponse
-	return out, c.do(http.MethodGet, "/status", nil, &out)
+func (c *Client) Status() (apitypes.Status, error) {
+	var out apitypes.Status
+	return out, c.do(http.MethodGet, apitypes.PathStatus, nil, &out)
 }
 
-func (c *Client) Enqueue(repo string, prNumber int) (store.Job, error) {
-	var out store.Job
+func (c *Client) Enqueue(repo string, prNumber int) (apitypes.Job, error) {
+	var out apitypes.Job
 	return out, c.do(http.MethodPost, "/jobs",
 		map[string]any{"repo": repo, "pr_number": prNumber}, &out)
 }
 
-func (c *Client) Job(id int64) (JobResponse, error) {
-	var out JobResponse
+func (c *Client) Job(id int64) (apitypes.JobResponse, error) {
+	var out apitypes.JobResponse
 	return out, c.do(http.MethodGet, fmt.Sprintf("/jobs/%d", id), nil, &out)
 }
 
-func (c *Client) Retry(id int64) (store.Job, error) {
-	var out store.Job
+func (c *Client) Retry(id int64) (apitypes.Job, error) {
+	var out apitypes.Job
 	return out, c.do(http.MethodPost, fmt.Sprintf("/jobs/%d/retry", id), nil, &out)
 }
 
@@ -124,4 +125,37 @@ func (c *Client) GC(jobID int64, force bool) error {
 func (c *Client) SetShadow(repo, policy string, enabled bool) error {
 	return c.do(http.MethodPost, fmt.Sprintf("/policies/%s/%s/shadow", repo, policy),
 		map[string]bool{"enabled": enabled}, nil)
+}
+
+func (c *Client) Inbox() ([]apitypes.InboxItem, error) {
+	var out apitypes.InboxResponse
+	if err := c.do(http.MethodGet, apitypes.PathInbox, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Items, nil
+}
+
+func (c *Client) Fleet() ([]apitypes.Job, error) {
+	var out apitypes.JobsResponse
+	if err := c.do(http.MethodGet, apitypes.PathFleet, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Jobs, nil
+}
+
+func (c *Client) JobDetail(id int64) (apitypes.JobDetail, error) {
+	var out apitypes.JobDetail
+	return out, c.do(http.MethodGet, fmt.Sprintf("/jobs/%d?detail=1", id), nil, &out)
+}
+
+func (c *Client) History(limit int) ([]apitypes.Job, error) {
+	var out apitypes.JobsResponse
+	path := apitypes.PathHistory
+	if limit > 0 {
+		path += "?limit=" + strconv.Itoa(limit)
+	}
+	if err := c.do(http.MethodGet, path, nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Jobs, nil
 }

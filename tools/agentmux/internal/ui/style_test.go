@@ -74,3 +74,24 @@ func Test_styleSegments_concatenatesInOrder(t *testing.T) {
 func Test_styleSegments_nilIsEmpty(t *testing.T) {
 	assert.Equal(t, "", styleSegments(nil))
 }
+
+func Test_NewRoleStyles(t *testing.T) {
+	t.Run("new roles never emit background or truecolor", func(t *testing.T) {
+		for _, role := range []SegmentRole{
+			RoleStateActive, RoleStateWaiting, RoleStateTerminalOK,
+			RoleStateTerminalBad, RoleVerdict, RoleRepo, RoleTabActive, RoleTabInactive,
+		} {
+			out := styleSegments([]Segment{{Text: "x", Role: role}})
+			assert.NotContains(t, out, "48;", "role %d must not set a background", role)
+			assert.NotContains(t, out, "38;2;", "role %d must not use truecolor", role)
+		}
+	})
+	t.Run("new roles carry their intended attribute", func(t *testing.T) {
+		assert.Contains(t, styleSegments([]Segment{{Text: "x", Role: RoleStateActive}}), "\x1b[32m")
+		assert.Contains(t, styleSegments([]Segment{{Text: "x", Role: RoleStateWaiting}}), "\x1b[33m")
+		assert.Contains(t, styleSegments([]Segment{{Text: "x", Role: RoleStateTerminalBad}}), "\x1b[31m")
+		assert.Contains(t, styleSegments([]Segment{{Text: "x", Role: RoleVerdict}}), "\x1b[35m")
+		assert.Contains(t, styleSegments([]Segment{{Text: "x", Role: RoleTabActive}}), "\x1b[1m")
+		assert.Contains(t, styleSegments([]Segment{{Text: "x", Role: RoleTabInactive}}), "\x1b[2m")
+	})
+}
