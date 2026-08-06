@@ -138,6 +138,7 @@ type Model struct {
 
 	searching   bool
 	searchQuery string
+	searchCur   int
 }
 
 // New builds the model for the given deps.
@@ -306,6 +307,9 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.paletteCur = 0
 		return m, nil
 	}
+	if m.searching {
+		return m.handleSearch(msg)
+	}
 	// Interactive tab keeps its own modal filter/help handling.
 	if m.activeTab == TabInteractive {
 		return m.handleInteractiveKey(msg)
@@ -391,6 +395,11 @@ func (m Model) handleFleetKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if j, ok := m.currentFleet(); ok {
 			_ = m.runner.OpenURL(prURL(j.Repo, j.PRNumber))
 		}
+	case key.Matches(msg, m.keys.Search):
+		m.searching = true
+		m.searchQuery = ""
+		m.searchCur = 0
+		return m, nil
 	case key.Matches(msg, m.keys.Refresh):
 		return m, m.loadData()
 	case key.Matches(msg, m.keys.Help):
@@ -434,6 +443,11 @@ func (m Model) handleHistoryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.showDetail = true
 			return m, m.loadDetail(j.ID)
 		}
+	case key.Matches(msg, m.keys.Search):
+		m.searching = true
+		m.searchQuery = ""
+		m.searchCur = 0
+		return m, nil
 	case key.Matches(msg, m.keys.Refresh):
 		return m, m.loadData()
 	case key.Matches(msg, m.keys.Help):
@@ -559,6 +573,11 @@ func (m Model) handleInboxKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 				m.footer = "open PR: " + err.Error()
 			}
 		}
+	case key.Matches(msg, m.keys.Search):
+		m.searching = true
+		m.searchQuery = ""
+		m.searchCur = 0
+		return m, nil
 	case key.Matches(msg, m.keys.Refresh):
 		return m, m.loadData()
 	case key.Matches(msg, m.keys.Help):
@@ -851,8 +870,6 @@ func (m Model) historyView() string {
 }
 
 func (m Model) detailView() string { return renderDetail(m.detail) }
-
-func (m Model) searchView() string { return "" }
 
 func helpView() string {
 	lines := []string{

@@ -24,6 +24,7 @@ func (m Model) paletteCommands() []command {
 			mm.paletteOpen = false
 			mm.searching = true
 			mm.searchQuery = ""
+			mm.searchCur = 0
 			return mm, nil
 		}},
 	}
