@@ -6,6 +6,7 @@ package consult
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -240,6 +241,9 @@ func (r *Runner) afterExit(req Request, dir, out string, runErr error, final boo
 		question := fmt.Sprintf("consult %s: %s — answer to nudge the session, reject to close",
 			failPhase, firstLine(reason))
 		if err := r.Esc.Create(req.JobID, "", question, tail(out, 2000), nil); err != nil {
+			if errors.Is(err, escalate.ErrJobNotActive) {
+				return
+			}
 			r.Log.Error("consult failure escalation", "job", req.JobID, "err", err)
 		}
 		return

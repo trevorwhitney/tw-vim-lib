@@ -77,6 +77,19 @@ func (f fixture) job(t *testing.T) int64 {
 	return id
 }
 
+func Test_Create_LosesWhenJobNotActive(t *testing.T) {
+	f := setup(t)
+	jobID := f.job(t)
+	require.NoError(t, f.m.Create(jobID, "", "first?", "", nil)) // queued -> waiting_input
+
+	err := f.m.Create(jobID, "", "second?", "", nil)
+	require.ErrorIs(t, err, ErrJobNotActive)
+
+	escs, err := f.st.OpenEscalations()
+	require.NoError(t, err)
+	require.Len(t, escs, 1, "a lost claim must not create an escalation")
+}
+
 func Test_Create_ParksJobNotifiesAndBadges(t *testing.T) {
 	f := setup(t)
 	jobID := f.job(t)

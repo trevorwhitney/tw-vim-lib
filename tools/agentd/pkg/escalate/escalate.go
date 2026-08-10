@@ -17,6 +17,10 @@ import (
 
 var ErrUnsupportedResolution = errors.New("unsupported resolution (approve|reject|answer)")
 
+// ErrJobNotActive marks a lost escalation claim: another writer moved the job
+// out of the daemon-owned states first, so no escalation was created.
+var ErrJobNotActive = errors.New("job is no longer active; escalation not created")
+
 // Finalizer runs a job's finalizing phase (transcript, cleanup) before the
 // terminal transition. Nil falls back to a direct FinishJob.
 type Finalizer interface {
@@ -57,11 +61,15 @@ func (m *Manager) Create(jobID int64, kind, question, advice string, act *policy
 			kind = "waiting_approval"
 		}
 	}
-	id, err := m.Store.CreateEscalation(jobID, kind, question, advice, actionKind, actionParams)
+	won, err := m.Store.ClaimJobState(jobID, kind, "queued", "preparing", "running")
 	if err != nil {
 		return err
 	}
-	if err := m.Store.SetJobState(jobID, kind); err != nil {
+	if !won {
+		return fmt.Errorf("job %d: %w", jobID, ErrJobNotActive)
+	}
+	id, err := m.Store.CreateEscalation(jobID, kind, question, advice, actionKind, actionParams)
+	if err != nil {
 		return err
 	}
 	job, err := m.Store.GetJob(jobID)
