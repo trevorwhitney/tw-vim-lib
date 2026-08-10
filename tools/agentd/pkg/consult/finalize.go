@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/opencode"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/workspace"
@@ -59,6 +60,12 @@ func (r *Runner) exportTranscript(jobID int64) {
 	out, err := r.OC.Export(r.base, job.SessionID)
 	if err != nil {
 		_ = r.Store.AddEvent(jobID, "transcript_export_failed", fmt.Sprintf(`{"error":%q}`, firstLine(err.Error())))
+		return
+	}
+	if i := strings.IndexAny(out, "{["); i >= 0 {
+		out = out[i:]
+	} else {
+		_ = r.Store.AddEvent(jobID, "transcript_export_failed", `{"error":"no JSON in export output"}`)
 		return
 	}
 	art := r.WS.ArtifactDir(jobID)

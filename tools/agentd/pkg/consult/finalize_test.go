@@ -2,6 +2,7 @@ package consult
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -227,4 +228,16 @@ func TestSweepFinalizingReplaysWedgedJob(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "done", job.State)
 	require.Equal(t, "acted", job.Outcome)
+}
+
+func TestTranscriptStripsExportBanner(t *testing.T) {
+	fake := exportFake("Exporting session: ses_1\n{\"messages\":[]}", nil)
+	r, st := fixture(t, fake)
+	jobID := preparedJob(t, r, st)
+
+	require.NoError(t, r.Finalize(context.Background(), jobID, "done", "acted", "m"))
+
+	b, err := os.ReadFile(filepath.Join(r.WS.ArtifactDir(jobID), "transcript.json"))
+	require.NoError(t, err)
+	require.True(t, json.Valid(b), "transcript must be pure JSON")
 }
