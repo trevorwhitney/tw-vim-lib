@@ -4,24 +4,24 @@ Plan: `docs/superpowers/plans/2026-08-06-agentd-productionize-harden.md` (vault 
 Workflow: prototype-driven subagent development
 
 ## Tasks
-- [ ] Task 1: tracking
-- [ ] Task 2: actor retry honors ctx / AuthError
-- [ ] Task 3: allowed_paths glob validation
-- [ ] Task 4: ChangedFiles truncation vs expected count
-- [ ] Task 5: deferredAt pruning
-- [ ] Task 6: graceful serve shutdown + consult WaitTimeout
-- [ ] Task 7: store ClaimJobState + OpenEscalationForJob determinism
-- [ ] Task 8: escalate.Create claims the job state
-- [ ] Task 9: finMu + idempotent Finalize + SweepFinalizing
-- [ ] Task 10: Continue claims the waiting state
-- [ ] Task 11: api 400/503 for validation errors
-- [ ] Task 12: PrepareWorktree origin-aware fallback
-- [ ] Task 13: classify requires confidence
-- [ ] Task 14: transcript export banner strip
-- [ ] Task 15: race/dedup tests + -race in make test-agentd
-- [ ] Task 15b: merge-dependency-updates acceptance scenarios (real PRs: shadow, armed, escalate)
-- [ ] Task 16: agentd nix package; remove install-agentd + plist
-- [ ] Task 17: full verification pass
+- [x] Task 1: tracking — 2e1b03b
+- [x] Task 2: actor retry honors ctx / AuthError — b4662b4
+- [x] Task 3: allowed_paths glob validation — 1514998
+- [x] Task 4: ChangedFiles truncation vs expected count — e22bcdd
+- [x] Task 5: deferredAt pruning — cf4ede2
+- [x] Task 6: graceful serve shutdown + consult WaitTimeout — 614308d
+- [x] Task 7: store ClaimJobState + OpenEscalationForJob determinism — 4c77547
+- [x] Task 8: escalate.Create claims the job state — dde472e
+- [x] Task 9: finMu + idempotent Finalize + SweepFinalizing — 7b245f8
+- [x] Task 10: Continue claims the waiting state — 7b245f8, bb51501
+- [x] Task 11: api 400/503 for validation errors — 83f8989
+- [x] Task 12: PrepareWorktree origin-aware fallback — 4f7d167
+- [x] Task 13: classify requires confidence — 9aae777
+- [x] Task 14: transcript export banner strip — 6440530
+- [x] Task 15: race/dedup tests + -race in make test-agentd — 976bdab
+- [x] Task 15b: merge-dependency-updates acceptance scenarios (real PRs: shadow, armed, escalate) — 35d5f1a
+- [x] Task 16: agentd nix package; remove install-agentd + plist — 21480c8
+- [x] Task 17: full verification pass
 - [ ] Task 18: GATE — merge branch to main (operator)
 - [ ] Task 19: dotfiles agentd module + config
 - [ ] Task 20: deploy + stray-daemon cleanup + verify (operator)
@@ -30,19 +30,32 @@ Workflow: prototype-driven subagent development
 - [ ] Task 23: bookkeeping (roadmap + TODO follow-ups)
 
 ## /goal checklist
-- [ ] `make lint` green
-- [ ] `make test-agentd` green under `-race` (17+ pkgs)
-- [ ] `cd tools/agentd && go build ./...` green
-- [ ] `nix build .#agentd` green; `result/bin/agentd --help` lists serve/once/enqueue/resolve/status/gc
-- [ ] `nix build .#agentmux` still green
-- [ ] No install-agentd/plist stragglers:
+- [x] `make lint` green (0 warnings / 0 errors, 70 files)
+- [x] `make test-agentd` green under `-race` (17 pkgs)
+- [x] `cd tools/agentd && go build ./...` green; agentmux build + tests green
+- [x] `nix build .#agentd` green; `result/bin/agentd --help` lists serve/once/enqueue/resolve/status/gc
+- [x] `nix build .#agentmux` still green
+- [x] No install-agentd/plist stragglers:
       `grep -rn "install-agentd\|io.twhitney.agentd" . | grep -v docs/` empty (outside this tracking note)
-- [ ] `make test-agentd-acceptance` green — all consult scenarios PLUS the new
-      merge-dependency-updates scenarios against real PRs in
-      trevorwhitney/agentd-acceptance: shadow records the merge without merging,
-      armed actually merges the PR on GitHub, out-of-allowed-paths escalates
-      with the merge action attached. Rerun once before treating a failure as
+- [x] `make test-agentd-acceptance` green — all 8 scenarios (5 consult + 3 new
+      merge-dependency-updates) against real PRs in
+      trevorwhitney/agentd-acceptance: shadow recorded the merge without merging
+      (PR stayed OPEN), armed actually merged the PR on GitHub, out-of-allowed-paths
+      escalated with the merge action attached and reject left the PR OPEN.
+      Sandbox left clean: no open PRs, no leaked branches (cleanup now deletes
+      merged-PR head branches too). Rerun once before treating a failure as
       real (GitGuardian can wedge fresh PRs IN_PROGRESS).
+
+## Follow-ups (review findings accepted at prototype scope)
+- [ ] consult: exportTranscript trusts the banner-strip heuristic; consider a
+      json.Valid guard before writing transcript.json (silent corruption if the
+      banner format ever gains a { or [ before the JSON)
+- [ ] acceptance: ocFake is not concurrency-safe (unsynchronized reqs slice);
+      guard with a mutex before adding tests where racing paths call OC.Run
+- [ ] store/escalate: the claimable-state set ("queued","preparing","running")
+      and isTerminal are two halves of one state-machine partition maintained
+      in separate places; a named claimableStates var would make the coupling
+      visible
 
 # TODO: agentmux mission control (Plan 3 of 3)
 
@@ -177,24 +190,25 @@ reviewed (spec + quality per batch), and committed across four repos.
   removed, so resume applies to live jobs (or export the transcript).
 
 ## Follow-ups (review findings accepted at prototype scope)
-- [ ] consult: add SetJobStateIf (CAS) — afterExit vs late Report, Handback vs
-      Resolve→Finalize are check-then-act races today (code-review important)
-- [ ] consult: hbMu does not cover Finalize from Resolve/Reconcile paths
-- [ ] consult: FinishJob failure without restart wedges a job in finalizing
-- [ ] consult: test the cleanup attention dedup suppress branch + add an
-      interleave (-race) test for the report/exit race
-- [ ] store: OpenEscalationForJob should ORDER BY + LIMIT 1
-- [ ] workspace: PrepareWorktree fetch-fallback can silently build from a
-      stale local refs/pull/N/head when origin fetch fails transiently
-- [ ] classify: missing confidence unmarshals to 0.0 and passes validation
-- [ ] escalate: answer-retry can double-run Continue if record() fails after
-      a successful continuation; document/enforce Continuer idempotency
-- [ ] api: input-validation errors (reject-without-reason etc.) return 409,
-      should be 400
-- [ ] transcript.json carries a leading "Exporting session: ..." banner line
-      from `opencode export`; strip it if consumers want pure JSON
-- [ ] serve shutdown: consider consult.Wait (bounded) before store.Close
-- [ ] engine: deferredAt entries are unbounded (Plan 1 carry-over)
+- [x] consult: add SetJobStateIf (CAS) — closed by Plan 4 Tasks 7-8
+      (store.ClaimJobState + escalate.Create claim)
+- [x] consult: hbMu does not cover Finalize from Resolve/Reconcile paths —
+      closed by Plan 4 Task 9 (finMu)
+- [x] consult: FinishJob failure without restart wedges a job in finalizing —
+      closed by Plan 4 Task 9 (SweepFinalizing)
+- [x] consult: test the cleanup attention dedup suppress branch + add an
+      interleave (-race) test for the report/exit race — Plan 4 Task 15
+- [x] store: OpenEscalationForJob should ORDER BY + LIMIT 1 — Plan 4 Task 7
+- [x] workspace: PrepareWorktree fetch-fallback can silently build from a
+      stale local refs/pull/N/head — Plan 4 Task 12
+- [x] classify: missing confidence unmarshals to 0.0 and passes validation —
+      Plan 4 Task 13
+- [x] escalate: answer-retry can double-run Continue — Plan 4 Task 10
+      (Continue claims the waiting state; Continuer contract documented)
+- [x] api: input-validation errors return 409, should be 400 — Plan 4 Task 11
+- [x] transcript.json export banner strip — Plan 4 Task 14
+- [x] serve shutdown: consult.Wait (bounded) before store.Close — Plan 4 Task 6
+- [x] engine: deferredAt entries are unbounded — Plan 4 Task 5
 
 # Previous: agentd engine (Plan 1 of 3)
 
@@ -203,17 +217,14 @@ Workflow: prototype-driven subagent development. **COMPLETE** — all 17 tasks i
 reviewed (spec + quality per batch), committed, and the dry-run acceptance passed against grafana/loki.
 
 ## Follow-ups before arming (removing shadow: true)
-- [ ] Actor retry loop should honor ctx cancellation and not retry github.AuthError (actor.go)
-- [ ] serve: prefer srv.Shutdown(ctx) over srv.Close() for graceful drain (cmd/agentd/main.go)
-- [ ] ChangedFiles truncated heuristic (len>=3000) is undercut by --paginate fetching all pages
-- [ ] Validate allowed_paths globs at construction (doublestar.ValidatePattern) instead of
-      silently never-matching on a malformed pattern (depupdates.go)
-- [ ] deferredAt map is unbounded per-process; prune entries older than deferRecheck if daemon
-      outlives prototype scope
+- [x] Actor retry loop should honor ctx cancellation and not retry github.AuthError — Plan 4 Task 2
+- [x] serve: prefer srv.Shutdown(ctx) over srv.Close() for graceful drain — Plan 4 Task 6
+- [x] ChangedFiles truncated heuristic (len>=3000) undercut by --paginate — Plan 4 Task 4
+- [x] Validate allowed_paths globs at construction — Plan 4 Task 3
+- [x] deferredAt map is unbounded per-process — Plan 4 Task 5
 - [x] Manual enqueue bypasses the defer backoff (done in Plan 2, 2d5551f)
-- [ ] Config for real use: `~/.config/agentd/config.yaml` (sandbox blocked writing it here;
-      copy from the demo config, drop the temp-dir database/socket overrides).
-      grafana repos need `allowed_authors: ["app/renovate-sh-app"]`.
+- [ ] Config for real use: lands in dotfiles as `agentd/config.yaml` via home-manager
+      (Plan 4 Task 19); grafana repos need `allowed_authors: ["app/renovate-sh-app"]`.
 
 ## Notes
 - Plan 1 base commit: da47373; final commit: eaf0522
