@@ -28,6 +28,8 @@ type Finalizer interface {
 }
 
 // Continuer resumes a consult session headless with the operator's answer.
+// Continue must be idempotent per escalation: a repeated call for a job that
+// already left its waiting state must fail without spawning a session.
 type Continuer interface {
 	Continue(ctx context.Context, jobID int64, answer string) error
 }
