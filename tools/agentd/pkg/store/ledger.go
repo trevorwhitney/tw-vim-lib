@@ -127,7 +127,7 @@ func (s *Store) OpenEscalations() ([]Escalation, error) {
 
 func (s *Store) OpenEscalationForJob(jobID int64) (Escalation, bool, error) {
 	e, err := scanEscalation(s.db.QueryRow(
-		`SELECT `+escCols+` FROM escalations WHERE job_id=? AND state='open'`, jobID))
+		`SELECT `+escCols+` FROM escalations WHERE job_id=? AND state='open' ORDER BY id DESC LIMIT 1`, jobID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return Escalation{}, false, nil
 	}

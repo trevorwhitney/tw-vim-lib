@@ -51,6 +51,21 @@ func Test_Decisions_Insert(t *testing.T) {
 	require.NoError(t, s.AddDecision(jobID, "merge-dependency-updates", "act", "all files allowed"))
 }
 
+func Test_OpenEscalationForJob_PicksNewest(t *testing.T) {
+	st := openTemp(t)
+	id, err := st.CreateJob("pr", "a/b", 1, "s1")
+	require.NoError(t, err)
+	_, err = st.CreateEscalation(id, "waiting_input", "first", "", "", "")
+	require.NoError(t, err)
+	second, err := st.CreateEscalation(id, "waiting_approval", "second", "", "", "")
+	require.NoError(t, err)
+
+	esc, ok, err := st.OpenEscalationForJob(id)
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.Equal(t, second, esc.ID, "newest open escalation wins")
+}
+
 func Test_Escalations_Lifecycle(t *testing.T) {
 	s := openTemp(t)
 	jobID, err := s.CreateJob("pr", "a/b", 1, "sha1")

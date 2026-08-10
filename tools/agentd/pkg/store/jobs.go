@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"strings"
 )
 
 type Job struct {
@@ -76,6 +77,27 @@ func (s *Store) JobForHead(repo string, prNumber int, headSHA, kind string) (Job
 func (s *Store) SetJobState(id int64, state string) error {
 	_, err := s.db.Exec(`UPDATE jobs SET state=?, updated_ts=? WHERE id=?`, state, s.now().Unix(), id)
 	return err
+}
+
+// ClaimJobState atomically moves the job to state to, but only if its current
+// state is one of from. It reports whether the claim won; a lost claim means
+// another writer moved the job first.
+func (s *Store) ClaimJobState(id int64, to string, from ...string) (bool, error) {
+	if len(from) == 0 {
+		return false, errors.New("ClaimJobState requires at least one from state")
+	}
+	q := `UPDATE jobs SET state=?, updated_ts=? WHERE id=? AND state IN (?` +
+		strings.Repeat(",?", len(from)-1) + `)`
+	args := []any{to, s.now().Unix(), id}
+	for _, f := range from {
+		args = append(args, f)
+	}
+	res, err := s.db.Exec(q, args...)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n > 0, err
 }
 
 // FinishJob moves a job to a terminal state with its outcome and summary.
