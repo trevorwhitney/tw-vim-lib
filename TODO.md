@@ -1,3 +1,49 @@
+# TODO: productionize + harden (Plan 4)
+
+Plan: `docs/superpowers/plans/2026-08-06-agentd-productionize-harden.md` (vault symlink, not committed)
+Workflow: prototype-driven subagent development
+
+## Tasks
+- [ ] Task 1: tracking
+- [ ] Task 2: actor retry honors ctx / AuthError
+- [ ] Task 3: allowed_paths glob validation
+- [ ] Task 4: ChangedFiles truncation vs expected count
+- [ ] Task 5: deferredAt pruning
+- [ ] Task 6: graceful serve shutdown + consult WaitTimeout
+- [ ] Task 7: store ClaimJobState + OpenEscalationForJob determinism
+- [ ] Task 8: escalate.Create claims the job state
+- [ ] Task 9: finMu + idempotent Finalize + SweepFinalizing
+- [ ] Task 10: Continue claims the waiting state
+- [ ] Task 11: api 400/503 for validation errors
+- [ ] Task 12: PrepareWorktree origin-aware fallback
+- [ ] Task 13: classify requires confidence
+- [ ] Task 14: transcript export banner strip
+- [ ] Task 15: race/dedup tests + -race in make test-agentd
+- [ ] Task 15b: merge-dependency-updates acceptance scenarios (real PRs: shadow, armed, escalate)
+- [ ] Task 16: agentd nix package; remove install-agentd + plist
+- [ ] Task 17: full verification pass
+- [ ] Task 18: GATE — merge branch to main (operator)
+- [ ] Task 19: dotfiles agentd module + config
+- [ ] Task 20: deploy + stray-daemon cleanup + verify (operator)
+- [ ] Task 21: agentmux live click-through (operator)
+- [ ] Task 22: shadow observation, then arm (operator)
+- [ ] Task 23: bookkeeping (roadmap + TODO follow-ups)
+
+## /goal checklist
+- [ ] `make lint` green
+- [ ] `make test-agentd` green under `-race` (17+ pkgs)
+- [ ] `cd tools/agentd && go build ./...` green
+- [ ] `nix build .#agentd` green; `result/bin/agentd --help` lists serve/once/enqueue/resolve/status/gc
+- [ ] `nix build .#agentmux` still green
+- [ ] No install-agentd/plist stragglers:
+      `grep -rn "install-agentd\|io.twhitney.agentd" . | grep -v docs/` empty (outside this tracking note)
+- [ ] `make test-agentd-acceptance` green — all consult scenarios PLUS the new
+      merge-dependency-updates scenarios against real PRs in
+      trevorwhitney/agentd-acceptance: shadow records the merge without merging,
+      armed actually merges the PR on GitHub, out-of-allowed-paths escalates
+      with the merge action attached. Rerun once before treating a failure as
+      real (GitGuardian can wedge fresh PRs IN_PROGRESS).
+
 # TODO: agentmux mission control (Plan 3 of 3)
 
 Plan: `docs/superpowers/plans/2026-08-05-agentmux-mission-control.md`
