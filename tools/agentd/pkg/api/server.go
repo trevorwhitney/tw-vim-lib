@@ -160,8 +160,12 @@ func (s *Server) resolve(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.Esc.Resolve(r.Context(), id, req.Resolution, req.Reason, req.Answer, s.Actor); err != nil {
 		switch {
-		case errors.Is(err, escalate.ErrUnsupportedResolution):
+		case errors.Is(err, escalate.ErrUnsupportedResolution),
+			errors.Is(err, escalate.ErrReasonRequired),
+			errors.Is(err, escalate.ErrAnswerRequired):
 			writeErr(w, http.StatusBadRequest, err)
+		case errors.Is(err, escalate.ErrNoContinuer):
+			writeErr(w, http.StatusServiceUnavailable, err)
 		default:
 			writeErr(w, http.StatusConflict, err)
 		}
@@ -246,6 +250,10 @@ func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Consult.Report(id, req.Verdict, req.Summary, req.Details); err != nil {
+		if errors.Is(err, consult.ErrBadVerdict) {
+			writeErr(w, http.StatusBadRequest, err)
+			return
+		}
 		writeErr(w, http.StatusConflict, err)
 		return
 	}

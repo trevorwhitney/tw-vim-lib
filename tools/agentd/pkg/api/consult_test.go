@@ -213,3 +213,45 @@ func TestConsultEndpointsWithoutRunner(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "503")
 }
+
+func TestResolveValidationReturns400(t *testing.T) {
+	_, st, c := consultFixture(t)
+	jobID, err := st.CreateJob("pr", "grafana/loki", 42, "abc")
+	require.NoError(t, err)
+	escID, err := st.CreateEscalation(jobID, "waiting_approval", "q", "", "", "")
+	require.NoError(t, err)
+	require.NoError(t, st.SetJobState(jobID, "waiting_approval"))
+
+	err = c.Resolve(escID, "reject", "", "")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "400", "reject without reason is a caller error")
+
+	err = c.Resolve(escID, "answer", "", "")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "400", "answer without text is a caller error")
+}
+
+func TestResolveNoContinuerReturns503(t *testing.T) {
+	_, st2, c2 := plainFixture(t)
+	jobID2, err := st2.CreateJob("pr", "grafana/loki", 42, "abc")
+	require.NoError(t, err)
+	escID2, err := st2.CreateEscalation(jobID2, "waiting_input", "q", "", "", "")
+	require.NoError(t, err)
+	require.NoError(t, st2.SetJobState(jobID2, "waiting_input"))
+
+	err = c2.Resolve(escID2, "answer", "", "some text")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "503", "missing continuer is service state")
+}
+
+func TestReportBadVerdictReturns400(t *testing.T) {
+	_, st, c := consultFixture(t)
+	jobID, err := st.CreateJob("pr", "grafana/loki", 42, "abc")
+	require.NoError(t, err)
+	verdicts := `{"approve":{"action":"approve_pr"},"needs-human":{"action":"none"}}`
+	require.NoError(t, st.SetJobVerdicts(jobID, verdicts))
+
+	err = c.Report(jobID, "yolo-merge", "s", "d")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "400", "verdict outside declared set is a caller error")
+}

@@ -15,7 +15,12 @@ import (
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/store"
 )
 
-var ErrUnsupportedResolution = errors.New("unsupported resolution (approve|reject|answer)")
+var (
+	ErrUnsupportedResolution = errors.New("unsupported resolution (approve|reject|answer)")
+	ErrReasonRequired        = errors.New("reject requires a reason")
+	ErrAnswerRequired        = errors.New("answer requires answer text")
+	ErrNoContinuer           = errors.New("no continuation runner configured")
+)
 
 // ErrJobNotActive marks a lost escalation claim: another writer moved the job
 // out of the daemon-owned states first, so no escalation was created.
@@ -178,7 +183,7 @@ func (m *Manager) Resolve(ctx context.Context, id int64, resolution, reason, ans
 		return record()
 	case "reject":
 		if reason == "" {
-			return errors.New("reject requires a reason")
+			return ErrReasonRequired
 		}
 		if !isTerminal(job.State) {
 			if err := finish("rejected", "rejected", "rejected by operator: "+reason); err != nil {
@@ -188,10 +193,10 @@ func (m *Manager) Resolve(ctx context.Context, id int64, resolution, reason, ans
 		return record()
 	case "answer":
 		if answer == "" {
-			return errors.New("answer requires answer text")
+			return ErrAnswerRequired
 		}
 		if m.Cont == nil {
-			return errors.New("no continuation runner configured")
+			return ErrNoContinuer
 		}
 		if err := m.Cont.Continue(ctx, esc.JobID, answer); err != nil {
 			return err

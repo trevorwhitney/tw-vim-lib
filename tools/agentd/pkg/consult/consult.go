@@ -312,6 +312,10 @@ func (r *Runner) Report(jobID int64, verdict, summary, details string) error {
 	return r.Esc.Create(jobID, "waiting_approval", question, details, act)
 }
 
+// ErrBadVerdict marks a report whose verdict is outside the job's declared
+// menu; the consultant must report again with a declared verdict.
+var ErrBadVerdict = errors.New("verdict not in declared set")
+
 // verdictAction validates the verdict against the job's declared menu and
 // builds the mapped action. Every parameter comes from job facts; the one
 // LLM-authored value is the comment body (the report itself), which executes
@@ -332,7 +336,8 @@ func verdictAction(job store.Job, verdict, summary, details string) (*policy.Act
 			declared = append(declared, v)
 		}
 		sort.Strings(declared)
-		return nil, fmt.Errorf("verdict %q is not in the declared set %v; report again with a declared verdict", verdict, declared)
+		return nil, fmt.Errorf("verdict %q is not in the declared set %v; report again with a declared verdict: %w",
+			verdict, declared, ErrBadVerdict)
 	}
 	params := map[string]string{"repo": job.Repo, "number": strconv.Itoa(job.PRNumber)}
 	switch va.Action {
