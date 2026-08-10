@@ -89,7 +89,7 @@ test-agentd:
 
 test-agentd-acceptance:
 	@echo "Running agentd acceptance suite (requires gh auth, git, tmux, curl)..."
-	@cd tools/agentd && go test -tags acceptance ./acceptance/ -v -timeout 15m
+	@cd tools/agentd && go test -tags acceptance ./acceptance/ -v -timeout 25m
 
 test-agentd-integration:
 	@echo "Running agentd integration tests (requires authenticated gh + network)..."

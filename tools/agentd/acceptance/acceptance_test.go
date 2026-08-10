@@ -20,9 +20,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/api"
+	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/apitypes"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/config"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/execx"
-	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/store"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/tmuxctl"
 )
 
@@ -38,20 +38,27 @@ func requireTools(t *testing.T) {
 	}
 }
 
+// ghLogin returns the authenticated GitHub login name.
+func ghLogin(t *testing.T) string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	out, err := execx.Command(ctx, "gh", "api", "user", "-q", ".login")
+	require.NoError(t, err)
+	return strings.TrimSpace(out)
+}
+
 // ensureSandbox returns "<login>/agentd-acceptance", creating the private
 // repo (gh repo create --private --add-readme) on first use.
 func ensureSandbox(t *testing.T) string {
 	t.Helper()
+	login := ghLogin(t)
+	repo := login + "/agentd-acceptance"
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	loginOutput, err := execx.Command(ctx, "gh", "api", "user", "-q", ".login")
-	require.NoError(t, err)
-	login := strings.TrimSpace(loginOutput)
-
-	repo := login + "/agentd-acceptance"
-
-	_, err = execx.Command(ctx, "gh", "repo", "view", repo)
+	_, err := execx.Command(ctx, "gh", "repo", "view", repo)
 	if err == nil {
 		return repo
 	}
@@ -123,6 +130,7 @@ func createPR(t *testing.T, repo string) int {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		_, _ = execx.Command(ctx, "gh", "pr", "close", "-R", repo, strconv.Itoa(prNumber), "--delete-branch")
+		_, _ = execx.Command(ctx, "gh", "api", "-X", "DELETE", fmt.Sprintf("repos/%s/git/refs/heads/%s", repo, branch))
 	})
 
 	return prNumber
@@ -158,11 +166,26 @@ func waitChecksSettled(t *testing.T, repo string, pr int, wait time.Duration) bo
 	}
 }
 
-// startDaemon builds agentd, writes the acceptance config into a temp
-// dir, starts `agentd serve`, waits for the socket, and registers cleanup
-// (SIGTERM + tmux -L kill-server). Returns an api.Client, the config, and
-// the state dir.
+const consultTriagePolicies = `      consult-triage:
+        verdicts:
+          approve:
+            action: comment_pr
+          needs-human:
+            action: none`
+
+// startDaemon starts agentd with the consult-triage policy. See
+// startDaemonWithPolicies for the returned values.
 func startDaemon(t *testing.T, repo, fakeMode string) (*api.Client, *config.Config, string) {
+	t.Helper()
+	return startDaemonWithPolicies(t, repo, fakeMode, consultTriagePolicies)
+}
+
+// startDaemonWithPolicies builds agentd, writes the acceptance config with the
+// given policies YAML fragment into a temp dir, starts `agentd serve`, waits
+// for the socket, and registers cleanup (SIGTERM + tmux -L kill-server).
+// policiesYAML must be indented for inclusion under "    policies:" (6-space
+// indent). Returns an api.Client, the config, and the state dir.
+func startDaemonWithPolicies(t *testing.T, repo, fakeMode, policiesYAML string) (*api.Client, *config.Config, string) {
 	t.Helper()
 	buildCtx, buildCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer buildCancel()
@@ -204,18 +227,14 @@ notify:
 repositories:
   - repo: %s
     policies:
-      consult-triage:
-        verdicts:
-          approve:
-            action: comment_pr
-          needs-human:
-            action: none
+%s
 `,
 		filepath.Join(stateDir, "agentd.db"),
 		filepath.Join(stateDir, "agentd.sock"),
 		shimPath,
 		filepath.Join(stateDir, "badge"),
 		repo,
+		policiesYAML,
 	)
 	err = os.WriteFile(cfgPath, []byte(cfgYAML), 0o644)
 	require.NoError(t, err, "failed to write config")
@@ -297,14 +316,14 @@ repositories:
 
 // waitForJob polls the daemon (api.Client Enqueue) to get the job ID for the PR
 // and then polls until it reaches wantState, failing after 60s.
-func waitForJob(t *testing.T, c *api.Client, repo string, pr int, wantState string) store.Job {
+func waitForJob(t *testing.T, c *api.Client, repo string, pr int, wantState string) apitypes.Job {
 	t.Helper()
 
 	// Enqueue the PR, with retries for deferred state. Mergeability takes a
 	// few seconds to compute and account-level apps (GitGuardian) hold CI
 	// pending for up to a minute — longer when the suite's PRs queue up
 	// back-to-back.
-	var job store.Job
+	var job apitypes.Job
 	deadline := time.Now().Add(4 * time.Minute)
 	for {
 		var err error
@@ -330,11 +349,16 @@ func waitForJob(t *testing.T, c *api.Client, repo string, pr int, wantState stri
 
 	// Poll until the job reaches the desired state
 	pollDeadline := time.Now().Add(60 * time.Second)
+	var lastState, lastQuestion string
 	for {
 		jobResp, err := c.Job(job.ID)
 		if err != nil {
 			t.Logf("job check failed: %v", err)
 		} else {
+			lastState = jobResp.Job.State
+			if jobResp.Escalation != nil {
+				lastQuestion = jobResp.Escalation.Question
+			}
 			if jobResp.Job.State == wantState {
 				return jobResp.Job
 			}
@@ -342,7 +366,7 @@ func waitForJob(t *testing.T, c *api.Client, repo string, pr int, wantState stri
 		}
 
 		if time.Now().After(pollDeadline) {
-			t.Fatalf("job did not reach %s after 60s", wantState)
+			t.Fatalf("job %d did not reach %s after 60s (state=%s, escalation=%q)", job.ID, wantState, lastState, lastQuestion)
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
@@ -375,7 +399,7 @@ func TestReportApprovalExecutesMappedAction(t *testing.T) {
 	require.NotZero(t, job.ID)
 
 	// Resolve with approve
-	var esc store.Escalation
+	var esc apitypes.Escalation
 	jobResp, err := client.Job(job.ID)
 	require.NoError(t, err)
 	require.NotNil(t, jobResp.Escalation)
@@ -408,7 +432,7 @@ func TestRejectFinalizesWithoutWriting(t *testing.T) {
 	pr := openPR(t, sandbox)
 	job := waitForJob(t, client, sandbox, pr, "waiting_approval")
 
-	var esc store.Escalation
+	var esc apitypes.Escalation
 	jobResp, err := client.Job(job.ID)
 	require.NoError(t, err)
 	require.NotNil(t, jobResp.Escalation)
@@ -439,7 +463,7 @@ func TestEscalateAnswerContinuation(t *testing.T) {
 	pr := openPR(t, sandbox)
 	job := waitForJob(t, client, sandbox, pr, "waiting_input")
 
-	var esc store.Escalation
+	var esc apitypes.Escalation
 	jobResp, err := client.Job(job.ID)
 	require.NoError(t, err)
 	require.NotNil(t, jobResp.Escalation)
@@ -507,7 +531,7 @@ func TestGCSweep(t *testing.T) {
 	pr := openPR(t, sandbox)
 	job := waitForJob(t, client, sandbox, pr, "waiting_approval")
 
-	var esc store.Escalation
+	var esc apitypes.Escalation
 	jobResp, err := client.Job(job.ID)
 	require.NoError(t, err)
 	require.NotNil(t, jobResp.Escalation)
