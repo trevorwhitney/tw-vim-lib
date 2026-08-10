@@ -1,4 +1,4 @@
-.PHONY: help lint lint-lua lint-nix format format-lua format-nix test test-lua test-plenary test-go test-agentd test-agentd-acceptance test-agentd-integration install-agentd
+.PHONY: help lint lint-lua lint-nix format format-lua format-nix test test-lua test-plenary test-go test-agentd test-agentd-acceptance test-agentd-integration
 
 help:
 	@echo "Available targets:"
@@ -15,7 +15,6 @@ help:
 	@echo "  test-agentd   - Run agentd unit tests"
 	@echo "  test-agentd-acceptance - Run agentd acceptance suite (requires gh + git + tmux + curl)"
 	@echo "  test-agentd-integration - Run agentd integration tests (requires gh + network)"
-	@echo "  install-agentd - Install agentd to ~/.local/bin"
 
 lint: lint-lua lint-nix
 	@echo "All linting complete"
@@ -96,7 +95,3 @@ test-agentd-integration:
 	@echo "Running agentd integration tests (requires authenticated gh + network)..."
 	@cd tools/agentd && go test -tags integration ./pkg/github/ -v
 
-install-agentd:
-	@echo "Installing agentd to ~/.local/bin..."
-	@mkdir -p ~/.local/bin ~/.local/state/agentd
-	@cd tools/agentd && go build -o ~/.local/bin/agentd ./cmd/agentd
