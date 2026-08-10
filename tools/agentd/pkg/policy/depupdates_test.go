@@ -61,6 +61,14 @@ func Test_DepUpdates(t *testing.T) {
 	})
 }
 
+func Test_DepUpdates_RejectsInvalidGlob(t *testing.T) {
+	_, err := NewDepUpdates(yamlNode(t, `
+allowed_paths: ["go.mod", "[bad"]
+`))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "[bad")
+}
+
 func Test_DepUpdates_CustomConfig(t *testing.T) {
 	p, err := NewDepUpdates(yamlNode(t, `
 allowed_paths: ["package.json", "**/*.lock"]

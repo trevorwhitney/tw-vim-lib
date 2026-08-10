@@ -35,6 +35,11 @@ func NewDepUpdates(raw *yaml.Node) (*DepUpdates, error) {
 	default:
 		return nil, fmt.Errorf("merge_method must be squash|merge|rebase, got %q", p.MergeMethod)
 	}
+	for _, pattern := range p.AllowedPaths {
+		if !doublestar.ValidatePattern(pattern) {
+			return nil, fmt.Errorf("invalid allowed_paths pattern %q", pattern)
+		}
+	}
 	return p, nil
 }
 
