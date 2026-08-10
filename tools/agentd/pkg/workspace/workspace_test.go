@@ -113,3 +113,18 @@ func TestSweep(t *testing.T) {
 	require.DirExists(t, m.ScratchDir(3), "dirty scratch survives")
 	require.DirExists(t, m.ArtifactDir(1), "artifact dir always survives")
 }
+
+func TestPrepareWorktreeFailsOnFetchErrorWithOrigin(t *testing.T) {
+	local := seedRepo(t)
+	ctx := context.Background()
+	_, err := execx.Run(ctx, execx.Options{Dir: local}, "git", "remote", "add", "origin",
+		filepath.Join(t.TempDir(), "missing.git"))
+	require.NoError(t, err)
+	// A stale ref the old fallback would have silently used.
+	_, err = execx.Run(ctx, execx.Options{Dir: local}, "git", "update-ref", "refs/pull/5/head", "HEAD")
+	require.NoError(t, err)
+
+	m := &Manager{StateDir: t.TempDir(), Exec: execx.Run}
+	_, err = m.PrepareWorktree(ctx, local, "proj", 7, 5)
+	require.Error(t, err, "a transient fetch failure must not fall back to a stale local ref")
+}

@@ -67,8 +67,12 @@ func (m *Manager) PrepareWorktree(ctx context.Context, local, project string, jo
 	ref := fmt.Sprintf("refs/agentd/%d", jobID)
 	fetch := fmt.Sprintf("refs/pull/%d/head:%s", prNumber, ref)
 	if out, err := m.Exec(ctx, execx.Options{Dir: local}, "git", "fetch", "origin", fetch); err != nil {
-		// The test seam seeds refs/pull/<n>/head directly; fall back to it
-		// when there is no origin to fetch from.
+		// Only a repo with no origin may use the locally seeded
+		// refs/pull/<n>/head (the test seam); any other fetch failure could
+		// leave a stale ref and must fail loudly.
+		if _, remoteErr := m.Exec(ctx, execx.Options{Dir: local}, "git", "remote", "get-url", "origin"); remoteErr == nil {
+			return "", fmt.Errorf("fetch pr head: %w: %s", err, out)
+		}
 		if out2, err2 := m.Exec(ctx, execx.Options{Dir: local}, "git", "update-ref", ref, fmt.Sprintf("refs/pull/%d/head", prNumber)); err2 != nil {
 			return "", fmt.Errorf("fetch pr head: %w: %s / %s", err, out, out2)
 		}
