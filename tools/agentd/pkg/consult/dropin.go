@@ -1,7 +1,6 @@
 package consult
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -48,11 +47,11 @@ func (r *Runner) DropIn(jobID int64) error {
 }
 
 // Handback reclaims an interactive job: close the window, resolve the open
-// escalation as handled, finalize. Serialized so a manual hand-back and the
-// window sweep cannot both reclaim the same job.
+// escalation as handled, finalize. finMu serializes this against the other
+// terminal-side transitions (see the finMu field comment).
 func (r *Runner) Handback(jobID int64) error {
-	r.hbMu.Lock()
-	defer r.hbMu.Unlock()
+	r.finMu.Lock()
+	defer r.finMu.Unlock()
 	job, err := r.Store.GetJob(jobID)
 	if err != nil {
 		return err
@@ -72,7 +71,7 @@ func (r *Runner) Handback(jobID int64) error {
 		}
 		_ = r.Esc.RefreshBadge()
 	}
-	return r.Finalize(context.Background(), jobID, "done", "handled", "resolved interactively by operator")
+	return r.finalizeLocked(jobID, "done", "handled", "resolved interactively by operator")
 }
 
 // SweepInteractive treats interactive jobs whose drop-in window disappeared

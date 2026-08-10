@@ -64,9 +64,11 @@ type Runner struct {
 	base context.Context
 	sem  chan struct{}
 	wg   sync.WaitGroup
-	// hbMu serializes hand-back so a manual handback and the window sweep
-	// cannot both reclaim the same job.
-	hbMu sync.Mutex
+	// finMu serializes terminal-side transitions (Finalize, Handback,
+	// Continue, SweepFinalizing) so hand-back, resolution, restart replay,
+	// and the wedge sweep cannot interleave on the same job. Holders that
+	// finalize must call finalizeLocked, never Finalize (not reentrant).
+	finMu sync.Mutex
 }
 
 func New(base context.Context, d Deps, concurrency int) *Runner {

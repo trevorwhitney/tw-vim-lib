@@ -54,6 +54,9 @@ func (e *Engine) PollAll(ctx context.Context) {
 		if err := e.Consult.SweepInteractive(); err != nil {
 			e.Log.Error("interactive sweep", "err", err)
 		}
+		if err := e.Consult.SweepFinalizing(); err != nil {
+			e.Log.Error("finalizing sweep", "err", err)
+		}
 	}
 }
 

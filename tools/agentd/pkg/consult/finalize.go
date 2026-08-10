@@ -15,17 +15,36 @@ import (
 // Finalize implements escalate.Finalizer: finalizing state (terminal target
 // persisted in the event payload for crash replay), transcript export,
 // workspace cleanup, then the terminal transition. Export and cleanup are
-// best-effort and never block the finish.
+// best-effort and never block the finish. Finalizing an already-terminal job
+// is a no-op.
 func (r *Runner) Finalize(_ context.Context, jobID int64, state, outcome, summary string) error {
-	payload, err := json.Marshal(map[string]string{"state": state, "outcome": outcome, "summary": summary})
+	r.finMu.Lock()
+	defer r.finMu.Unlock()
+	return r.finalizeLocked(jobID, state, outcome, summary)
+}
+
+// finalizeLocked must only be called while holding finMu.
+func (r *Runner) finalizeLocked(jobID int64, state, outcome, summary string) error {
+	job, err := r.Store.GetJob(jobID)
 	if err != nil {
 		return err
 	}
-	if err := r.Store.SetJobState(jobID, "finalizing"); err != nil {
-		return err
+	if isTerminal(job.State) {
+		return nil
 	}
-	if err := r.Store.AddEvent(jobID, "finalizing", string(payload)); err != nil {
-		return err
+	// A replayed job is already finalizing with its target recorded; do not
+	// duplicate the state write or the event.
+	if job.State != "finalizing" {
+		payload, err := json.Marshal(map[string]string{"state": state, "outcome": outcome, "summary": summary})
+		if err != nil {
+			return err
+		}
+		if err := r.Store.SetJobState(jobID, "finalizing"); err != nil {
+			return err
+		}
+		if err := r.Store.AddEvent(jobID, "finalizing", string(payload)); err != nil {
+			return err
+		}
 	}
 	r.exportTranscript(jobID)
 	r.cleanup(jobID)
@@ -77,8 +96,11 @@ func (r *Runner) cleanup(jobID int64) {
 }
 
 // Continue implements escalate.Continuer: the job returns to running and the
-// session resumes headless with the operator's answer.
+// session resumes headless with the operator's answer. The waiting->running
+// transition is a claim, so a retried answer cannot run a second session.
 func (r *Runner) Continue(_ context.Context, jobID int64, answer string) error {
+	r.finMu.Lock()
+	defer r.finMu.Unlock()
 	job, err := r.Store.GetJob(jobID)
 	if err != nil {
 		return err
@@ -86,8 +108,12 @@ func (r *Runner) Continue(_ context.Context, jobID int64, answer string) error {
 	if job.SessionID == "" {
 		return fmt.Errorf("job %d has no registered session to continue", jobID)
 	}
-	if err := r.Store.SetJobState(jobID, "running"); err != nil {
+	won, err := r.Store.ClaimJobState(jobID, "running", "waiting_input", "waiting_approval", "parked")
+	if err != nil {
 		return err
+	}
+	if !won {
+		return fmt.Errorf("job %d is %s; only waiting or parked jobs can be continued", jobID, job.State)
 	}
 	if err := r.Store.AddEvent(jobID, "answered", ""); err != nil {
 		return err
@@ -113,6 +139,33 @@ func (r *Runner) spawnSession(req Request, dir, sessionID, prompt, failPhase str
 		})
 		r.afterExit(req, dir, out, err, true, failPhase)
 	}()
+}
+
+// SweepFinalizing replays jobs stuck in finalizing: after a crash (called
+// from Reconcile) or after an in-process FinishJob failure (called from the
+// engine's poll loop). The finalizing event payload names the terminal
+// target.
+func (r *Runner) SweepFinalizing() error {
+	r.finMu.Lock()
+	defer r.finMu.Unlock()
+	jobs, err := r.Store.JobsInState("finalizing")
+	if err != nil {
+		return err
+	}
+	for _, j := range jobs {
+		payload, ok, err := r.Store.LatestEventPayload(j.ID, "finalizing")
+		if err != nil {
+			return err
+		}
+		target := map[string]string{"state": "done", "outcome": "acted", "summary": "finalize replayed"}
+		if ok {
+			_ = json.Unmarshal([]byte(payload), &target)
+		}
+		if err := r.finalizeLocked(j.ID, target["state"], target["outcome"], target["summary"]); err != nil {
+			r.Log.Error("finalize replay", "job", j.ID, "err", err)
+		}
+	}
+	return nil
 }
 
 // Reconcile recovers consult jobs interrupted by a daemon restart, then
@@ -147,22 +200,8 @@ func (r *Runner) Reconcile(onRestart string) error {
 			return err
 		}
 	}
-	finalizing, err := r.Store.JobsInState("finalizing")
-	if err != nil {
+	if err := r.SweepFinalizing(); err != nil {
 		return err
-	}
-	for _, j := range finalizing {
-		payload, ok, err := r.Store.LatestEventPayload(j.ID, "finalizing")
-		if err != nil {
-			return err
-		}
-		target := map[string]string{"state": "done", "outcome": "acted", "summary": "finalize replayed after restart"}
-		if ok {
-			_ = json.Unmarshal([]byte(payload), &target)
-		}
-		if err := r.Finalize(context.Background(), j.ID, target["state"], target["outcome"], target["summary"]); err != nil {
-			return err
-		}
 	}
 	if err := r.SweepInteractive(); err != nil {
 		return err

@@ -188,3 +188,43 @@ func queuedJob2(t *testing.T, st *store.Store, pr int) int64 {
 	require.NoError(t, err)
 	return id
 }
+
+func TestContinueRefusesNonWaitingJob(t *testing.T) {
+	fake := &ocFake{}
+	r, st := fixture(t, fake)
+	jobID := preparedJob(t, r, st)
+	require.NoError(t, st.SetJobState(jobID, "running"))
+
+	require.Error(t, r.Continue(context.Background(), jobID, "use main"),
+		"a job already continued must refuse a second continuation")
+	require.Empty(t, fake.reqs, "no session spawned for a lost claim")
+}
+
+func TestFinalizeIsIdempotent(t *testing.T) {
+	fake := exportFake("{}", nil)
+	r, st := fixture(t, fake)
+	jobID := preparedJob(t, r, st)
+
+	require.NoError(t, r.Finalize(context.Background(), jobID, "done", "handled", "first"))
+	require.NoError(t, r.Finalize(context.Background(), jobID, "rejected", "rejected", "second"))
+
+	job, err := st.GetJob(jobID)
+	require.NoError(t, err)
+	require.Equal(t, "done", job.State, "second finalize is a no-op")
+	require.Equal(t, "handled", job.Outcome)
+}
+
+func TestSweepFinalizingReplaysWedgedJob(t *testing.T) {
+	fake := exportFake("{}", nil)
+	r, st := fixture(t, fake)
+	jobID := preparedJob(t, r, st)
+	require.NoError(t, st.SetJobState(jobID, "finalizing"))
+	require.NoError(t, st.AddEvent(jobID, "finalizing", `{"state":"done","outcome":"acted","summary":"merged"}`))
+
+	require.NoError(t, r.SweepFinalizing())
+
+	job, err := st.GetJob(jobID)
+	require.NoError(t, err)
+	require.Equal(t, "done", job.State)
+	require.Equal(t, "acted", job.Outcome)
+}

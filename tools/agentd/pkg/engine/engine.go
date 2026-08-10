@@ -38,6 +38,7 @@ type ConsultRunner interface {
 	Start(req consult.Request)
 	Wait()
 	SweepInteractive() error
+	SweepFinalizing() error
 	Reconcile(onRestart string) error
 }
 

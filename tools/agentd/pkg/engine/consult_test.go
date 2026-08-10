@@ -20,6 +20,10 @@ type fakeConsult struct {
 func (f *fakeConsult) Start(req consult.Request) { f.started = append(f.started, req) }
 func (f *fakeConsult) Wait()                     { f.calls = append(f.calls, "wait") }
 func (f *fakeConsult) SweepInteractive() error   { f.calls = append(f.calls, "sweep"); return nil }
+func (f *fakeConsult) SweepFinalizing() error {
+	f.calls = append(f.calls, "sweep_finalizing")
+	return nil
+}
 func (f *fakeConsult) Reconcile(onRestart string) error {
 	f.calls = append(f.calls, "reconcile:"+onRestart)
 	return nil
@@ -78,6 +82,7 @@ func TestOnceWaitsAndReconcileDelegates(t *testing.T) {
 
 	require.Contains(t, fc.calls, "reconcile:resume")
 	require.Contains(t, fc.calls, "sweep")
+	require.Contains(t, fc.calls, "sweep_finalizing")
 	require.Equal(t, "wait", fc.calls[len(fc.calls)-1], "Once waits for consults last")
 }
 
