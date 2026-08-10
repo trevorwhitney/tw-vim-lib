@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -261,4 +262,32 @@ func TestWaitTimeout(t *testing.T) {
 	require.False(t, r.WaitTimeout(50*time.Millisecond), "in-flight consult holds the wait")
 	close(block)
 	require.True(t, r.WaitTimeout(5*time.Second))
+}
+
+func TestReportAndExitRaceCreateOneEscalation(t *testing.T) {
+	fake := &ocFake{}
+	r, st := fixture(t, fake)
+	jobID := queuedJob(t, st)
+	require.NoError(t, st.SetJobVerdicts(jobID, `{"needs-human":{"action":"none"}}`))
+	require.NoError(t, st.SetJobState(jobID, "running"))
+
+	req := Request{JobID: jobID, Repo: "grafana/loki", Number: 42, Title: "bump x"}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		r.afterExit(req, "", "", errors.New("session died"), true, "")
+	}()
+	go func() {
+		defer wg.Done()
+		_ = r.Report(jobID, "needs-human", "s", "d") // losing the claim is legal
+	}()
+	wg.Wait()
+
+	escs, err := st.OpenEscalations()
+	require.NoError(t, err)
+	require.Len(t, escs, 1, "exactly one writer wins the waiting transition")
+	job, err := st.GetJob(jobID)
+	require.NoError(t, err)
+	require.Contains(t, []string{"waiting_approval", "waiting_input"}, job.State)
 }

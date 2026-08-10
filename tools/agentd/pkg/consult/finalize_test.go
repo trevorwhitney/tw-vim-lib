@@ -183,6 +183,37 @@ func TestGC(t *testing.T) {
 	require.True(t, os.IsNotExist(statErr))
 }
 
+func TestCleanupSuppressesAttentionWhenEscalationOpen(t *testing.T) {
+	fake := exportFake("{}", nil)
+	r, st := fixture(t, fake)
+	jobID := preparedJob(t, r, st)
+	job, err := st.GetJob(jobID)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(job.WorktreePath, "wip"), []byte("x"), 0o644))
+	require.NoError(t, st.SetJobState(jobID, "running"))
+	require.NoError(t, r.Esc.Create(jobID, "", "still open", "", nil))
+
+	require.NoError(t, r.Finalize(context.Background(), jobID, "done", "acted", "m"))
+
+	escs, err := st.OpenEscalations()
+	require.NoError(t, err)
+	require.Len(t, escs, 1, "an open escalation suppresses the cleanup attention item")
+}
+
+func TestExportTranscriptNoJSONRecordsFailedEvent(t *testing.T) {
+	fake := exportFake("Exporting session: ses_1\nno json here", nil)
+	r, st := fixture(t, fake)
+	jobID := preparedJob(t, r, st)
+
+	require.NoError(t, r.Finalize(context.Background(), jobID, "done", "acted", "m"))
+
+	has, err := st.HasEvent(jobID, "transcript_export_failed")
+	require.NoError(t, err)
+	require.True(t, has)
+	_, statErr := os.Stat(filepath.Join(r.WS.ArtifactDir(jobID), "transcript.json"))
+	require.True(t, os.IsNotExist(statErr), "transcript.json must not exist when output has no JSON")
+}
+
 func queuedJob2(t *testing.T, st *store.Store, pr int) int64 {
 	t.Helper()
 	id, err := st.CreateJob("pr", "grafana/loki", pr, "sha"+strings.Repeat("x", pr%7+1))

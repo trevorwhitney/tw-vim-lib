@@ -86,7 +86,7 @@ test-go:
 
 test-agentd:
 	@echo "Running agentd tests..."
-	@cd tools/agentd && go test ./...
+	@cd tools/agentd && go test -race ./...
 
 test-agentd-acceptance:
 	@echo "Running agentd acceptance suite (requires gh auth, git, tmux, curl)..."
