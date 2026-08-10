@@ -227,11 +227,19 @@ func (c *Client) requiredCI(repo string, number int) (CIState, bool, error) {
 	return result, true, nil
 }
 
-// fileListCap is GitHub's hard limit on the PR files listing; at the cap the
-// list may be incomplete.
-const fileListCap = 3000
-
+// ChangedFiles lists every changed file path. truncated is true when the
+// paginated listing is shorter than the PR's declared changed-file count
+// (GitHub caps the files listing).
 func (c *Client) ChangedFiles(repo string, number int) ([]string, bool, error) {
+	countOut, err := c.gh(context.Background(), "pr", "view", strconv.Itoa(number), "--repo", repo,
+		"--json", "changedFiles", "--jq", ".changedFiles")
+	if err != nil {
+		return nil, false, err
+	}
+	expected, err := strconv.Atoi(strings.TrimSpace(countOut))
+	if err != nil {
+		return nil, false, fmt.Errorf("parse changedFiles count: %w", err)
+	}
 	out, err := c.gh(context.Background(), "api", "--paginate",
 		fmt.Sprintf("repos/%s/pulls/%d/files", repo, number), "--jq", ".[].filename")
 	if err != nil {
@@ -243,7 +251,7 @@ func (c *Client) ChangedFiles(repo string, number int) ([]string, bool, error) {
 			files = append(files, line)
 		}
 	}
-	return files, len(files) >= fileListCap, nil
+	return files, len(files) < expected, nil
 }
 
 func (c *Client) Diff(repo string, number int) (string, error) {

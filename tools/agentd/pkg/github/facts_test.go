@@ -74,6 +74,7 @@ func Test_Facts(t *testing.T) {
 
 func Test_ChangedFiles(t *testing.T) {
 	fe := newFakeExec()
+	fe.responses["changedFiles"] = "3\n"
 	fe.responses["api --paginate"] = "go.mod\ngo.sum\nvendor/github.com/x/y.go\n"
 	c := New(fe.run)
 
@@ -83,8 +84,20 @@ func Test_ChangedFiles(t *testing.T) {
 	require.False(t, truncated)
 }
 
+func Test_ChangedFiles_Truncated(t *testing.T) {
+	fe := newFakeExec()
+	fe.responses["changedFiles"] = "5\n"
+	fe.responses["api --paginate"] = "go.mod\ngo.sum\nvendor/github.com/x/y.go\n"
+	c := New(fe.run)
+
+	_, truncated, err := c.ChangedFiles("a/b", 1)
+	require.NoError(t, err)
+	require.True(t, truncated, "shorter list than the PR's changedFiles count means the cap cut it")
+}
+
 func Test_ChangedFiles_Empty(t *testing.T) {
 	fe := newFakeExec()
+	fe.responses["changedFiles"] = "0\n"
 	fe.responses["api --paginate"] = "\n"
 	c := New(fe.run)
 
