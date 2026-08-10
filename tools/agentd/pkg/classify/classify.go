@@ -51,15 +51,22 @@ func Parse(out string, labels []string) (Result, error) {
 	if start < 0 || end <= start {
 		return Result{}, fmt.Errorf("no JSON object in classifier output")
 	}
-	var res Result
-	if err := json.Unmarshal([]byte(out[start:end+1]), &res); err != nil {
+	var aux struct {
+		Label      string   `json:"label"`
+		Confidence *float64 `json:"confidence"`
+		Reasoning  string   `json:"reasoning"`
+	}
+	if err := json.Unmarshal([]byte(out[start:end+1]), &aux); err != nil {
 		return Result{}, fmt.Errorf("classifier output is not valid JSON: %w", err)
 	}
-	if !slices.Contains(labels, res.Label) {
-		return Result{}, fmt.Errorf("classifier label %q not in declared set %v", res.Label, labels)
+	if !slices.Contains(labels, aux.Label) {
+		return Result{}, fmt.Errorf("classifier label %q not in declared set %v", aux.Label, labels)
 	}
-	if res.Confidence < 0 || res.Confidence > 1 {
-		return Result{}, fmt.Errorf("classifier confidence %v out of range", res.Confidence)
+	if aux.Confidence == nil {
+		return Result{}, fmt.Errorf("classifier output missing confidence")
 	}
-	return res, nil
+	if *aux.Confidence < 0 || *aux.Confidence > 1 {
+		return Result{}, fmt.Errorf("classifier confidence %v out of range", *aux.Confidence)
+	}
+	return Result{Label: aux.Label, Confidence: *aux.Confidence, Reasoning: aux.Reasoning}, nil
 }

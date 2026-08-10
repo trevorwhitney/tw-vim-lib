@@ -33,11 +33,12 @@ func TestParseValid(t *testing.T) {
 
 func TestParseRejectsInvalid(t *testing.T) {
 	for name, out := range map[string]string{
-		"no json":         "I think this is a nit.",
-		"unknown label":   `{"label": "banana", "confidence": 0.5, "reasoning": "x"}`,
-		"bad confidence":  `{"label": "nit", "confidence": 1.5, "reasoning": "x"}`,
-		"missing label":   `{"confidence": 0.5, "reasoning": "x"}`,
-		"not json object": `["nit"]`,
+		"no json":            "I think this is a nit.",
+		"unknown label":      `{"label": "banana", "confidence": 0.5, "reasoning": "x"}`,
+		"bad confidence":     `{"label": "nit", "confidence": 1.5, "reasoning": "x"}`,
+		"missing label":      `{"confidence": 0.5, "reasoning": "x"}`,
+		"not json object":    `["nit"]`,
+		"missing confidence": `{"label":"nit","reasoning":"r"}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := Parse(out, []string{"nit", "substantive"})
