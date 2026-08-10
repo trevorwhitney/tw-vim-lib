@@ -247,3 +247,18 @@ func TestReportOnTerminalJobRejected(t *testing.T) {
 	require.NoError(t, st.FinishJob(jobID, "done", "acted", "m"))
 	require.Error(t, r.Report(jobID, "approve", "s", "d"))
 }
+
+func TestWaitTimeout(t *testing.T) {
+	block := make(chan struct{})
+	fake := &ocFake{onRun: func(_ *Runner, _ int64, _ opencode.Request) (string, error) {
+		<-block
+		return "", nil
+	}}
+	r, st := fixture(t, fake)
+	jobID := queuedJob(t, st)
+	r.Start(Request{JobID: jobID, Repo: "grafana/loki", Number: 42, Title: "bump x"})
+
+	require.False(t, r.WaitTimeout(50*time.Millisecond), "in-flight consult holds the wait")
+	close(block)
+	require.True(t, r.WaitTimeout(5*time.Second))
+}

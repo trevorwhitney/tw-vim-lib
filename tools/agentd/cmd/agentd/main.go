@@ -156,12 +156,19 @@ func serveCmd() *cobra.Command {
 				Engine: s.engine, Esc: s.esc, Actor: s.actor, Store: s.store, Consult: s.consult,
 			}).Handler()}
 			go func() { _ = srv.Serve(ln) }()
-			defer srv.Close()
 
 			slog.Info("agentd serving", "socket", s.cfg.Socket,
 				"repos", len(s.cfg.Repositories),
 				"poll_interval", time.Duration(s.cfg.PollInterval).String())
-			return s.engine.Serve(ctx, time.Duration(s.cfg.PollInterval))
+			serveErr := s.engine.Serve(ctx, time.Duration(s.cfg.PollInterval))
+
+			shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = srv.Shutdown(shutCtx)
+			if !s.consult.WaitTimeout(10 * time.Second) {
+				slog.Warn("consult jobs still running at shutdown; closing store anyway")
+			}
+			return serveErr
 		},
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/escalate"
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/github"
@@ -104,6 +105,19 @@ func (r *Runner) Start(req Request) {
 
 // Wait blocks until every in-flight consult finishes (agentd once).
 func (r *Runner) Wait() { r.wg.Wait() }
+
+// WaitTimeout blocks until every in-flight consult finishes or the timeout
+// elapses; it reports whether all finished.
+func (r *Runner) WaitTimeout(d time.Duration) bool {
+	done := make(chan struct{})
+	go func() { r.wg.Wait(); close(done) }()
+	select {
+	case <-done:
+		return true
+	case <-time.After(d):
+		return false
+	}
+}
 
 func (r *Runner) runJob(req Request) {
 	if len(req.Verdicts) > 0 {
