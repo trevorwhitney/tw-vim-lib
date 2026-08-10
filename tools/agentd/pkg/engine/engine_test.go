@@ -183,6 +183,20 @@ func Test_ProcessPR_NonBotSkips(t *testing.T) {
 	require.Empty(t, fe.calls)
 }
 
+func Test_PruneDeferred(t *testing.T) {
+	gh := greenGH(renovatePR(), []string{"go.mod"})
+	e, _, _ := fixture(t, gh, false)
+	e.deferredAt = map[string]time.Time{
+		"a/b#1@old":   time.Now().Add(-10 * time.Minute),
+		"a/b#2@fresh": time.Now(),
+	}
+
+	e.pruneDeferred()
+
+	require.NotContains(t, e.deferredAt, "a/b#1@old", "expired entries are pruned")
+	require.Contains(t, e.deferredAt, "a/b#2@fresh", "live entries survive")
+}
+
 func Test_ProcessPR_ShadowRecordsWithoutExecuting(t *testing.T) {
 	gh := greenGH(renovatePR(), []string{"go.mod"})
 	e, st, fe := fixture(t, gh, true)

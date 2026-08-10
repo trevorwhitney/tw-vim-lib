@@ -18,6 +18,7 @@ func (e *Engine) PollAll(ctx context.Context) {
 	if e.Paused() {
 		return
 	}
+	e.pruneDeferred()
 	for _, repo := range e.repos() {
 		chain, ok := e.chainSnapshot(repo)
 		if !ok {

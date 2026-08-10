@@ -241,3 +241,15 @@ func (e *Engine) markDeferred(key string) {
 	}
 	e.deferredAt[key] = time.Now()
 }
+
+// pruneDeferred drops entries past deferRecheck; recentlyDeferred already
+// treats them as expired, so removal only bounds the map.
+func (e *Engine) pruneDeferred() {
+	e.deferMu.Lock()
+	defer e.deferMu.Unlock()
+	for k, t := range e.deferredAt {
+		if time.Since(t) >= deferRecheck {
+			delete(e.deferredAt, k)
+		}
+	}
+}
