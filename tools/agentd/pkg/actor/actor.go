@@ -5,6 +5,7 @@ package actor
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -59,6 +60,10 @@ func (a *Actor) Execute(ctx context.Context, jobID int64, act policy.Action, sha
 		if attempt > 0 {
 			a.Sleep(time.Duration(attempt) * 10 * time.Second)
 		}
+		if err := ctx.Err(); err != nil {
+			lastErr = err
+			break
+		}
 		out, err := a.dispatch(ctx, act)
 		if err == nil {
 			if err := a.Store.MarkActionExecuted(rec.ID, out, false); err != nil {
@@ -67,6 +72,10 @@ func (a *Actor) Execute(ctx context.Context, jobID int64, act policy.Action, sha
 			return out, nil
 		}
 		lastErr = err
+		var ae *github.AuthError
+		if errors.As(err, &ae) {
+			break
+		}
 	}
 	_ = a.Store.MarkActionFailed(rec.ID, lastErr.Error())
 	return "", fmt.Errorf("%s failed after %d attempts: %w", act.Kind, maxAttempts, lastErr)

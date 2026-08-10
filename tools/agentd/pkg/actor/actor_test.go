@@ -16,16 +16,21 @@ import (
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/store"
 )
 
-// fakeWriter records write calls and fails the first failN of them.
+// fakeWriter records write calls; failN fails that many transiently, authErr
+// fails every call with a github.AuthError.
 type fakeWriter struct {
-	calls []string
-	failN int
+	calls   []string
+	failN   int
+	authErr bool
 }
 
 var _ github.Writer = (*fakeWriter)(nil)
 
 func (f *fakeWriter) record(call string) (string, error) {
 	f.calls = append(f.calls, call)
+	if f.authErr {
+		return "", &github.AuthError{Msg: "HTTP 401"}
+	}
 	if f.failN > 0 {
 		f.failN--
 		return "", errors.New("transient gh failure")
@@ -137,4 +142,24 @@ func Test_Execute_UnknownKind(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, strings.Contains(err.Error(), "unknown action kind"))
 	require.Empty(t, fw.calls)
+}
+
+func Test_Execute_AuthErrorNotRetried(t *testing.T) {
+	fw := &fakeWriter{authErr: true}
+	a, _, jobID := newActor(t, fw)
+	_, err := a.Execute(context.Background(), jobID, mergeAction(), false)
+	require.Error(t, err)
+	var ae *github.AuthError
+	require.ErrorAs(t, err, &ae)
+	require.Len(t, fw.calls, 1, "auth errors must not be retried")
+}
+
+func Test_Execute_CancelledContextStopsRetries(t *testing.T) {
+	fw := &fakeWriter{failN: 99}
+	a, _, jobID := newActor(t, fw)
+	ctx, cancel := context.WithCancel(context.Background())
+	a.Sleep = func(time.Duration) { cancel() }
+	_, err := a.Execute(ctx, jobID, mergeAction(), false)
+	require.Error(t, err)
+	require.Len(t, fw.calls, 1, "no further attempts after ctx cancellation")
 }
