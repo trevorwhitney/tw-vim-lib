@@ -22,8 +22,12 @@ Workflow: prototype-driven subagent development
 - [x] Task 15b: merge-dependency-updates acceptance scenarios (real PRs: shadow, armed, escalate) — 35d5f1a
 - [x] Task 16: agentd nix package; remove install-agentd + plist — 21480c8
 - [x] Task 17: full verification pass
-- [ ] Task 18: GATE — merge branch to main (operator)
-- [ ] Task 19: dotfiles agentd module + config
+- [x] Task 18: GATE — merged to main and pushed (origin/main f70561c)
+- [x] Task 19: dotfiles agentd module + config — dotfiles branch
+      `agentd-launchd` (a5b4aad): agentd.nix launchd module, config.yaml
+      (shadow, grafana/loki, app/renovate-sh-app), flake graft + neovim input
+      bump to f70561c; `darwin-rebuild build` green. Committed on a worktree
+      branch to avoid colliding with in-flight switchyard work on master.
 - [ ] Task 20: deploy + stray-daemon cleanup + verify (operator)
 - [ ] Task 21: agentmux live click-through (operator)
 - [ ] Task 22: shadow observation, then arm (operator)
