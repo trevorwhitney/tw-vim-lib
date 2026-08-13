@@ -826,6 +826,52 @@ local function agent_win_for(mode, idx)
 	return nil
 end
 
+-- Visible agent windows as { win, mode, idx } entries. A window counts as
+-- visible when it is in the current tabpage showing a parseable
+-- agent://mode#idx buffer AND edgy does not report its pane as collapsed.
+-- edgy's hide() collapses a pane without closing its window, so the
+-- filetype filter alone would count collapsed panes as visible. Windows
+-- unknown to edgy (plain splits, edgy absent) count as visible.
+local function visible_agent_wins()
+	local edgy_ok, edgy = pcall(require, "edgy")
+	local get_win = (edgy_ok and edgy.get_win) or nil
+	local out = {}
+	for _, win in ipairs(agent_console_wins()) do
+		local name = vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win))
+		local mode, idx = parse_agent_buf_name(name)
+		if mode then
+			local collapsed = false
+			if get_win then
+				local ok, ewin = pcall(get_win, win)
+				if ok and ewin and ewin.visible == false then
+					collapsed = true
+				end
+			end
+			if not collapsed then
+				out[#out + 1] = { win = win, mode = mode, idx = idx }
+			end
+		end
+	end
+	return out
+end
+
+-- Recorded instances with a running job, as { mode, idx } entries in
+-- iter_all_instances order (modes and indices sorted). Dead-but-recorded
+-- instances (job exited, not yet cleared) are excluded.
+local function alive_instances()
+	local out = {}
+	for mode, idx, _, job_id in iter_all_instances() do
+		if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+			out[#out + 1] = { mode = mode, idx = idx }
+		end
+	end
+	return out
+end
+
+-- Stable internal API for the plenary spec suite. Not for external use.
+M._visible_agent_wins = visible_agent_wins
+M._alive_instances = alive_instances
+
 -- Collapse an agent edgy pane. count is passed in directly so this is testable
 -- without a read-only vim.v.count. With count 0 it hides the current pane; with
 -- count N it hides index N of the current pane's mode (when that pane is shown).
