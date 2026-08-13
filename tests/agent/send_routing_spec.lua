@@ -2,57 +2,150 @@ describe("resolve_send_target", function()
   local agent, claude_mod
   local helpers = require("tests.agent.spec_helpers")
 
+  -- Run the CPS resolver and return what it reported (or nil if never called).
+  local function resolve(count)
+    local mode, idx
+    agent._resolve_send_target(count, function(m, i)
+      mode, idx = m, i
+    end)
+    return mode, idx
+  end
+
+  local function win_showing(buf)
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.api.nvim_win_get_buf(win) == buf then return win end
+    end
+  end
+
   before_each(function()
+    pcall(vim.cmd, "only")
+    pcall(vim.cmd, "enew")
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_get_name(buf):match("^agent://") then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
+    end
     agent, claude_mod = helpers.reset_and_mock(true)
     claude_mod.command = function() return "sleep 30" end
   end)
 
   after_each(function()
+    package.loaded["edgy"] = nil
+    package.loaded["tw.agent.window_picker"] = nil
     for _, _, _, job_id in agent._iter_all_instances() do
       if job_id then pcall(vim.fn.jobstop, job_id) end
     end
   end)
 
-  it("count=0 with active returns (active_mode, active_index)", function()
+  it("count=0 with one visible window targets it despite stale active state", function()
     agent.Toggle("opencode", nil, "vsplit", 0)
-    local mode, idx = agent._resolve_send_target(0)
+    agent.Toggle("opencode", nil, "vsplit", 1)
+    helpers.hide_buffer(agent._get_instance("opencode", 1).buf)
+    assert.equals(1, agent.active_index, "precondition: active state is stale")
+    local mode, idx = resolve(0)
     assert.equals("opencode", mode)
     assert.equals(0, idx)
   end)
 
-  it("count=0 with no active spawns default_mode at idx 0", function()
-    agent.default_mode = "pi"
-    local mode, idx = agent._resolve_send_target(0)
+  it("count=0 with multiple visible windows delegates to the window picker", function()
+    agent.Toggle("opencode", nil, "vsplit", 0)
+    agent.Toggle("opencode", nil, "vsplit", 1)
+    local inst0 = agent._get_instance("opencode", 0)
+    local labeled
+    package.loaded["tw.agent.window_picker"] = {
+      pick = function(wins, cb)
+        labeled = wins
+        cb(win_showing(inst0.buf))
+      end,
+    }
+    local mode, idx = resolve(0)
+    assert.equals(2, #labeled)
+    assert.equals("opencode", mode)
+    assert.equals(0, idx)
+  end)
+
+  it("count=0 picker cancel never invokes on_target", function()
+    agent.Toggle("opencode", nil, "vsplit", 0)
+    agent.Toggle("opencode", nil, "vsplit", 1)
+    package.loaded["tw.agent.window_picker"] = {
+      pick = function(_, cb) cb(nil) end,
+    }
+    local mode = resolve(0)
+    assert.is_nil(mode)
+  end)
+
+  it("count=0 with no visible windows and one alive instance targets it", function()
+    agent.Toggle("pi", nil, "vsplit", 0)
+    helpers.hide_buffer(agent._get_instance("pi", 0).buf)
+    agent.active_mode, agent.active_index = "none", 0
+    local mode, idx = resolve(0)
     assert.equals("pi", mode)
     assert.equals(0, idx)
-    assert.is_table(agent._get_instance("pi", 0))
   end)
 
-  it("count>0 with active opencode spawns opencode#N", function()
+  it("count=0 with no visible windows and several alive prompts via vim.ui.select", function()
+    agent.Toggle("pi", nil, "vsplit", 0)
+    agent.Toggle("pi", nil, "vsplit", 1)
+    helpers.hide_buffer(agent._get_instance("pi", 0).buf)
+    helpers.hide_buffer(agent._get_instance("pi", 1).buf)
+    local items
+    local orig_select = vim.ui.select
+    vim.ui.select = function(list, _, cb)
+      items = list
+      cb(list[2])
+    end
+    local mode, idx = resolve(0)
+    vim.ui.select = orig_select
+    assert.equals(2, #items)
+    assert.equals("pi", mode)
+    assert.equals(1, idx)
+  end)
+
+  it("count=0 select cancel never invokes on_target", function()
+    agent.Toggle("pi", nil, "vsplit", 0)
+    agent.Toggle("pi", nil, "vsplit", 1)
+    helpers.hide_buffer(agent._get_instance("pi", 0).buf)
+    helpers.hide_buffer(agent._get_instance("pi", 1).buf)
+    local orig_select = vim.ui.select
+    vim.ui.select = function(_, _, cb) cb(nil) end
+    local mode = resolve(0)
+    vim.ui.select = orig_select
+    assert.is_nil(mode)
+  end)
+
+  it("count=0 with nothing visible or alive targets default_mode#0 without spawning", function()
+    agent.default_mode = "pi"
+    local mode, idx = resolve(0)
+    assert.equals("pi", mode)
+    assert.equals(0, idx)
+    assert.is_nil(agent._get_instance("pi", 0), "resolver must not spawn")
+  end)
+
+  it("count>0 selects (active_mode, count) without spawning", function()
     agent.Toggle("opencode", nil, "vsplit", 0)
-    local mode, idx = agent._resolve_send_target(3)
+    local mode, idx = resolve(3)
     assert.equals("opencode", mode)
     assert.equals(3, idx)
-    assert.is_table(agent._get_instance("opencode", 3))
+    assert.is_nil(agent._get_instance("opencode", 3), "resolver must not spawn")
   end)
 
   it("count>0 with active_mode='none' uses default_mode (not literal 'none')", function()
-    -- Defense against the Lua truthy-string bug: M.active_mode or M.default_mode
-    -- evaluates to "none" since strings are truthy. The implementation must use
-    -- an explicit ternary.
+    -- Defense against the Lua truthy-string bug: `M.active_mode or
+    -- M.default_mode` evaluates to "none" since strings are truthy. The
+    -- implementation must use an explicit ternary.
     agent.default_mode = "pi"
-    local mode, idx = agent._resolve_send_target(2)
+    local mode, idx = resolve(2)
     assert.equals("pi", mode)
     assert.equals(2, idx)
   end)
 
-  it("count>9 returns nil and notifies", function()
+  it("count>9 notifies and never invokes on_target", function()
     local notified
     local original_notify = vim.notify
     vim.notify = function(msg, _) notified = msg end
-    local mode, idx = agent._resolve_send_target(10)
+    local mode = resolve(10)
     vim.notify = original_notify
-    assert.is_nil(mode); assert.is_nil(idx)
+    assert.is_nil(mode)
     assert.is_string(notified)
     assert.is_truthy(notified:find("0%-9"))
   end)

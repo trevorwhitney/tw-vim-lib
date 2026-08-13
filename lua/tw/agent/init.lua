@@ -521,37 +521,6 @@ local function send(job_id, args)
 	vim.fn.chansend(job_id, text)
 end
 
--- Resolve the (mode, idx) target for a send command based on a count value.
--- count == 0: use active instance, or spawn default_mode#0 if no active
--- count > 0:  use (active_mode || default_mode, count), spawn-and-show if missing
--- count > 9:  notify and return nil
-local function resolve_send_target(count)
-	if count > 9 then
-		vim.notify(string.format("Agent instance index must be 0-9 (got %d)", count), vim.log.levels.WARN)
-		return nil
-	end
-
-	if count == 0 then
-		if M.active_mode ~= "none" then
-			return M.active_mode, M.active_index
-		end
-		M.Open(M.default_mode, nil, "vsplit", 0)
-		return M.default_mode, 0
-	end
-
-	-- count > 0: explicit ternary — literal "none" is truthy in Lua, so plain
-	-- `M.active_mode or M.default_mode` would not fall through.
-	local mode = (M.active_mode ~= "none") and M.active_mode or M.default_mode
-	local inst = get_instance(mode, count)
-	local alive = inst and inst.job_id and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1
-	if not alive then
-		M.Open(mode, nil, "vsplit", count)
-	end
-	return mode, count
-end
-
-M._resolve_send_target = resolve_send_target
-
 local function confirmOpenAndDo(callback, args, window_type, target_mode, target_idx)
 	args = args or default_args
 	window_type = window_type or "vsplit"
@@ -872,6 +841,72 @@ end
 M._visible_agent_wins = visible_agent_wins
 M._alive_instances = alive_instances
 
+-- Resolve the send target and report it via on_target(mode, idx). on_target
+-- runs exactly once on success and never runs when the user cancels a
+-- picker. Selection only: spawning and showing are confirmOpenAndDo's job.
+-- count == 0: one visible agent window wins; several prompt via the winbar
+--             letter picker; none falls back to alive instances (a single
+--             one is used directly, several prompt via vim.ui.select, none
+--             targets default_mode#0).
+-- count 1-9:  (active_mode || default_mode, count)
+-- count > 9:  notify and drop
+local function resolve_send_target(count, on_target)
+	if count > 9 then
+		vim.notify(string.format("Agent instance index must be 0-9 (got %d)", count), vim.log.levels.WARN)
+		return
+	end
+
+	if count > 0 then
+		-- explicit ternary: literal "none" is truthy in Lua, so plain
+		-- `M.active_mode or M.default_mode` would not fall through.
+		local mode = (M.active_mode ~= "none") and M.active_mode or M.default_mode
+		on_target(mode, count)
+		return
+	end
+
+	local visible = visible_agent_wins()
+	if #visible == 1 then
+		on_target(visible[1].mode, visible[1].idx)
+		return
+	end
+	if #visible > 1 then
+		local wins, by_win = {}, {}
+		for _, entry in ipairs(visible) do
+			wins[#wins + 1] = entry.win
+			by_win[entry.win] = entry
+		end
+		require("tw.agent.window_picker").pick(wins, function(win)
+			local chosen = win and by_win[win]
+			if chosen then
+				on_target(chosen.mode, chosen.idx)
+			end
+		end)
+		return
+	end
+
+	local alive = alive_instances()
+	if #alive == 0 then
+		on_target(M.default_mode, 0)
+		return
+	end
+	if #alive == 1 then
+		on_target(alive[1].mode, alive[1].idx)
+		return
+	end
+	vim.ui.select(alive, {
+		prompt = "Send to agent:",
+		format_item = function(item)
+			return string.format("%s#%d", item.mode, item.idx)
+		end,
+	}, function(choice)
+		if choice then
+			on_target(choice.mode, choice.idx)
+		end
+	end)
+end
+
+M._resolve_send_target = resolve_send_target
+
 -- Collapse an agent edgy pane. count is passed in directly so this is testable
 -- without a read-only vim.v.count. With count 0 it hides the current pane; with
 -- count N it hides index N of the current pane's mode (when that pane is shown).
@@ -1038,60 +1073,62 @@ local function submit(job_id)
 	end, 500)
 end
 
--- Internal dispatcher: resolves target via resolve_send_target, ensures the
--- target instance is alive and visible, then runs the named send function's
+-- Internal dispatcher: resolves the target via resolve_send_target (which may
+-- prompt and may drop the send on cancel), ensures the target instance is
+-- alive and visible via confirmOpenAndDo, then runs the named send function's
 -- logic with an explicit job_id (no reliance on M.active_job_id).
+--
+-- Send payloads (references, commands, file lists) must be fully built by the
+-- caller BEFORE this runs: resolution can prompt, so nothing here or in the
+-- callback may read live editor state (marks, cursor, current buffer).
 --
 -- Exposed as M._send_with_count so tests and keymap wrappers can call it
 -- with an explicit count (vim.v.count is read-only and can't be set from
 -- Lua, so tests pass count directly).
 function M._send_with_count(fn_name, count, ...)
 	local extra = { ... }
-	local mode, idx = resolve_send_target(count)
-	if not mode then
-		return
-	end
+	resolve_send_target(count, function(mode, idx)
+		confirmOpenAndDo(function()
+			local inst = get_instance(mode, idx)
+			if not inst or not inst.job_id then
+				log.warn(string.format("Send target %s#%d has no job_id", mode, idx))
+				return
+			end
+			local job_id = inst.job_id
 
-	confirmOpenAndDo(function()
-		local inst = get_instance(mode, idx)
-		if not inst or not inst.job_id then
-			log.warn(string.format("Send target %s#%d has no job_id", mode, idx))
-			return
-		end
-		local job_id = inst.job_id
-
-		if fn_name == "SendCommand" then
-			local args = extra[1]
-			local submit_after = extra[2] or false
-			vim.fn.chansend(job_id, "!")
-			vim.defer_fn(function()
+			if fn_name == "SendCommand" then
+				local args = extra[1]
+				local submit_after = extra[2] or false
+				vim.fn.chansend(job_id, "!")
+				vim.defer_fn(function()
+					send(job_id, args)
+					if submit_after then
+						submit(job_id)
+					end
+				end, 500)
+			elseif fn_name == "SendText" then
+				local args = extra[1]
+				local submit_after = extra[2] or false
 				send(job_id, args)
 				if submit_after then
 					submit(job_id)
 				end
-			end, 500)
-		elseif fn_name == "SendText" then
-			local args = extra[1]
-			local submit_after = extra[2] or false
-			send(job_id, args)
-			if submit_after then
+			elseif fn_name == "SendSelection" then
+				-- precomputed reference text passed in via extra[1]
+				send(job_id, extra[1])
+			elseif fn_name == "SendSymbol" then
+				send(job_id, extra[1]) -- precomputed reference
+			elseif fn_name == "SendFile" then
+				send(job_id, extra[1]) -- precomputed reference
+			elseif fn_name == "SendOpenBuffers" then
+				-- Three-line context message; submit after
+				send(job_id, extra[1])
 				submit(job_id)
+			else
+				log.warn("Unknown send function: " .. tostring(fn_name))
 			end
-		elseif fn_name == "SendSelection" then
-			-- precomputed reference text passed in via extra[1]
-			send(job_id, extra[1])
-		elseif fn_name == "SendSymbol" then
-			send(job_id, extra[1]) -- precomputed reference
-		elseif fn_name == "SendFile" then
-			send(job_id, extra[1]) -- precomputed reference
-		elseif fn_name == "SendOpenBuffers" then
-			-- Three-line context message; submit after
-			send(job_id, extra[1])
-			submit(job_id)
-		else
-			log.warn("Unknown send function: " .. tostring(fn_name))
-		end
-	end, nil, "vsplit", mode, idx)
+		end, nil, "vsplit", mode, idx)
+	end)
 end
 
 function M.SendCommand(args, submit_after)
