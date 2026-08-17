@@ -156,11 +156,20 @@ describe("send routing end-to-end via _send_with_count", function()
   local helpers = require("tests.agent.spec_helpers")
 
   before_each(function()
+    pcall(vim.cmd, "only")
+    pcall(vim.cmd, "enew")
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_get_name(buf):match("^agent://") then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
+    end
     agent, claude_mod = helpers.reset_and_mock(true)
     claude_mod.command = function() return "sleep 30" end
   end)
 
   after_each(function()
+    package.loaded["edgy"] = nil
+    package.loaded["tw.agent.window_picker"] = nil
     for _, _, _, job_id in agent._iter_all_instances() do
       if job_id then pcall(vim.fn.jobstop, job_id) end
     end
@@ -194,6 +203,183 @@ describe("send routing end-to-end via _send_with_count", function()
     local p2 = agent._get_instance("pi", 2)
     assert.is_table(p2, "pi#2 should have been spawned")
     assert.equals(p2.job_id, sent_to_job)
+  end)
+
+  -- Spy on chansend for the duration of fn, returning what was sent where.
+  local function with_chansend_spy(fn)
+    local sent_to_job, sent_text
+    local real = vim.fn.chansend
+    vim.fn.chansend = function(job, text)
+      sent_to_job, sent_text = job, text
+      return 1
+    end
+    local ok, err = pcall(fn)
+    vim.fn.chansend = real
+    assert(ok, err)
+    return sent_to_job, sent_text
+  end
+
+  it("routes count-less sends to the remaining visible agent after one is closed (reported bug)", function()
+    agent.Toggle("opencode", nil, "vsplit", 0)
+    agent.Toggle("opencode", nil, "vsplit", 1)
+    local inst0 = agent._get_instance("opencode", 0)
+    local inst1 = agent._get_instance("opencode", 1)
+    helpers.hide_buffer(inst1.buf)
+    assert.equals(1, agent.active_index, "precondition: active state is stale")
+    package.loaded["tw.agent.window_picker"] = {
+      pick = function() error("picker must not fire with one visible window") end,
+    }
+
+    local sent_to_job, sent_text = with_chansend_spy(function()
+      agent._send_with_count("SendText", 0, "hello", false)
+    end)
+
+    assert.equals(inst0.job_id, sent_to_job)
+    assert.equals("hello", sent_text)
+    assert.is_false(helpers.buf_visible(inst1.buf), "hidden agent must not reopen")
+  end)
+
+  it("routes count-less sends past an edgy-collapsed pane", function()
+    agent.Toggle("opencode", nil, "vsplit", 0)
+    agent.Toggle("opencode", nil, "vsplit", 1)
+    local inst0 = agent._get_instance("opencode", 0)
+    local inst1 = agent._get_instance("opencode", 1)
+    package.loaded["edgy"] = {
+      get_win = function(win)
+        if vim.api.nvim_win_get_buf(win) == inst1.buf then
+          return { visible = false }
+        end
+        return { visible = true }
+      end,
+    }
+    package.loaded["tw.agent.window_picker"] = {
+      pick = function() error("picker must not fire with one visible pane") end,
+    }
+
+    local sent_to_job = with_chansend_spy(function()
+      agent._send_with_count("SendText", 0, "hello", false)
+    end)
+
+    assert.equals(inst0.job_id, sent_to_job)
+  end)
+
+  it("sends to the picker's chosen window when several are visible", function()
+    agent.Toggle("opencode", nil, "vsplit", 0)
+    agent.Toggle("opencode", nil, "vsplit", 1)
+    local inst0 = agent._get_instance("opencode", 0)
+    package.loaded["tw.agent.window_picker"] = {
+      pick = function(wins, cb)
+        for _, win in ipairs(wins) do
+          if vim.api.nvim_win_get_buf(win) == inst0.buf then
+            cb(win)
+            return
+          end
+        end
+        cb(nil)
+      end,
+    }
+
+    local sent_to_job = with_chansend_spy(function()
+      agent._send_with_count("SendText", 0, "hello", false)
+    end)
+
+    assert.equals(inst0.job_id, sent_to_job)
+  end)
+
+  it("reopens the single alive session when nothing is visible", function()
+    agent.Toggle("pi", nil, "vsplit", 0)
+    local inst = agent._get_instance("pi", 0)
+    helpers.hide_buffer(inst.buf)
+    agent.active_mode, agent.active_index = "none", 0
+
+    local sent_to_job = with_chansend_spy(function()
+      agent._send_with_count("SendText", 0, "hello", false)
+    end)
+
+    assert.equals(inst.job_id, sent_to_job)
+    assert.is_true(helpers.buf_visible(inst.buf), "session reopens to receive the send")
+  end)
+
+  it("routes via vim.ui.select when several hidden sessions are alive", function()
+    agent.Toggle("pi", nil, "vsplit", 0)
+    agent.Toggle("pi", nil, "vsplit", 1)
+    helpers.hide_buffer(agent._get_instance("pi", 0).buf)
+    helpers.hide_buffer(agent._get_instance("pi", 1).buf)
+    local inst1 = agent._get_instance("pi", 1)
+    local orig_select = vim.ui.select
+    vim.ui.select = function(list, _, cb) cb(list[2]) end
+
+    local sent_to_job = with_chansend_spy(function()
+      agent._send_with_count("SendText", 0, "hello", false)
+    end)
+    vim.ui.select = orig_select
+
+    assert.equals(inst1.job_id, sent_to_job)
+    assert.is_true(helpers.buf_visible(inst1.buf))
+  end)
+
+  it("spawns default_mode#0 when nothing is visible or alive", function()
+    agent.default_mode = "pi"
+
+    local sent_to_job
+    local real = vim.fn.chansend
+    vim.fn.chansend = function(job, _)
+      sent_to_job = job
+      return 1
+    end
+    agent._send_with_count("SendText", 0, "hello", false)
+    -- confirmOpenAndDo defers the send ~2500ms after a fresh spawn
+    vim.wait(3000, function() return sent_to_job ~= nil end)
+    vim.fn.chansend = real
+
+    local inst = agent._get_instance("pi", 0)
+    assert.is_table(inst, "default instance spawned")
+    assert.equals(inst.job_id, sent_to_job)
+  end)
+
+  it("count send to a dead instance spawns it exactly once (no double-spawn)", function()
+    agent.Toggle("pi", nil, "vsplit", 0)
+    local open_calls = 0
+    local real_open = agent.Open
+    agent.Open = function(...)
+      open_calls = open_calls + 1
+      return real_open(...)
+    end
+
+    local sent_to_job
+    local real = vim.fn.chansend
+    vim.fn.chansend = function(job, _)
+      sent_to_job = job
+      return 1
+    end
+    agent._send_with_count("SendText", 2, "hi", false)
+    vim.wait(3000, function() return sent_to_job ~= nil end)
+    vim.fn.chansend = real
+    agent.Open = real_open
+
+    assert.equals(1, open_calls)
+    local p2 = agent._get_instance("pi", 2)
+    assert.is_table(p2)
+    assert.equals(p2.job_id, sent_to_job)
+  end)
+
+  it("cancelling the window picker drops the send entirely", function()
+    agent.Toggle("opencode", nil, "vsplit", 0)
+    agent.Toggle("opencode", nil, "vsplit", 1)
+    package.loaded["tw.agent.window_picker"] = {
+      pick = function(_, cb) cb(nil) end,
+    }
+    local before_mode, before_index = agent.active_mode, agent.active_index
+    local win_count = #vim.api.nvim_tabpage_list_wins(0)
+
+    local sent_to_job = with_chansend_spy(function()
+      agent._send_with_count("SendText", 0, "hello", false)
+    end)
+
+    assert.is_nil(sent_to_job)
+    assert.equals(before_mode, agent.active_mode)
+    assert.equals(before_index, agent.active_index)
+    assert.equals(win_count, #vim.api.nvim_tabpage_list_wins(0))
   end)
 end)
 
