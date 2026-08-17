@@ -5,9 +5,13 @@ Workflow: prototype-driven subagent development. All 5 implementation tasks
 done, reviewed (spec + quality per task), and committed: c27edf3..3cf3054.
 
 ## Verification
-- [x] `make lint` green; `make test-lua` green; `make test-go` green.
-      `make test-plenary`: 12 sidebar failures fail identically at the base
-      commit (documented pre-existing); zero new failures from this plan.
+- [x] `make lint` exit 0 (0 warnings / 0 errors, 71 files); `make test-lua`
+      exit 0 (13 files, includes the new window_picker 12/12); `make test-go`
+      exit 0.
+- [x] `make test-plenary`: 236 passing at HEAD vs 218 at base d21282a; the
+      only failures are sidebar_spec's 12, and the failing-test-name sets at
+      HEAD and at a d21282a worktree are byte-identical (`diff` clean).
+      Pre-existing headless-environment failures; zero new failures.
 - [ ] Manual smoke test in live Neovim (plan Task 6 Step 2): close/collapse
       one of two agent panes and confirm count-less sends route to the
       visible one without reopening; letter picker with both visible;
