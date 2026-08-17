@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -23,6 +24,7 @@ const (
 	promptNone promptK = iota
 	promptReject
 	promptAnswer
+	promptConfirmApprove
 )
 
 type refreshMsg struct {
@@ -77,6 +79,7 @@ type Deps struct {
 	MirrorDir string
 	Client    Client
 	Runner    tmuxjump.Runner
+	NoConfirm bool
 }
 
 // Client reads from and mutates agentd over the socket with apitypes DTOs.
@@ -127,7 +130,9 @@ type Model struct {
 	prompting   bool
 	promptKind  promptK
 	promptValue string
-	promptEsc   int64 // escalation id the prompt resolves
+	promptEsc   int64  // escalation id the prompt resolves
+	promptLabel string // fully rendered prompt line, unlike promptValue
+	noConfirm   bool
 
 	showDetail bool
 	detail     detailData
@@ -154,6 +159,7 @@ func New(d Deps) Model {
 		runner:    runner,
 		client:    d.Client,
 		activeTab: TabInbox,
+		noConfirm: d.NoConfirm,
 	}
 }
 
@@ -417,9 +423,11 @@ func (m *Model) currentHistory() (apitypes.Job, bool) {
 
 func (m Model) handleHistoryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.showDetail {
-		switch msg.String() {
-		case "esc", "q":
+		switch {
+		case msg.String() == "esc", msg.String() == "q":
 			m.showDetail = false
+		case key.Matches(msg, m.keys.OpenPR):
+			return m.openHistoryPR()
 		}
 		return m, nil
 	}
@@ -443,6 +451,8 @@ func (m Model) handleHistoryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.showDetail = true
 			return m, m.loadDetail(j.ID)
 		}
+	case key.Matches(msg, m.keys.OpenPR):
+		return m.openHistoryPR()
 	case key.Matches(msg, m.keys.Search):
 		m.searching = true
 		m.searchQuery = ""
@@ -452,6 +462,21 @@ func (m Model) handleHistoryKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, m.loadData()
 	case key.Matches(msg, m.keys.Help):
 		m.showHelp = true
+	}
+	return m, nil
+}
+
+func (m Model) openHistoryPR() (tea.Model, tea.Cmd) {
+	j, ok := m.currentHistory()
+	if !ok {
+		return m, nil
+	}
+	if j.PRNumber == 0 || j.Repo == "" {
+		m.footer = "no PR for this item"
+		return m, nil
+	}
+	if err := m.runner.OpenURL(prURL(j.Repo, j.PRNumber)); err != nil {
+		m.footer = "open PR: " + err.Error()
 	}
 	return m, nil
 }
@@ -529,6 +554,27 @@ func (m *Model) currentInbox() (apitypes.InboxItem, bool) {
 	return m.inbox[m.inboxCur], true
 }
 
+// approveEscalation arms a y/n confirmation, or resolves straight away under
+// --no-confirm. Approving executes the attached action for real even when the
+// owning policy is still in shadow mode, so the default is to ask.
+func (m Model) approveEscalation(it apitypes.InboxItem) (tea.Model, tea.Cmd) {
+	esc := it.Escalation.ID
+	if m.noConfirm {
+		return m, mutate("approve", func() error { return m.client.Resolve(esc, "approve", "", "") })
+	}
+	m.prompting, m.promptKind, m.promptValue, m.promptEsc = true, promptConfirmApprove, "", esc
+	m.promptLabel = approveConfirmLabel(it)
+	return m, nil
+}
+
+func approveConfirmLabel(it apitypes.InboxItem) string {
+	what := it.Escalation.ActionKind
+	if what == "" {
+		what = "acknowledge advice"
+	}
+	return fmt.Sprintf("really %s on %s#%d? (y/n)", what, it.Job.Repo, it.Job.PRNumber)
+}
+
 func (m Model) handleInboxKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Quit):
@@ -547,8 +593,7 @@ func (m Model) handleInboxKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.inboxCur = len(m.inbox) - 1
 	case key.Matches(msg, m.keys.Approve):
 		if it, ok := m.currentInbox(); ok && m.client != nil {
-			esc := it.Escalation.ID
-			return m, mutate("approve", func() error { return m.client.Resolve(esc, "approve", "", "") })
+			return m.approveEscalation(it)
 		}
 	case key.Matches(msg, m.keys.Reject):
 		if it, ok := m.currentInbox(); ok {
@@ -588,9 +633,25 @@ func (m Model) handleInboxKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 func (m *Model) clearPrompt() {
 	m.prompting, m.promptKind, m.promptValue, m.promptEsc = false, promptNone, "", 0
+	m.promptLabel = ""
 }
 
 func (m Model) handlePrompt(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if m.promptKind == promptConfirmApprove {
+		esc := m.promptEsc
+		switch msg.String() {
+		case "y", "Y":
+			m.clearPrompt()
+			if m.client == nil {
+				return m, nil
+			}
+			return m, mutate("approve", func() error { return m.client.Resolve(esc, "approve", "", "") })
+		case "n", "N", "esc", "q":
+			m.clearPrompt()
+			m.footer = "approve cancelled"
+		}
+		return m, nil
+	}
 	switch msg.String() {
 	case "enter":
 		esc := m.promptEsc
@@ -811,11 +872,14 @@ func (m Model) inboxView() string {
 		b = append(b, row)
 	}
 	if m.prompting {
-		label := "reason> "
-		if m.promptKind == promptAnswer {
-			label = "answer> "
+		line := "reason> " + m.promptValue
+		switch m.promptKind {
+		case promptAnswer:
+			line = "answer> " + m.promptValue
+		case promptConfirmApprove:
+			line = m.promptLabel
 		}
-		b = append(b, styleFilter.Render(label+m.promptValue))
+		b = append(b, styleFilter.Render(line))
 	}
 	if m.footer != "" {
 		b = append(b, styleStatus.Render(m.footer))
@@ -865,7 +929,7 @@ func (m Model) historyView() string {
 		}
 		b = append(b, row)
 	}
-	b = append(b, styleFooter.Render("⏎ detail · ↑↓ move · [ ] tabs · ⌃P palette · q quit"))
+	b = append(b, styleFooter.Render("⏎ detail · o open PR · ↑↓ move · [ ] tabs · ⌃P palette · q quit"))
 	return lipgloss.JoinVertical(lipgloss.Left, b...)
 }
 
@@ -888,7 +952,7 @@ func helpView(active Tab) string {
 	case TabFleet:
 		tab = []string{"Fleet:", "R retry · i drop-in · p pause/resume · d gc · o open PR"}
 	case TabHistory:
-		tab = []string{"History:", "⏎ open decision-chain detail · esc/q close detail"}
+		tab = []string{"History:", "⏎ open decision-chain detail · o open PR · esc/q close detail"}
 	case TabInteractive:
 		tab = []string{"Interactive:", "⏎/o jump · ⇥ collapse · d delete record · / filter · ? help"}
 	}

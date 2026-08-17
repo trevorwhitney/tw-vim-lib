@@ -7,6 +7,48 @@ import (
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/apitypes"
 )
 
+func historyModel(t *testing.T, fr *fakeRunner, jobs ...apitypes.Job) Model {
+	m := New(Deps{MirrorDir: t.TempDir(), Client: &fakeClient{}, Runner: fr})
+	m.activeTab = TabHistory
+	m.history = jobs
+	return m
+}
+
+func Test_HistoryOpenPR(t *testing.T) {
+	merged := apitypes.Job{ID: 3, Repo: "grafana/loki", PRNumber: 44, State: "done", Outcome: "acted"}
+
+	t.Run("'o' opens the selected job's PR", func(t *testing.T) {
+		fr := &fakeRunner{}
+		m := historyModel(t, fr, merged)
+		m.Update(pressRune('o'))
+		assert.Equal(t, []string{"https://github.com/grafana/loki/pull/44"}, fr.urls)
+	})
+
+	t.Run("'o' also works inside the decision-chain detail overlay", func(t *testing.T) {
+		fr := &fakeRunner{}
+		m := historyModel(t, fr, merged)
+		m.showDetail = true
+		after, _ := m.Update(pressRune('o'))
+		assert.Equal(t, []string{"https://github.com/grafana/loki/pull/44"}, fr.urls)
+		assert.True(t, after.(Model).showDetail, "opening a PR must not close the detail")
+	})
+
+	t.Run("a job without a PR reports instead of opening", func(t *testing.T) {
+		fr := &fakeRunner{}
+		m := historyModel(t, fr, apitypes.Job{ID: 9, State: "done"})
+		after, _ := m.Update(pressRune('o'))
+		assert.Empty(t, fr.urls)
+		assert.Contains(t, after.(Model).footer, "no PR")
+	})
+
+	t.Run("an empty history is a no-op", func(t *testing.T) {
+		fr := &fakeRunner{}
+		m := historyModel(t, fr)
+		m.Update(pressRune('o'))
+		assert.Empty(t, fr.urls)
+	})
+}
+
 func Test_RenderHistoryRow(t *testing.T) {
 	const now = int64(1000)
 	t.Run("acted job shows outcome and age", func(t *testing.T) {

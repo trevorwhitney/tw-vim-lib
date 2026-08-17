@@ -40,6 +40,8 @@ func agentdSocket() string {
 
 func main() {
 	sockPath := flag.String("socket", agentdSocket(), "path to agentd unix socket")
+	noConfirm := flag.Bool("no-confirm", false,
+		"approve escalations on the first keypress, without the y/n confirmation")
 	flag.Parse()
 
 	dir, err := mirrorDir()
@@ -51,6 +53,7 @@ func main() {
 	p := tea.NewProgram(ui.New(ui.Deps{
 		MirrorDir: dir,
 		Client:    socket.NewClient(*sockPath),
+		NoConfirm: *noConfirm,
 	}))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "agentmux:", err)

@@ -9,27 +9,93 @@ import (
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/apitypes"
 )
 
-func inboxModel(t *testing.T, fc *fakeClient) Model {
-	fc.inbox = []apitypes.InboxItem{
-		{Escalation: apitypes.Escalation{ID: 10, Kind: "waiting_approval"},
+func inboxItems() []apitypes.InboxItem {
+	return []apitypes.InboxItem{
+		{Escalation: apitypes.Escalation{ID: 10, Kind: "waiting_approval", ActionKind: "merge_pr"},
 			Job: apitypes.Job{ID: 2, Repo: "grafana/loki", PRNumber: 43}},
 	}
+}
+
+func inboxModel(t *testing.T, fc *fakeClient) Model {
+	fc.inbox = inboxItems()
 	m := New(Deps{MirrorDir: t.TempDir(), Client: fc})
 	m.inbox = fc.inbox
 	m.activeTab = TabInbox
 	return m
 }
 
-func Test_InboxApprove(t *testing.T) {
-	fc := &fakeClient{}
-	m := inboxModel(t, fc)
-	next, cmd := m.Update(pressRune('a'))
-	require.NotNil(t, cmd)
-	msg := cmd() // runs the resolve
-	assert.Equal(t, []string{"approve"}, fc.resolves)
-	// The ACK message triggers a reload command.
-	_, reload := next.(Model).Update(msg)
-	assert.NotNil(t, reload)
+func Test_InboxApproveConfirmation(t *testing.T) {
+	t.Run("'a' arms the confirmation instead of resolving", func(t *testing.T) {
+		fc := &fakeClient{}
+		m := inboxModel(t, fc)
+		after, cmd := m.Update(pressRune('a'))
+		assert.Nil(t, cmd)
+		am := after.(Model)
+		assert.True(t, am.prompting)
+		assert.Equal(t, promptConfirmApprove, am.promptKind)
+		assert.Empty(t, fc.resolves)
+		assert.Contains(t, am.promptLabel, "merge_pr")
+		assert.Contains(t, am.promptLabel, "grafana/loki#43")
+	})
+
+	t.Run("'y' resolves and the ACK reloads", func(t *testing.T) {
+		fc := &fakeClient{}
+		m := inboxModel(t, fc)
+		armed, _ := m.Update(pressRune('a'))
+		next, cmd := armed.(Model).Update(pressRune('y'))
+		require.NotNil(t, cmd)
+		msg := cmd()
+		assert.Equal(t, []string{"approve"}, fc.resolves)
+		assert.False(t, next.(Model).prompting)
+		_, reload := next.(Model).Update(msg)
+		assert.NotNil(t, reload)
+	})
+
+	for _, key := range []string{"n", "esc", "q"} {
+		t.Run(key+" cancels without resolving", func(t *testing.T) {
+			fc := &fakeClient{}
+			m := inboxModel(t, fc)
+			armed, _ := m.Update(pressRune('a'))
+			done, cmd := armed.(Model).Update(tea.KeyPressMsg{Text: key})
+			assert.Nil(t, cmd)
+			assert.False(t, done.(Model).prompting)
+			assert.Empty(t, fc.resolves)
+			assert.Contains(t, done.(Model).footer, "cancelled")
+		})
+	}
+
+	t.Run("an unrelated key neither resolves nor cancels", func(t *testing.T) {
+		fc := &fakeClient{}
+		m := inboxModel(t, fc)
+		armed, _ := m.Update(pressRune('a'))
+		held, cmd := armed.(Model).Update(pressRune('z'))
+		assert.Nil(t, cmd)
+		assert.True(t, held.(Model).prompting)
+		assert.Empty(t, fc.resolves)
+	})
+
+	t.Run("--no-confirm resolves on the first keypress", func(t *testing.T) {
+		fc := &fakeClient{inbox: inboxItems()}
+		m := New(Deps{MirrorDir: t.TempDir(), Client: fc, NoConfirm: true})
+		m.inbox = fc.inbox
+		m.activeTab = TabInbox
+		_, cmd := m.Update(pressRune('a'))
+		require.NotNil(t, cmd)
+		cmd()
+		assert.Equal(t, []string{"approve"}, fc.resolves)
+	})
+}
+
+func Test_ApproveConfirmLabel(t *testing.T) {
+	t.Run("names the attached action and its PR", func(t *testing.T) {
+		assert.Equal(t, "really merge_pr on grafana/loki#43? (y/n)",
+			approveConfirmLabel(inboxItems()[0]))
+	})
+	t.Run("advice-only escalations read as an acknowledgement", func(t *testing.T) {
+		it := inboxItems()[0]
+		it.Escalation.ActionKind = ""
+		assert.Contains(t, approveConfirmLabel(it), "acknowledge advice")
+	})
 }
 
 func Test_InboxRejectPromptsForReason(t *testing.T) {

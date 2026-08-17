@@ -55,12 +55,11 @@ func (m Model) paletteCommands() []command {
 	switch m.activeTab {
 	case TabInbox:
 		if it, ok := m.currentInbox(); ok && m.client != nil {
-			esc := it.Escalation.ID
 			job := it.Job.ID
 			cmds = append(cmds,
 				command{"Approve selected", func(mm Model) (tea.Model, tea.Cmd) {
 					mm.paletteOpen = false
-					return mm, mutate("approve", func() error { return mm.client.Resolve(esc, "approve", "", "") })
+					return mm.approveEscalation(it)
 				}},
 				command{"Drop in to selected", func(mm Model) (tea.Model, tea.Cmd) {
 					mm.paletteOpen = false

@@ -48,6 +48,15 @@ func (f *fakeClient) SetPolling(p bool) error              { f.pollings = append
 func (f *fakeClient) GC(id int64, force bool) error        { f.gcs = append(f.gcs, id); return nil }
 func (f *fakeClient) SetShadow(string, string, bool) error { return nil }
 
+type fakeRunner struct{ urls []string }
+
+func (f *fakeRunner) ListPanes() (string, error)        { return "", nil }
+func (f *fakeRunner) SelectWindow(string) error         { return nil }
+func (f *fakeRunner) WorkmuxOpen(string) error          { return nil }
+func (f *fakeRunner) OpenURL(u string) error            { f.urls = append(f.urls, u); return nil }
+func (f *fakeRunner) ListPanesSession() (string, error) { return "", nil }
+func (f *fakeRunner) SwitchClient(string) error         { return nil }
+
 func fleetModel(t *testing.T, fc *fakeClient) Model {
 	m := New(Deps{MirrorDir: t.TempDir(), Client: fc})
 	m.activeTab = TabFleet
