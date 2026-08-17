@@ -525,106 +525,39 @@ local function confirmOpenAndDo(callback, args, window_type, target_mode, target
 	args = args or default_args
 	window_type = window_type or "vsplit"
 
-	-- Explicit target path: route to a specific (mode, idx) instance.
-	if target_mode then
-		local inst = get_instance(target_mode, target_idx)
-		local alive = inst
-			and inst.buf
-			and vim.api.nvim_buf_is_valid(inst.buf)
-			and inst.job_id
-			and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1
-		if not alive then
-			M.Open(target_mode, args, window_type, target_idx)
-			vim.defer_fn(function()
-				if callback then
-					callback()
-				end
-			end, 2500)
-			return
-		end
-		-- Ensure the target buf is visible
-		local visible = false
-		for _, win in ipairs(vim.api.nvim_list_wins()) do
-			if vim.api.nvim_win_get_buf(win) == inst.buf then
-				visible = true
-				break
-			end
-		end
-		if not visible then
-			terminal.open_buffer_in_new_window(window_type, inst.buf)
-		end
-		M.active_mode, M.active_index = target_mode, target_idx
-		M.active_buf, M.active_job_id = inst.buf, inst.job_id
-		if callback then
-			callback()
-		end
-		return
-	end
-
-	-- Legacy fallback: no explicit target, fall back to active state.
-	local active_buf = M.active_buf
-	if not active_buf or not vim.api.nvim_buf_is_valid(active_buf) then
-		-- No active buffer, use active_mode (or fall back to claude)
-		-- Active mode may be "none" at startup (or after all agents closed).
-		-- Resolve to default_mode in that case so we don't try to open mode="none".
-		local fallback_mode = (M.active_mode ~= "none") and M.active_mode or M.default_mode
-		local fallback_idx = (M.active_mode ~= "none") and M.active_index or 0
-		M.Open(fallback_mode, args, window_type, fallback_idx)
-
-		-- Wait a bit for the chat to initialize
+	-- Route to a specific (mode, idx) instance: spawn it if its job is dead
+	-- (deferring callback ~2500ms so the agent can initialize), re-show its
+	-- buffer if hidden, update active state, then run callback.
+	local inst = get_instance(target_mode, target_idx)
+	local alive = inst
+		and inst.buf
+		and vim.api.nvim_buf_is_valid(inst.buf)
+		and inst.job_id
+		and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1
+	if not alive then
+		M.Open(target_mode, args, window_type, target_idx)
 		vim.defer_fn(function()
 			if callback then
 				callback()
 			end
-			-- Focus active buffer and enter insert mode
-			if M.active_buf and vim.api.nvim_buf_is_valid(M.active_buf) then
-				local windows = vim.api.nvim_list_wins()
-				for _, win in ipairs(windows) do
-					if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == M.active_buf then
-						vim.api.nvim_set_current_win(win)
-						vim.cmd("startinsert")
-						break
-					end
-				end
-			end
 		end, 2500)
-	else
-		-- Buffer exists, make sure it's visible
-		local windows = vim.api.nvim_list_wins()
-		local is_visible = false
-		local claude_win = nil
-
-		for _, win in ipairs(windows) do
-			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == active_buf then
-				-- Buffer is visible
-				is_visible = true
-				claude_win = win
-				break
-			end
+		return
+	end
+	-- Ensure the target buf is visible
+	local visible = false
+	for _, win in ipairs(vim.api.nvim_list_wins()) do
+		if vim.api.nvim_win_get_buf(win) == inst.buf then
+			visible = true
+			break
 		end
-
-		-- If buffer exists but is not visible, show it in window_type
-		if not is_visible then
-			terminal.open_buffer_in_new_window(window_type, active_buf)
-			-- Find the new window
-			windows = vim.api.nvim_list_wins()
-			for _, win in ipairs(windows) do
-				if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == active_buf then
-					claude_win = win
-					break
-				end
-			end
-		end
-
-		if callback then
-			callback()
-		end
-
-		-- Focus the Claude window and enter insert mode
-		if claude_win then
-			vim.api.nvim_set_current_win(claude_win)
-			vim.cmd("startinsert")
-		end
+	end
+	if not visible then
+		terminal.open_buffer_in_new_window(window_type, inst.buf)
+	end
+	M.active_mode, M.active_index = target_mode, target_idx
+	M.active_buf, M.active_job_id = inst.buf, inst.job_id
+	if callback then
+		callback()
 	end
 end
 
@@ -1214,10 +1147,6 @@ function M.SendOpenBuffers()
 	})
 
 	M._send_with_count("SendOpenBuffers", vim.v.count, message)
-end
-
-function M.StartClaude()
-	confirmOpenAndDo(nil)
 end
 
 local function configureClaudeKeymap()
