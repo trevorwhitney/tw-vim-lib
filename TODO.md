@@ -12,12 +12,12 @@ done, reviewed (spec + quality per task), and committed: c27edf3..3cf3054.
       only failures are sidebar_spec's 12, and the failing-test-name sets at
       HEAD and at a d21282a worktree are byte-identical (`diff` clean).
       Pre-existing headless-environment failures; zero new failures.
-- [ ] Manual smoke test in live Neovim (plan Task 6 Step 2): close/collapse
-      one of two agent panes and confirm count-less sends route to the
+- [x] Manual smoke test in live Neovim (plan Task 6 Step 2), operator-verified:
+      close/collapse one of two agent panes and count-less sends route to the
       visible one without reopening; letter picker with both visible;
       vim.ui.select fallback with drawer closed; `1<leader>c*` still
       force-targets.
-- [ ] Merge/PR decision (finishing-a-development-branch handoff pending)
+- [x] Merge/PR decision: merged to main (no PR — solo repo, fast-forward).
 
 # TODO: productionize + harden (Plan 4)
 
