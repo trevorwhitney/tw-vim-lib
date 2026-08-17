@@ -1,3 +1,20 @@
+# TODO: agent send target routing
+
+Plan: `docs/superpowers/plans/2026-08-12-agent-send-target-routing.md`
+Workflow: prototype-driven subagent development. All 5 implementation tasks
+done, reviewed (spec + quality per task), and committed: c27edf3..3cf3054.
+
+## Verification
+- [x] `make lint` green; `make test-lua` green; `make test-go` green.
+      `make test-plenary`: 12 sidebar failures fail identically at the base
+      commit (documented pre-existing); zero new failures from this plan.
+- [ ] Manual smoke test in live Neovim (plan Task 6 Step 2): close/collapse
+      one of two agent panes and confirm count-less sends route to the
+      visible one without reopening; letter picker with both visible;
+      vim.ui.select fallback with drawer closed; `1<leader>c*` still
+      force-targets.
+- [ ] Merge/PR decision (finishing-a-development-branch handoff pending)
+
 # TODO: productionize + harden (Plan 4)
 
 Plan: `docs/superpowers/plans/2026-08-06-agentd-productionize-harden.md` (vault symlink, not committed)
