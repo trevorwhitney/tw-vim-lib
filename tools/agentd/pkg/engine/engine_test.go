@@ -50,6 +50,12 @@ func (f *fakeGH) Viewer() (string, error)          { return "twhitney", nil }
 
 // fakeWriter satisfies github.Writer and records writes as one line each, so
 // tests can assert exact write activity.
+// wantApproveAutoMerge is the gh call pair one approve_and_automerge produces.
+var wantApproveAutoMerge = []string{
+	"approve grafana/loki#42",
+	"automerge grafana/loki#42 --squash",
+}
+
 type fakeWriter struct{ calls []string }
 
 var _ github.Writer = (*fakeWriter)(nil)
@@ -57,6 +63,11 @@ var _ github.Writer = (*fakeWriter)(nil)
 func (f *fakeWriter) MergePR(_ context.Context, repo string, n int, method string) (string, error) {
 	f.calls = append(f.calls, fmt.Sprintf("merge %s#%d --%s", repo, n, method))
 	return "merged", nil
+}
+
+func (f *fakeWriter) EnableAutoMerge(_ context.Context, repo string, n int, method string) (string, error) {
+	f.calls = append(f.calls, fmt.Sprintf("automerge %s#%d --%s", repo, n, method))
+	return "auto-merge enabled", nil
 }
 
 func (f *fakeWriter) ApprovePR(_ context.Context, repo string, n int) (string, error) {
@@ -116,7 +127,7 @@ func Test_ProcessPR_MergesRenovateLockfileOnly(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "done", job.State)
 	require.Equal(t, "acted", job.Outcome)
-	require.Equal(t, []string{"merge grafana/loki#42 --squash"}, fe.calls)
+	require.Equal(t, wantApproveAutoMerge, fe.calls)
 }
 
 func Test_ProcessPR_SameHeadIsSkippedOnce(t *testing.T) {
@@ -126,7 +137,7 @@ func Test_ProcessPR_SameHeadIsSkippedOnce(t *testing.T) {
 	require.NoError(t, e.ProcessPR(context.Background(), "grafana/loki", renovatePR(), e.Chains["grafana/loki"]))
 	require.NoError(t, e.ProcessPR(context.Background(), "grafana/loki", renovatePR(), e.Chains["grafana/loki"]))
 
-	require.Len(t, fe.calls, 1, "second pass over same head must be a no-op")
+	require.Len(t, fe.calls, len(wantApproveAutoMerge), "second pass over same head must be a no-op")
 	_ = st
 }
 
@@ -149,7 +160,8 @@ func Test_ProcessPR_IneligibleLeavesNoRecord(t *testing.T) {
 	gh.facts.CI = github.CISuccess
 	e.deferredAt["grafana/loki#42@abc"] = time.Now().Add(-10 * time.Minute)
 	require.NoError(t, e.ProcessPR(context.Background(), "grafana/loki", renovatePR(), e.Chains["grafana/loki"]))
-	require.Len(t, fe.calls, 1, "same head processes once CI goes green and the backoff expires")
+	require.Len(t, fe.calls, len(wantApproveAutoMerge),
+		"same head processes once CI goes green and the backoff expires")
 }
 
 func Test_ProcessPR_OutsideFilesEscalates(t *testing.T) {
@@ -166,7 +178,7 @@ func Test_ProcessPR_OutsideFilesEscalates(t *testing.T) {
 	esc, ok, err := st.OpenEscalationForJob(job.ID)
 	require.NoError(t, err)
 	require.True(t, ok)
-	require.Equal(t, "merge_pr", esc.ActionKind)
+	require.Equal(t, "approve_and_automerge", esc.ActionKind)
 }
 
 func Test_ProcessPR_NonBotSkips(t *testing.T) {

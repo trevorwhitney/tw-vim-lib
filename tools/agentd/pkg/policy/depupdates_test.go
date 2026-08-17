@@ -27,12 +27,12 @@ func Test_DepUpdates(t *testing.T) {
 		require.Equal(t, Pass, res.Verdict)
 	})
 
-	t.Run("bot with allowed files merges", func(t *testing.T) {
+	t.Run("bot with allowed files approves and auto-merges", func(t *testing.T) {
 		res, err := p.Evaluate(depInput("renovate[bot]",
 			[]string{"go.mod", "go.sum", "vendor/github.com/x/y/z.go"}))
 		require.NoError(t, err)
 		require.Equal(t, Act, res.Verdict)
-		require.Equal(t, "merge_pr", res.Action.Kind)
+		require.Equal(t, "approve_and_automerge", res.Action.Kind)
 		require.Equal(t, "42", res.Action.Params["number"])
 		require.Equal(t, "grafana/loki", res.Action.Params["repo"])
 		require.Equal(t, "squash", res.Action.Params["method"])

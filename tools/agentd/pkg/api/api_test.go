@@ -43,7 +43,10 @@ type okWriter struct{}
 var _ github.Writer = okWriter{}
 
 func (okWriter) MergePR(context.Context, string, int, string) (string, error) { return "merged", nil }
-func (okWriter) ApprovePR(context.Context, string, int) (string, error)       { return "approved", nil }
+func (okWriter) EnableAutoMerge(context.Context, string, int, string) (string, error) {
+	return "auto-merge enabled", nil
+}
+func (okWriter) ApprovePR(context.Context, string, int) (string, error) { return "approved", nil }
 func (okWriter) CommentPR(context.Context, string, int, string) (string, error) {
 	return "commented", nil
 }

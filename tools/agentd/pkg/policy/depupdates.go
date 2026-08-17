@@ -10,8 +10,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// DepUpdates merges dependency-bot PRs whose changed files all match the
-// allowed path globs; anything else it escalates with the merge attached.
+// DepUpdates approves dependency-bot PRs whose changed files all match the
+// allowed path globs and hands the merge to GitHub's auto-merge; anything else
+// it escalates with that same action attached.
 type DepUpdates struct {
 	AllowedPaths   []string `yaml:"allowed_paths"`
 	AllowedAuthors []string `yaml:"allowed_authors"`
@@ -52,7 +53,7 @@ func (p *DepUpdates) Evaluate(in Input) (Result, error) {
 	}
 
 	action := &Action{
-		Kind: "merge_pr",
+		Kind: "approve_and_automerge",
 		Params: map[string]string{
 			"repo":   in.Repo,
 			"number": strconv.Itoa(in.Facts.PR.Number),

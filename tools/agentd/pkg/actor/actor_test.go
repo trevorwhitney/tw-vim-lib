@@ -19,9 +19,10 @@ import (
 // fakeWriter records write calls; failN fails that many transiently, authErr
 // fails every call with a github.AuthError.
 type fakeWriter struct {
-	calls   []string
-	failN   int
-	authErr bool
+	calls         []string
+	failN         int
+	authErr       bool
+	failAutoMerge bool
 }
 
 var _ github.Writer = (*fakeWriter)(nil)
@@ -40,6 +41,15 @@ func (f *fakeWriter) record(call string) (string, error) {
 
 func (f *fakeWriter) MergePR(_ context.Context, repo string, n int, method string) (string, error) {
 	return f.record(fmt.Sprintf("merge %s#%d --%s", repo, n, method))
+}
+
+func (f *fakeWriter) EnableAutoMerge(_ context.Context, repo string, n int, method string) (string, error) {
+	call := fmt.Sprintf("automerge %s#%d --%s", repo, n, method)
+	if f.failAutoMerge {
+		f.calls = append(f.calls, call)
+		return "", errors.New("auto-merge not allowed on this repo")
+	}
+	return f.record(call)
 }
 func (f *fakeWriter) ApprovePR(_ context.Context, repo string, n int) (string, error) {
 	return f.record(fmt.Sprintf("approve %s#%d", repo, n))
@@ -162,4 +172,93 @@ func Test_Execute_CancelledContextStopsRetries(t *testing.T) {
 	_, err := a.Execute(ctx, jobID, mergeAction(), false)
 	require.Error(t, err)
 	require.Len(t, fw.calls, 1, "no further attempts after ctx cancellation")
+}
+
+func storedActionError(t *testing.T, st *store.Store, jobID int64) string {
+	t.Helper()
+	acts, err := st.ActionsForJob(jobID)
+	require.NoError(t, err)
+	require.Len(t, acts, 1)
+	return acts[0].Error
+}
+
+func Test_Execute_CancellationDoesNotMaskTheRealFailure(t *testing.T) {
+	t.Run("a fault from an earlier attempt survives the cancellation", func(t *testing.T) {
+		fw := &fakeWriter{failN: 99}
+		a, st, jobID := newActor(t, fw)
+		ctx, cancel := context.WithCancel(context.Background())
+		a.Sleep = func(time.Duration) { cancel() }
+
+		_, err := a.Execute(ctx, jobID, mergeAction(), false)
+		require.ErrorContains(t, err, "transient gh failure")
+		require.NotContains(t, err.Error(), "context canceled",
+			"the cancellation is incidental; the gh fault is the diagnosis")
+		require.Contains(t, storedActionError(t, st, jobID), "transient gh failure")
+	})
+
+	t.Run("a cancellation before any attempt is still reported", func(t *testing.T) {
+		fw := &fakeWriter{}
+		a, st, jobID := newActor(t, fw)
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		_, err := a.Execute(ctx, jobID, mergeAction(), false)
+		require.ErrorContains(t, err, "context canceled")
+		require.Empty(t, fw.calls)
+		require.Contains(t, storedActionError(t, st, jobID), "context canceled")
+	})
+}
+
+func approveAndAutoMergeAction() policy.Action {
+	return policy.Action{Kind: "approve_and_automerge",
+		Params: map[string]string{"repo": "a/b", "number": "1", "method": "squash"}}
+}
+
+func Test_Execute_ApproveAndAutoMerge(t *testing.T) {
+	t.Run("approves first, then hands the merge to GitHub", func(t *testing.T) {
+		fw := &fakeWriter{}
+		a, _, jobID := newActor(t, fw)
+		out, err := a.Execute(context.Background(), jobID, approveAndAutoMergeAction(), false)
+		require.NoError(t, err)
+		require.Equal(t, []string{"approve a/b#1", "automerge a/b#1 --squash"}, fw.calls)
+		require.Contains(t, out, "approved")
+		require.Contains(t, out, "auto-merge enabled")
+	})
+
+	t.Run("a failed auto-merge says the review already landed", func(t *testing.T) {
+		fw := &fakeWriter{failAutoMerge: true}
+		a, _, jobID := newActor(t, fw)
+		_, err := a.Execute(context.Background(), jobID, approveAndAutoMergeAction(), false)
+		require.ErrorContains(t, err, "enable auto-merge (review already approved)")
+		require.ErrorContains(t, err, "auto-merge not allowed on this repo")
+	})
+
+	t.Run("a failed approve does not reach the merge", func(t *testing.T) {
+		fw := &fakeWriter{authErr: true}
+		a, _, jobID := newActor(t, fw)
+		_, err := a.Execute(context.Background(), jobID, approveAndAutoMergeAction(), false)
+		require.ErrorContains(t, err, "approve:")
+		require.Equal(t, []string{"approve a/b#1"}, fw.calls)
+	})
+
+	t.Run("shadow records without calling GitHub", func(t *testing.T) {
+		fw := &fakeWriter{}
+		a, _, jobID := newActor(t, fw)
+		out, err := a.Execute(context.Background(), jobID, approveAndAutoMergeAction(), true)
+		require.NoError(t, err)
+		require.Equal(t, "shadow", out)
+		require.Empty(t, fw.calls, "shadow must not approve or enable auto-merge")
+	})
+}
+
+func Test_RetryBudgetFitsInsideTheClientTimeout(t *testing.T) {
+	// The API clients cancel at 30s and hand us that context; if the backoff
+	// schedule reached it, the last attempt would die and report the
+	// cancellation rather than the fault.
+	var total time.Duration
+	for attempt := 1; attempt < maxAttempts; attempt++ {
+		total += time.Duration(attempt) * retryBackoff
+	}
+	require.Less(t, total, 15*time.Second,
+		"leave room for %d dispatches inside the 30s client timeout", maxAttempts)
 }

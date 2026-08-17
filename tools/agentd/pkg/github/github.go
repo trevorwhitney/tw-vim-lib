@@ -55,6 +55,9 @@ type Reader interface {
 // Writer is the write surface the actor executes through.
 type Writer interface {
 	MergePR(ctx context.Context, repo string, number int, method string) (string, error)
+	// EnableAutoMerge queues the merge for when the branch's own requirements
+	// are met, leaving GitHub to enforce checks rather than the daemon.
+	EnableAutoMerge(ctx context.Context, repo string, number int, method string) (string, error)
 	ApprovePR(ctx context.Context, repo string, number int) (string, error)
 	CommentPR(ctx context.Context, repo string, number int, body string) (string, error)
 }

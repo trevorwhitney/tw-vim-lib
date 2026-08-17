@@ -105,6 +105,10 @@ func (c *Client) MergePR(ctx context.Context, repo string, number int, method st
 	return c.gh(ctx, "pr", "merge", strconv.Itoa(number), "--repo", repo, "--"+method)
 }
 
+func (c *Client) EnableAutoMerge(ctx context.Context, repo string, number int, method string) (string, error) {
+	return c.gh(ctx, "pr", "merge", strconv.Itoa(number), "--repo", repo, "--"+method, "--auto")
+}
+
 func (c *Client) ApprovePR(ctx context.Context, repo string, number int) (string, error) {
 	return c.gh(ctx, "pr", "review", strconv.Itoa(number), "--repo", repo, "--approve")
 }

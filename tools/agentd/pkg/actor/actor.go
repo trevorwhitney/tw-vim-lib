@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/trevorwhitney/tw-vim-lib/agentd/pkg/github"
@@ -22,7 +23,13 @@ type Actor struct {
 	Sleep  func(time.Duration)
 }
 
-const maxAttempts = 3
+const (
+	maxAttempts = 3
+	// The API clients cancel at 30s and their context reaches us, so the whole
+	// backoff schedule has to finish well inside that. Overrun cancels the last
+	// attempt mid-flight and reports the cancellation instead of the real fault.
+	retryBackoff = 2 * time.Second
+)
 
 // Execute performs act for job. A previously executed (job, kind, params)
 // action is not re-run; its recorded result is returned. shadow (or the
@@ -58,10 +65,14 @@ func (a *Actor) Execute(ctx context.Context, jobID int64, act policy.Action, sha
 	var lastErr error
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		if attempt > 0 {
-			a.Sleep(time.Duration(attempt) * 10 * time.Second)
+			a.Sleep(time.Duration(attempt) * retryBackoff)
 		}
 		if err := ctx.Err(); err != nil {
-			lastErr = err
+			// A cancellation says nothing about why the action failed, so it
+			// must not displace a fault an earlier attempt already reported.
+			if lastErr == nil {
+				lastErr = err
+			}
 			break
 		}
 		out, err := a.dispatch(ctx, act)
@@ -81,9 +92,16 @@ func (a *Actor) Execute(ctx context.Context, jobID int64, act policy.Action, sha
 	return "", fmt.Errorf("%s failed after %d attempts: %w", act.Kind, maxAttempts, lastErr)
 }
 
+func firstLine(s string) string {
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		return s[:i]
+	}
+	return s
+}
+
 func validKind(kind string) error {
 	switch kind {
-	case "merge_pr", "approve_pr", "comment_pr":
+	case "merge_pr", "approve_pr", "comment_pr", "approve_and_automerge":
 		return nil
 	}
 	return fmt.Errorf("unknown action kind %q", kind)
@@ -102,6 +120,25 @@ func (a *Actor) dispatch(ctx context.Context, act policy.Action) (string, error)
 		return a.GH.ApprovePR(ctx, p["repo"], number)
 	case "comment_pr":
 		return a.GH.CommentPR(ctx, p["repo"], number, p["body"])
+	case "approve_and_automerge":
+		return a.approveAndAutoMerge(ctx, p, number)
 	}
 	return "", validKind(act.Kind)
+}
+
+// approveAndAutoMerge posts the approving review that unblocks a protected
+// branch, then hands the merge to GitHub's auto-merge queue. Errors name the
+// step that failed because the two are not equally recoverable: a failure
+// after the review leaves an approval standing on the PR.
+func (a *Actor) approveAndAutoMerge(ctx context.Context, p map[string]string, number int) (string, error) {
+	review, err := a.GH.ApprovePR(ctx, p["repo"], number)
+	if err != nil {
+		return "", fmt.Errorf("approve: %w", err)
+	}
+	auto, err := a.GH.EnableAutoMerge(ctx, p["repo"], number, p["method"])
+	if err != nil {
+		return "", fmt.Errorf("enable auto-merge (review already approved): %w", err)
+	}
+	return fmt.Sprintf("approved (%s); auto-merge enabled (%s)",
+		firstLine(review), firstLine(auto)), nil
 }

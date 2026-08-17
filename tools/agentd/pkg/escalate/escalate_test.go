@@ -18,13 +18,18 @@ import (
 )
 
 // fakeWriter satisfies github.Writer and records every write.
-type fakeWriter struct{ merges, approvals, comments []string }
+type fakeWriter struct{ merges, automerges, approvals, comments []string }
 
 var _ github.Writer = (*fakeWriter)(nil)
 
 func (f *fakeWriter) MergePR(_ context.Context, repo string, n int, method string) (string, error) {
 	f.merges = append(f.merges, fmt.Sprintf("%s#%d --%s", repo, n, method))
 	return "merged", nil
+}
+
+func (f *fakeWriter) EnableAutoMerge(_ context.Context, repo string, n int, method string) (string, error) {
+	f.automerges = append(f.automerges, fmt.Sprintf("%s#%d --%s", repo, n, method))
+	return "auto-merge enabled", nil
 }
 
 func (f *fakeWriter) ApprovePR(_ context.Context, repo string, n int) (string, error) {

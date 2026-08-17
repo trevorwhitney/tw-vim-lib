@@ -15,7 +15,7 @@ func Test_PollAll_ProcessesConfiguredRepos(t *testing.T) {
 
 	e.PollAll(context.Background())
 
-	require.Len(t, fe.calls, 1)
+	require.Len(t, fe.calls, len(wantApproveAutoMerge))
 	statuses := e.Statuses()
 	require.Len(t, statuses, 1)
 	require.Equal(t, "grafana/loki", statuses[0].Repo)
@@ -56,7 +56,7 @@ func Test_EnqueuePR_ProcessesImmediately(t *testing.T) {
 	job, err := e.EnqueuePR(context.Background(), "grafana/loki", 42)
 	require.NoError(t, err)
 	require.Equal(t, "done", job.State)
-	require.Len(t, fe.calls, 1)
+	require.Len(t, fe.calls, len(wantApproveAutoMerge))
 
 	_, err = e.EnqueuePR(context.Background(), "unknown/repo", 1)
 	require.Error(t, err)
@@ -74,7 +74,7 @@ func Test_Retry_RerunsFailedJobWithSameHead(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "done", job.State)
 	require.Equal(t, "acted", job.Outcome)
-	require.Len(t, fe.calls, 1)
+	require.Len(t, fe.calls, len(wantApproveAutoMerge))
 }
 
 func Test_Retry_RefusesWhenHeadMoved(t *testing.T) {

@@ -75,9 +75,10 @@ func Test_Writes_ProduceCorrectGhCommands(t *testing.T) {
 		call func(c *Client) (string, error)
 		want string
 	}{
-		"merge":   {func(c *Client) (string, error) { return c.MergePR(ctx, "a/b", 1, "squash") }, "pr merge 1 --repo a/b --squash"},
-		"approve": {func(c *Client) (string, error) { return c.ApprovePR(ctx, "a/b", 1) }, "pr review 1 --repo a/b --approve"},
-		"comment": {func(c *Client) (string, error) { return c.CommentPR(ctx, "a/b", 1, "hi") }, "pr comment 1 --repo a/b --body hi"},
+		"merge":     {func(c *Client) (string, error) { return c.MergePR(ctx, "a/b", 1, "squash") }, "pr merge 1 --repo a/b --squash"},
+		"automerge": {func(c *Client) (string, error) { return c.EnableAutoMerge(ctx, "a/b", 1, "squash") }, "pr merge 1 --repo a/b --squash --auto"},
+		"approve":   {func(c *Client) (string, error) { return c.ApprovePR(ctx, "a/b", 1) }, "pr review 1 --repo a/b --approve"},
+		"comment":   {func(c *Client) (string, error) { return c.CommentPR(ctx, "a/b", 1, "hi") }, "pr comment 1 --repo a/b --body hi"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			fe := newFakeExec()
