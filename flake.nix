@@ -52,7 +52,6 @@
             inherit (unstable)
               claude-code
               delve
-              gemini-cli
               go
               golangci-lint
               golangci-lint-langserver
@@ -71,7 +70,6 @@
                     inherit
                       jdtls
                       claude-code
-                      gemini-cli
                       golangci-lint
                       golangci-lint-langserver
                       ;
