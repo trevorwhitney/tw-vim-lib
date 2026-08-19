@@ -1,3 +1,8 @@
+-- Writes the mirror registry that agentmux reads. The filename pattern, JSON
+-- schema, status vocabulary, and agentd path conventions are specified in
+-- github.com/trevorwhitney/agentmux, docs/mirror-contract.md. Nothing checks
+-- that contract, so changing either side requires changing both. Note the
+-- reader skips any record whose "schema" is not exactly 1.
 local M = {}
 
 local function warn(msg)
