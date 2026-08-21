@@ -41,6 +41,24 @@ function M.reset_and_mock(also_load_claude, opts)
   return agent, claude_mod
 end
 
+-- Register an agent instance the way the product does, then drop the status
+-- cache entry it just primed.
+--
+-- agent._set_instance publishes a record, and publishing detects the
+-- instance's status. That detection runs against whatever vim.fn.jobwait is
+-- installed at registration time -- normally the real one, which reports a
+-- fake job id as dead -- and status.lua caches the answer per buffer for
+-- 500ms. A test that installs its own jobwait stub afterwards would otherwise
+-- read the stale "dead" instead of its stub, and would start passing on its
+-- own once the cache aged out.
+function M.set_instance(agent, mode, idx, buf, job_id)
+  agent._set_instance(mode, idx, buf, job_id)
+  local ok, status = pcall(require, "tw.agent.status")
+  if ok and status and status.invalidate then
+    status.invalidate(buf)
+  end
+end
+
 -- Helper used by many tests
 function M.buf_visible(buf)
   for _, win in ipairs(vim.api.nvim_list_wins()) do

@@ -105,7 +105,7 @@ describe("sidebar rendering", function()
   local function setup_alive_instance(mode, idx)
     local buf = vim.api.nvim_create_buf(false, true)
     local job_id = 9000 + idx
-    agent._set_instance(mode, idx, buf, job_id)
+    helpers.set_instance(agent, mode, idx, buf, job_id)
     return buf, job_id
   end
 
@@ -120,7 +120,7 @@ describe("sidebar rendering", function()
     assert.equals("(no active sessions)", lines[3])
   end)
 
-  it("refresh() renders one row per alive instance", function()
+  it("refresh() renders a header and a description row per alive instance", function()
     local buf1, job1 = setup_alive_instance("opencode", 0)
     local buf2, job2 = setup_alive_instance("claude", 0)
     -- No interrupt hint -> opencode instance needs attention. The claude
@@ -139,12 +139,13 @@ describe("sidebar rendering", function()
     sidebar.refresh()
     vim.fn.jobwait = orig
 
+    -- Two rows per entry: a header row and an indented description row.
     local lines = vim.api.nvim_buf_get_lines(sidebar._state().buf, 0, -1, false)
-    assert.is_true(#lines >= 4)
+    assert.equals(6, #lines)
     assert.is_true(lines[3]:find("oc#0") ~= nil)
     assert.is_true(lines[3]:find("waiting") ~= nil)
-    assert.is_true(lines[4]:find("cl#0") ~= nil)
-    assert.is_true(lines[4]:find("waiting") ~= nil)
+    assert.is_true(lines[5]:find("cl#0") ~= nil)
+    assert.is_true(lines[5]:find("waiting") ~= nil)
   end)
 
   it("show_dead=false hides dead instances", function()
@@ -290,9 +291,12 @@ describe("sidebar rendering", function()
     sidebar.open()
     sidebar.refresh()
     vim.fn.jobwait = orig
+    -- Both rows of an entry map back to that entry.
     local map = sidebar._state().line_to_entry
     assert.equals(1, map[3])
-    assert.equals(2, map[4])
+    assert.equals(1, map[4])
+    assert.equals(2, map[5])
+    assert.equals(2, map[6])
     assert.is_nil(map[1])
     assert.is_nil(map[2])
   end)
@@ -348,8 +352,8 @@ describe("sidebar rendering", function()
     package.loaded["tw.agent.description"] = nil
 
     local lines = vim.api.nvim_buf_get_lines(sidebar._state().buf, 0, -1, false)
-    assert.is_true(#lines >= 3)
-    assert.is_true(lines[3]:find("fixing tests") ~= nil)
+    assert.is_true(#lines >= 4)
+    assert.is_true(lines[4]:find("fixing tests") ~= nil)
   end)
 
   it("render_lines shows loading state", function()
@@ -375,7 +379,7 @@ describe("sidebar rendering", function()
     package.loaded["tw.agent.description"] = nil
 
     local lines = vim.api.nvim_buf_get_lines(sidebar._state().buf, 0, -1, false)
-    assert.is_true(lines[3]:find("loading") ~= nil)
+    assert.is_true(lines[4]:find("loading") ~= nil)
   end)
 
   it("render_lines shows error state", function()
@@ -401,7 +405,7 @@ describe("sidebar rendering", function()
     package.loaded["tw.agent.description"] = nil
 
     local lines = vim.api.nvim_buf_get_lines(sidebar._state().buf, 0, -1, false)
-    assert.is_true(lines[3]:find("failed") ~= nil)
+    assert.is_true(lines[4]:find("failed") ~= nil)
   end)
 end)
 
@@ -436,7 +440,7 @@ describe("sidebar interaction", function()
 
   it("<CR> on a data row calls agent.Open with the entry's mode and idx", function()
     local buf = vim.api.nvim_create_buf(false, true)
-    agent._set_instance("opencode", 0, buf, 9001)
+    helpers.set_instance(agent, "opencode", 0, buf, 9001)
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
 
@@ -492,8 +496,10 @@ describe("sidebar cursor preservation", function()
    it("preserves cursor on the same (mode, idx) when entries reorder", function()
      local buf1 = vim.api.nvim_create_buf(false, true)
      local buf2 = vim.api.nvim_create_buf(false, true)
-     agent._set_instance("opencode", 0, buf1, 9001)
-     agent._set_instance("claude", 0, buf2, 9002)
+     local buf3 = vim.api.nvim_create_buf(false, true)
+     helpers.set_instance(agent, "opencode", 0, buf1, 9001)
+     helpers.set_instance(agent, "claude", 0, buf2, 9002)
+     helpers.set_instance(agent, "codex", 0, buf3, 9003)
 
      local orig = vim.fn.jobwait
      vim.fn.jobwait = function() return { -1 } end
@@ -502,18 +508,20 @@ describe("sidebar cursor preservation", function()
      sidebar.refresh()
      local data_start = sidebar._state().data_start_line
      local win = vim.fn.bufwinid(sidebar._state().buf)
-     -- Cursor lands on the second data row (claude)
-     vim.api.nvim_win_set_cursor(win, { data_start + 1, 0 })
+
+     -- Entries are two rows apart; park the cursor on codex, the third one.
+     vim.api.nvim_win_set_cursor(win, { data_start + 4, 0 })
 
      -- User is focused on the sidebar window
      vim.api.nvim_set_current_win(win)
 
-     -- Remove opencode; claude shifts to the first data row
+     -- Drop opencode so codex becomes the second entry. A preserved cursor
+     -- follows codex to data_start + 2; default positioning would instead
+     -- fall back to the first row, so this distinguishes the two.
      agent.instances.opencode = {}
      sidebar.refresh()
 
-     local new_cursor = vim.api.nvim_win_get_cursor(win)
-     assert.equals(data_start, new_cursor[1])
+     assert.equals(data_start + 2, vim.api.nvim_win_get_cursor(win)[1])
 
      vim.fn.jobwait = orig
    end)
@@ -588,7 +596,7 @@ describe("sidebar lazy description generation", function()
   it("refresh() calls generate() for nil descriptions", function()
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "test content" })
-    agent._set_instance("opencode", 0, buf, 9001)
+    helpers.set_instance(agent, "opencode", 0, buf, 9001)
 
     local generate_called = false
     local generate_buf = nil
@@ -617,7 +625,7 @@ describe("sidebar lazy description generation", function()
 
   it("refresh() does not call generate() for cached descriptions", function()
     local buf = vim.api.nvim_create_buf(false, true)
-    agent._set_instance("opencode", 0, buf, 9001)
+    helpers.set_instance(agent, "opencode", 0, buf, 9001)
 
     local generate_called = false
 
@@ -644,7 +652,7 @@ describe("sidebar lazy description generation", function()
   it("generate() callback triggers sidebar refresh", function()
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "test" })
-    agent._set_instance("opencode", 0, buf, 9001)
+    helpers.set_instance(agent, "opencode", 0, buf, 9001)
 
     local stored_callback = nil
     local get_return = nil
@@ -676,7 +684,7 @@ describe("sidebar lazy description generation", function()
     vim.fn.jobwait = orig
 
     local lines = vim.api.nvim_buf_get_lines(sidebar._state().buf, 0, -1, false)
-    assert.is_true(lines[3]:find("new description") ~= nil)
+    assert.is_true(lines[4]:find("new description") ~= nil)
   end)
 end)
 
@@ -723,7 +731,7 @@ describe("sidebar restorable entries", function()
 
   it("does not duplicate a live instance as restorable", function()
     local buf = vim.api.nvim_create_buf(false, true)
-    agent._set_instance("opencode", 0, buf, 999)
+    helpers.set_instance(agent, "opencode", 0, buf, 999)
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
     local entries = sidebar._collect_entries("/wt")
@@ -739,7 +747,7 @@ describe("sidebar restorable entries", function()
   it("does not show a restorable ghost for a dead but present instance (show_dead=false)", function()
     package.loaded["tw.agent.status"] = { detect = function() return "dead" end, invalidate = function() end }
     local buf = vim.api.nvim_create_buf(false, true)
-    agent._set_instance("opencode", 0, buf, 999)
+    helpers.set_instance(agent, "opencode", 0, buf, 999)
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
     local entries = sidebar._collect_entries("/wt")
@@ -844,7 +852,7 @@ describe("sidebar restorable supersession", function()
 
   it("a live launch for a slot hides its restorable entry", function()
     local buf = vim.api.nvim_create_buf(false, true)
-    agent._set_instance("opencode", 0, buf, 999)
+    helpers.set_instance(agent, "opencode", 0, buf, 999)
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
     local entries = sidebar._collect_entries("/wt")
@@ -881,7 +889,7 @@ describe("sidebar new session (a)", function()
   end)
 
   it("skips indices held by live instances", function()
-    agent._set_instance("opencode", 0, vim.api.nvim_create_buf(false, true), 999)
+    helpers.set_instance(agent, "opencode", 0, vim.api.nvim_create_buf(false, true), 999)
     assert.equals(1, sidebar.next_free_index("opencode"))
   end)
 
@@ -900,13 +908,13 @@ describe("sidebar new session (a)", function()
   end)
 
   it("fills the lowest gap between used indices", function()
-    agent._set_instance("opencode", 0, vim.api.nvim_create_buf(false, true), 999)
-    agent._set_instance("opencode", 2, vim.api.nvim_create_buf(false, true), 998)
+    helpers.set_instance(agent, "opencode", 0, vim.api.nvim_create_buf(false, true), 999)
+    helpers.set_instance(agent, "opencode", 2, vim.api.nvim_create_buf(false, true), 998)
     assert.equals(1, sidebar.next_free_index("opencode"))
   end)
 
   it("opens a new default-mode session at the next free index", function()
-    agent._set_instance("opencode", 0, vim.api.nvim_create_buf(false, true), 999)
+    helpers.set_instance(agent, "opencode", 0, vim.api.nvim_create_buf(false, true), 999)
     local captured
     local orig_open = agent.Open
     agent.Open = function(mode, args, window_type, idx)
@@ -978,7 +986,7 @@ describe("sidebar delete restorable (d)", function()
 
   it("is a no-op for a live (non-restorable) entry", function()
     local buf = vim.api.nvim_create_buf(false, true)
-    agent._set_instance("opencode", 0, buf, 999)
+    helpers.set_instance(agent, "opencode", 0, buf, 999)
     local orig = vim.fn.jobwait
     vim.fn.jobwait = function() return { -1 } end
     sidebar.open()
