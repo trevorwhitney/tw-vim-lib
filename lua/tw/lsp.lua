@@ -202,6 +202,20 @@ local function setup_lsp_keymaps()
 					desc = "LSP: Rename",
 				},
 				{ "<leader>la", vim.lsp.codelens.run, buffer = bufnr, desc = "LSP: Run Code Lens" },
+				{
+					"<leader>lf",
+					function()
+						-- Servers only offer source.fixAll when a client names it in
+						-- context.only; a bare code_action request never surfaces it,
+						-- since source actions rewrite the whole document.
+						vim.lsp.buf.code_action({
+							context = { only = { "source.fixAll" }, diagnostics = {} },
+							apply = true,
+						})
+					end,
+					buffer = bufnr,
+					desc = "LSP: Fix All (whole file)",
+				},
 			})
 		end,
 	})
@@ -262,6 +276,20 @@ local function setup_navigator(_opts)
 	require("navigator.lspclient.config").reload_lsp = restart_lsp
 end
 
+-- vim.lsp.config force-merges, so assigning on_attach replaces whatever the
+-- server's own lsp/<name>.lua defined instead of chaining it. eslint's default
+-- on_attach is what registers :LspEslintFixAll, so it has to keep running.
+local function chain_on_attach(server)
+	local base = (vim.lsp.config[server] or {}).on_attach
+	if not base then
+		return M.on_attach
+	end
+	return function(client, bufnr)
+		base(client, bufnr)
+		M.on_attach(client, bufnr)
+	end
+end
+
 local function setup_lspconfig(opts)
 	local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
@@ -281,7 +309,7 @@ local function setup_lspconfig(opts)
 
 	for _, server in ipairs(basic_servers) do
 		vim.lsp.config(server, {
-			on_attach = M.on_attach,
+			on_attach = chain_on_attach(server),
 			capabilities = capabilities,
 		})
 		vim.lsp.enable(server)
@@ -289,7 +317,7 @@ local function setup_lspconfig(opts)
 
 	-- servers with additional customizations
 	vim.lsp.config("gopls", {
-		on_attach = M.on_attach,
+		on_attach = chain_on_attach("gopls"),
 		capabilities = capabilities,
 		settings = {
 			gopls = {
@@ -318,7 +346,7 @@ local function setup_lspconfig(opts)
 	vim.lsp.enable("gopls")
 
 	vim.lsp.config("golangci_lint_ls", {
-		on_attach = M.on_attach,
+		on_attach = chain_on_attach("golangci_lint_ls"),
 		capabilities = capabilities,
 		cmd = { "golangci-lint-langserver" },
 		filetypes = { "go", "gomod" },
@@ -338,7 +366,7 @@ local function setup_lspconfig(opts)
 	vim.lsp.config("lua_ls", {
 		-- sumneko_root_path = opts.lua_ls_root,
 		-- sumneko_binary = opts.lua_ls_root .. "/bin/lua-language-server",
-		on_attach = M.on_attach,
+		on_attach = chain_on_attach("lua_ls"),
 		capabilities = capabilities,
 		cmd = { opts.lua_ls_root .. "/bin/lua-language-server" },
 		settings = {
