@@ -7,5 +7,9 @@ return {
 			vim.opt.splitkeep = "screen"
 		end,
 		opts = require("tw.agent.edgy_config"),
+		config = function(_, opts)
+			require("edgy").setup(opts)
+			require("tw.agent.edgy_winhl").setup()
+		end,
 	},
 }
