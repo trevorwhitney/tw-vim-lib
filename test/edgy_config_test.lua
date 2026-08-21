@@ -56,6 +56,38 @@ if not (agent_console and agent_console.size and agent_console.size.width == 0.4
 	fail("AgentConsole width must be 0.4 (40%), got " .. tostring(agent_console and agent_console.size and agent_console.size.width))
 end
 
+-- edgy floors an edgebar at options[pos].size, so the floor has to stay under
+-- the widths above or a drag narrower than it snaps straight back.
+for _, position in ipairs({ "left", "right" }) do
+	local size = cfg.options and cfg.options[position] and cfg.options[position].size
+	if type(size) ~= "number" then
+		fail(position .. " edgebar must set an explicit size floor, got " .. tostring(size))
+	end
+	if size >= 30 then
+		fail(position .. " edgebar floor must stay below edgy's stock 30, got " .. tostring(size))
+	end
+end
+
+-- With the floor lowered, a view that declared no width would collapse to it,
+-- so every view has to carry its own.
+for _, position in ipairs({ "left", "right" }) do
+	for _, view in ipairs(cfg[position] or {}) do
+		if not (view.size and view.size.width) then
+			fail(view.ft .. " must declare its own width once the edgebar floor is only a floor")
+		end
+	end
+end
+
+-- The sidebar used to take its width from edgy's stock 30 whenever it was the
+-- only left view open; that width must survive lowering the floor.
+local sidebar = find_view(cfg.left, "tw-agent-sidebar")
+if not (sidebar and sidebar.size.width == 30) then
+	fail("tw-agent-sidebar width must stay 30, got " .. tostring(sidebar and sidebar.size.width))
+end
+if sidebar.size.height ~= 23 then
+	fail("tw-agent-sidebar height must stay 23, got " .. tostring(sidebar.size.height))
+end
+
 if cfg.keys["<c-q>"] ~= false then
 	fail("<c-q> must be disabled (false) to avoid the tmux prefix conflict")
 end

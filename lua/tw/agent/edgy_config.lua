@@ -17,10 +17,19 @@ end
 return {
 	left = {
 		{ ft = "NvimTree", title = "Files", size = { width = 40 } },
-		{ ft = "tw-agent-sidebar", title = "Agents", size = { height = 23 } },
+		-- Width is what this view used to inherit from the edgebar default, kept
+		-- explicit now that the default is only a floor.
+		{ ft = "tw-agent-sidebar", title = "Agents", size = { width = 30, height = 23 } },
 	},
 	right = {
 		{ ft = "AgentConsole", title = agent_title, size = { width = 0.4 } },
+	},
+	-- An edgebar never shrinks below this, so edgy's stock 30 would snap a
+	-- narrower drag straight back. Every view above sets its own width, leaving
+	-- this purely a floor.
+	options = {
+		left = { size = 10 },
+		right = { size = 10 },
 	},
 	keys = {
 		["<c-q>"] = false,
