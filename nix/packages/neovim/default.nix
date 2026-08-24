@@ -26,7 +26,7 @@ let
     gnutar
 
     imagemagick
-    nodePackages.markdownlint-cli
+    markdownlint-cli
     nil
     nixpkgs-fmt
     statix
@@ -52,9 +52,13 @@ let
 
         stylua
         jdtls
+        bash-language-server
         ccls # c++ language server
         codespell
         dockerfile-language-server
+        eslint
+        eslint_d
+        fixjson
         gofumpt
         golines
         gotools
@@ -66,6 +70,7 @@ let
         lua-language-server
         marksman
         pprof
+        prettier
         prettierd
         pyright
         shellcheck
@@ -73,6 +78,7 @@ let
         terraform
         terraform-ls
         typescript
+        typescript-language-server
         vale
         vim-language-server
         vim-vint
@@ -80,14 +86,6 @@ let
         write-good
         yaml-language-server
         yamllint
-
-        nodePackages.bash-language-server
-        nodePackages.eslint
-        nodePackages.eslint_d
-        nodePackages.fixjson
-        nodePackages.prettier
-        nodePackages.typescript-language-server
-        nodePackages.vscode-langservers-extracted
 
         lua53Packages.luacheck
         lua53Packages.jsregexp
