@@ -39,6 +39,39 @@ local function edgy_get_win()
 	return (loaded and type(edgy) == "table" and edgy.get_win) or nil
 end
 
+local stamped_options
+
+-- edgy also sets `winbar`, `winfixwidth`, `signcolumn` and friends on a drawer
+-- window, and restores none of them, so a released window keeps a drawer's
+-- chrome: an empty winbar row, a width that will not equalize, and no
+-- signcolumn. Read the names from edgy's own config rather than listing them,
+-- so the set follows both edgy's defaults and our `wo` override.
+local function edgy_stamped_options()
+	if not stamped_options then
+		stamped_options = {}
+		local loaded, config = pcall(require, "edgy.config")
+		local wo = loaded and type(config) == "table" and config.wo or nil
+		for name in pairs(type(wo) == "table" and wo or {}) do
+			-- winhighlight is additive, so it is stripped rather than restored.
+			if name ~= "winhighlight" then
+				stamped_options[#stamped_options + 1] = name
+			end
+		end
+	end
+	return stamped_options
+end
+
+-- `vim.go` holds what a freshly created window inherits for these, which is
+-- what the window would have had if edgy had never claimed it.
+local function restore_options(win)
+	for _, name in ipairs(edgy_stamped_options()) do
+		local fresh = vim.go[name]
+		if vim.wo[win][name] ~= fresh then
+			vim.api.nvim_set_option_value(name, fresh, { scope = "local", win = win })
+		end
+	end
+end
+
 function M.strip(winhighlight)
 	local kept = {}
 	for entry in tostring(winhighlight or ""):gmatch("[^,]+") do
@@ -55,6 +88,10 @@ local function clean_window(win, get_win)
 		return
 	end
 
+	-- edgy's entries in `winhighlight` are the only evidence that this window was
+	-- ever a drawer, and edgy always stamps them alongside the other options.
+	-- Gating on them is what keeps the sweep off ordinary windows, whose
+	-- window-local settings an ftplugin may legitimately own.
 	local current = vim.wo[win].winhighlight or ""
 	local stripped = M.strip(current)
 	if stripped == current then
@@ -81,6 +118,7 @@ local function clean_window(win, get_win)
 	-- ever adopts the window again.
 	pcall(vim.api.nvim_del_augroup_by_name, "edgy_window_" .. win)
 	vim.api.nvim_set_option_value("winhighlight", stripped, { scope = "local", win = win })
+	restore_options(win)
 end
 
 -- Every tabpage, not just the current one: winhighlight is window-local and

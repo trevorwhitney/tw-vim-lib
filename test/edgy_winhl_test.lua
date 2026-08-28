@@ -14,8 +14,9 @@ local function eq(expected, actual, msg)
 end
 
 -- Minimal vim surface: windows map to buffers, buffers to filetypes, and
--- window-local winhighlight is readable and writable. Records the augroups
--- deleted so the test can assert edgy's per-window re-stamp is torn down.
+-- window-local options are readable and writable, with vim.go standing in for
+-- the values a fresh window inherits. Records the augroups deleted so the test
+-- can assert edgy's per-window re-stamp is torn down.
 local function make_vim(state)
 	local function opt_table(store)
 		return setmetatable({}, {
@@ -36,6 +37,7 @@ local function make_vim(state)
 	return {
 		wo = opt_table(state.win_opts),
 		bo = opt_table(state.buf_opts),
+		go = state.global_opts,
 		schedule = function(fn)
 			table.insert(state.scheduled, fn)
 		end,
@@ -69,6 +71,48 @@ end
 
 local EDGY_WHL = "WinBar:EdgyWinBar,WinBarNC:EdgyWinBarNC,Normal:EdgyNormal"
 
+-- edgy's own `wo`, the source the module reads the stamped option names from.
+local EDGY_WO = {
+	winbar = true,
+	winfixwidth = true,
+	winfixheight = false,
+	winhighlight = EDGY_WHL,
+	spell = false,
+	signcolumn = "no",
+	scrolloff = 0,
+}
+
+-- What edgy leaves on a drawer window: `winbar` resolved to edgy's expression,
+-- the rest verbatim from EDGY_WO.
+local DRAWER_WO = {
+	winbar = "%!v:lua.require'edgy.window'.edgy_winbar()",
+	winfixwidth = true,
+	winfixheight = false,
+	spell = false,
+	signcolumn = "no",
+	scrolloff = 0,
+}
+
+-- Deliberately unlike DRAWER_WO, so restoring to them is observable.
+local function fresh_window_wo()
+	return {
+		winbar = "",
+		winfixwidth = false,
+		winfixheight = false,
+		spell = false,
+		signcolumn = "auto",
+		scrolloff = 8,
+	}
+end
+
+local function drawer_win_opts(winhighlight)
+	local opts = { winhighlight = winhighlight }
+	for name, value in pairs(DRAWER_WO) do
+		opts[name] = value
+	end
+	return opts
+end
+
 -- Fresh module instance bound to a fresh fake vim, so cases cannot leak state.
 local function load_module(state, managed)
 	package.loaded["tw.agent.edgy_winhl"] = nil
@@ -77,6 +121,7 @@ local function load_module(state, managed)
 			return managed[win] and {} or nil
 		end,
 	}
+	package.loaded["edgy.config"] = { wo = EDGY_WO }
 	_G.vim = make_vim(state)
 	return require("tw.agent.edgy_winhl")
 end
@@ -87,6 +132,7 @@ local function new_state()
 		win_bufs = {},
 		win_opts = {},
 		buf_opts = {},
+		global_opts = fresh_window_wo(),
 		deleted_augroups = {},
 		autocmds = {},
 		scheduled = {},
@@ -257,4 +303,78 @@ do
 	eq(EDGY_WHL, state.win_opts[2002].winhighlight, "a drawer on another tabpage is spared")
 end
 
-print("ok - edgy_winhl strips released drawer highlighting")
+-- edgy stamps winbar, winfixwidth, signcolumn and friends window-locally and
+-- never restores them, so a released window keeps a drawer's chrome: an empty
+-- winbar row, a width that will not equalize, and no signcolumn. Each has to
+-- come back to the value a fresh window would have.
+do
+	local state = new_state()
+	state.wins = { 3001 }
+	state.win_bufs = { [3001] = 31 }
+	state.win_opts = { [3001] = drawer_win_opts(EDGY_WHL) }
+	state.buf_opts = { [31] = { filetype = "lua" } }
+
+	local m = load_module(state, {})
+	m.sweep()
+
+	for name, expected in pairs(fresh_window_wo()) do
+		eq(expected, state.win_opts[3001][name], "released window restores " .. name)
+	end
+end
+
+-- The guards that spare a live drawer's highlighting must spare its options
+-- too, or a drawer would lose its winbar and fixed width mid-relayout.
+do
+	local state = new_state()
+	state.wins = { 3002, 3003 }
+	state.win_bufs = { [3002] = 32, [3003] = 33 }
+	state.win_opts = { [3002] = drawer_win_opts(EDGY_WHL), [3003] = drawer_win_opts(EDGY_WHL) }
+	state.buf_opts = { [32] = { filetype = "AgentConsole" }, [33] = { filetype = "NvimTree" } }
+
+	local m = load_module(state, { [3002] = true })
+	m.sweep()
+
+	for name, expected in pairs(DRAWER_WO) do
+		eq(expected, state.win_opts[3002][name], "owned drawer keeps " .. name)
+		eq(expected, state.win_opts[3003][name], "drawer filetype keeps " .. name)
+	end
+end
+
+-- Restoring is keyed on edgy's winhighlight fingerprint, which is the only
+-- evidence a window was ever a drawer. Without it every ordinary window would
+-- be swept, and an ftplugin's window-local settings would be reset on the
+-- BufWinEnter that follows them.
+do
+	local state = new_state()
+	state.wins = { 3004 }
+	state.win_bufs = { [3004] = 34 }
+	state.win_opts = { [3004] = { winhighlight = "", spell = true, signcolumn = "yes", scrolloff = 0 } }
+	state.buf_opts = { [34] = { filetype = "markdown" } }
+
+	local m = load_module(state, {})
+	m.sweep()
+
+	eq(true, state.win_opts[3004].spell, "ftplugin spell survives a sweep")
+	eq("yes", state.win_opts[3004].signcolumn, "ftplugin signcolumn survives a sweep")
+	eq(0, state.win_opts[3004].scrolloff, "a window-local scrolloff survives a sweep")
+end
+
+-- Only the options edgy stamps are touched; a released window's unrelated
+-- window-local settings are not collateral.
+do
+	local state = new_state()
+	state.wins = { 3005 }
+	state.win_bufs = { [3005] = 35 }
+	state.win_opts = { [3005] = drawer_win_opts(EDGY_WHL) }
+	state.win_opts[3005].list = true
+	state.win_opts[3005].wrap = false
+	state.buf_opts = { [35] = { filetype = "lua" } }
+
+	local m = load_module(state, {})
+	m.sweep()
+
+	eq(true, state.win_opts[3005].list, "an option edgy never stamps is left alone")
+	eq(false, state.win_opts[3005].wrap, "an option edgy never stamps keeps its value")
+end
+
+print("ok - edgy_winhl restores windows edgy releases")
