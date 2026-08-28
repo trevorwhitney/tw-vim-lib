@@ -88,6 +88,22 @@ if sidebar.size.height ~= 23 then
 	fail("tw-agent-sidebar height must stay 23, got " .. tostring(sidebar.size.height))
 end
 
+-- edgy's stock winhighlight maps Normal to EdgyNormal, which it links to
+-- NormalFloat: a darker background on every drawer. Overriding the option is
+-- what keeps the mapping off the window in the first place.
+local winhighlight = cfg.wo and cfg.wo.winhighlight
+if type(winhighlight) ~= "string" then
+	fail("edgy config must override wo.winhighlight, got " .. tostring(winhighlight))
+end
+for entry in winhighlight:gmatch("[^,]+") do
+	if entry:match("^Normal") then
+		fail("wo.winhighlight must not remap Normal, got " .. entry)
+	end
+end
+if not (winhighlight:find("WinBar:EdgyWinBar", 1, true) and winhighlight:find("WinBarNC:EdgyWinBarNC", 1, true)) then
+	fail("wo.winhighlight must keep edgy's winbar groups, got " .. winhighlight)
+end
+
 if cfg.keys["<c-q>"] ~= false then
 	fail("<c-q> must be disabled (false) to avoid the tmux prefix conflict")
 end

@@ -24,6 +24,14 @@ return {
 	right = {
 		{ ft = "AgentConsole", title = agent_title, size = { width = 0.4 } },
 	},
+	-- edgy's stock value appends `Normal:EdgyNormal`, and it links EdgyNormal to
+	-- NormalFloat, so every drawer renders against a darker background than the
+	-- editor. Dropping that pair here means the mapping is never stamped onto a
+	-- window at all; the winbar groups are kept so drawer titles keep their
+	-- accent.
+	wo = {
+		winhighlight = "WinBar:EdgyWinBar,WinBarNC:EdgyWinBarNC",
+	},
 	-- An edgebar never shrinks below this, so edgy's stock 30 would snap a
 	-- narrower drag straight back. Every view above sets its own width, leaving
 	-- this purely a floor.

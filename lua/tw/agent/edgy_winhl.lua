@@ -1,15 +1,16 @@
 -- edgy only ever adds to a drawer window's window-local `winhighlight`, and
--- `winhighlight` outlives the buffer that earned it. A window that once held a
--- drawer therefore keeps rendering Normal as EdgyNormal (linked to NormalFloat,
--- a darker background) after an ordinary file replaces the drawer buffer in it.
--- Clearing the option alone does not hold: edgy re-stamps the window on
--- WinEnter from a per-window augroup that survives the window leaving the
--- edgebar.
+-- `winhighlight` outlives the buffer that earned it, so a window that once held
+-- a drawer keeps edgy's mapping after an ordinary file replaces the drawer
+-- buffer in it. Clearing the option alone does not hold: edgy re-stamps the
+-- window on WinEnter from a per-window augroup that survives the window leaving
+-- the edgebar.
 local M = {}
 
 -- The groups edgy maps into `winhighlight`. Matched whole so a window
 -- highlight another plugin happens to point at an Edgy-prefixed group of its
--- own survives.
+-- own survives. EdgyNormal is listed even though `tw.agent.edgy_config` keeps
+-- it out of `winhighlight`, so a leak from an edgy version that stamps it
+-- anyway still gets cleaned.
 local edgy_groups = {
 	EdgyNormal = true,
 	EdgyWinBar = true,
