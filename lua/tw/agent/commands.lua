@@ -271,8 +271,9 @@ local valid_modes = {
 	"opencode",
 	"pi",
 }
-local function handle_fullscreen(claude_module, args)
-	local mode = args[1]
+-- `extra` is a raw, already shell-escaped argument string that is appended
+-- verbatim to the agent's command line (see claude_module.OpenFullscreen).
+local function open_fullscreen(claude_module, mode, extra)
 	if mode then
 		local ok = false
 		for _, m in ipairs(valid_modes) do
@@ -289,7 +290,15 @@ local function handle_fullscreen(claude_module, args)
 			return
 		end
 	end
-	claude_module.OpenFullscreen(mode)
+	claude_module.OpenFullscreen(mode, extra)
+end
+
+local function handle_fullscreen(claude_module, args)
+	local extra
+	if #args > 1 then
+		extra = table.concat(vim.list_slice(args, 2), " ")
+	end
+	open_fullscreen(claude_module, args[1], extra)
 end
 subcommand_handlers.fullscreen = handle_fullscreen
 
@@ -447,14 +456,24 @@ function M.setup_user_commands(agent_module)
 		desc = "AI Agent management commands",
 	})
 
-	-- Top-level :AgentFullscreen [mode] for convenient command-line use:
+	-- Top-level :AgentFullscreen [mode] [agent args...] for command-line use:
 	--   nvim +AgentFullscreen
 	--   nvim "+AgentFullscreen claude"
+	--   nvim "+AgentFullscreen opencode --prompt 'this is a test'"
+	--
+	-- Everything after the mode is taken as a raw, already shell-escaped string
+	-- and appended verbatim to the agent's command line, so quoting is the
+	-- caller's (usually the shell's) job rather than Vim's argument splitter.
 	vim.api.nvim_create_user_command("AgentFullscreen", function(args)
-		handle_fullscreen(agent_module, args.fargs)
+		local mode, extra = args.args:match("^(%S+)%s*(.*)$")
+		open_fullscreen(agent_module, mode, extra)
 	end, {
-		nargs = "?",
-		complete = function(arg_lead)
+		nargs = "*",
+		complete = function(arg_lead, cmd_line, _cursor_pos)
+			-- Only complete the mode; trailing args belong to the agent binary.
+			if cmd_line:match("^%s*%S+%s+%S+%s") then
+				return {}
+			end
 			return vim.tbl_filter(function(m)
 				return m:find("^" .. arg_lead)
 			end, valid_modes)

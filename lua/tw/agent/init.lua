@@ -1545,10 +1545,31 @@ local function generate_pane_description(prompt_text, cwd)
 	)
 end
 
+-- Normalize the extra agent args accepted by OpenFullscreen. They are expected
+-- to be shell-escaped already: claude.command joins the arg list with spaces
+-- into a single string for termopen, so a raw string is appended verbatim and a
+-- list is passed through element by element.
+local function normalize_extra_args(extra)
+	if type(extra) == "string" then
+		extra = vim.trim(extra)
+		if extra == "" then
+			return nil
+		end
+		return { extra }
+	elseif type(extra) == "table" and #extra > 0 then
+		return vim.deepcopy(extra)
+	end
+	return nil
+end
+
 -- Open the agent fullscreen in the current window with no prompt.
 -- Intended for command-line use, e.g.:
 --   nvim +AgentFullscreen
 --   nvim "+AgentFullscreen claude"
+--   nvim "+AgentFullscreen opencode --prompt 'this is a test'"
+--
+-- extra_args (string or list) is forwarded to the agent binary as-is; see
+-- normalize_extra_args for the escaping contract.
 --
 -- Sets agent_fullscreen so the BufEnter autocmd in commands.lua
 -- reverts to a [file] | [agent] vsplit when the user opens a file.
@@ -1558,14 +1579,17 @@ end
 -- synchronously here causes the spawned agent process to exit immediately.
 -- Defer the work until vim is fully initialized (matches the pattern used
 -- by WorkmuxPrompt, which is dispatched from a VimEnter autocmd).
-function M.OpenFullscreen(mode)
+function M.OpenFullscreen(mode, extra_args)
 	mode = mode or M.default_mode
-	log.info("OpenFullscreen: scheduling fullscreen agent start, mode=" .. tostring(mode))
+	local args = normalize_extra_args(extra_args)
+	log.info(
+		"OpenFullscreen: scheduling fullscreen agent start, mode=" .. tostring(mode) .. ", args=" .. vim.inspect(args)
+	)
 	local function start()
 		log.info("OpenFullscreen: starting agent in fullscreen, mode=" .. tostring(mode))
 		M.agent_fullscreen = true
 		-- idx defaults to 0; fullscreen always operates on the default instance.
-		M.Open(mode, nil, "current")
+		M.Open(mode, args, "current")
 	end
 
 	if vim.v.vim_did_enter == 1 then
