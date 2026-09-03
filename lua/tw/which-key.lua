@@ -57,6 +57,14 @@ local function mapKeys(wk)
 			remap = false,
 		},
 		{
+			"<leader>[",
+			function()
+				require("tw.agent.drawer").toggle()
+			end,
+			desc = "Toggle file tree + agent drawer",
+			remap = false,
+		},
+		{
 			"<leader>b",
 			"<cmd>Telescope buffers<cr>",
 			desc = "Find Buffer",

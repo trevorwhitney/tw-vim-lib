@@ -1178,6 +1178,15 @@ local function configureClaudeKeymap()
 				desc = "Toggle OpenCode (count = instance index, 0 = default)",
 			},
 			{
+				"<leader>]",
+				function()
+					local m = vim.fn.mode()
+					local is_visual = m == "v" or m == "V" or m == "\22"
+					require("tw.agent")._toggle_with_count("opencode", is_visual)
+				end,
+				desc = "Toggle OpenCode (count = instance index, 0 = default)",
+			},
+			{
 				"<leader>cp",
 				function()
 					local m = vim.fn.mode()
