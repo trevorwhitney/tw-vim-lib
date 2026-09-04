@@ -2,24 +2,23 @@ local M = {}
 local api = vim.api
 
 local function change_colors()
+	local background
+
 	if vim.fn.has("macunix") then
 		local current_style = vim.fn.system("defaults read -g AppleInterfaceStyle")
 		local dark_re = vim.regex("^Dark")
 		local match = dark_re:match_str(current_style)
 
-		if match then
-			vim.opt.background = "dark"
-			vim.system({ "change-background", "dark" })
-		else
-			vim.opt.background = "light"
-			vim.system({ "change-background", "light" })
-		end
+		background = match and "dark" or "light"
+		vim.opt.background = background
+		vim.system({ "change-background", background })
 	else
-		vim.opt.background = os.getenv("BACKGROUND") or "light"
+		background = os.getenv("BACKGROUND") or "light"
+		vim.opt.background = background
 		-- TODO: call change-background on non macOS systems
 	end
 
-	vim.cmd.colorscheme(require("tw.config").colorscheme())
+	vim.cmd.colorscheme(require("tw.config").colorscheme(background))
 	require("tw.statusline").setup_lualine()
 end
 
