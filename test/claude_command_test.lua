@@ -110,9 +110,15 @@ test("no sandbox: warns once about missing sandbox wrapper", function()
 	end
 end)
 
-test("codex gets --full-auto flag", function()
+test("codex gets automatic approval flag", function()
 	local claude = load_claude(false)
-	eq("/usr/local/bin/codex --full-auto", claude.command({}, "codex"), "command")
+	eq("/usr/local/bin/codex --approve-for-me", claude.command({}, "codex", nil, true), "command")
+end)
+
+test("caller can disable automatic permission flags", function()
+	local claude = load_claude(false)
+	eq("/usr/local/bin/claude", claude.command({}, "claude", nil, false), "claude command")
+	eq("/usr/local/bin/codex", claude.command({}, "codex", nil, false), "codex command")
 end)
 
 test("opencode omits --port when no free port is available", function()
@@ -159,10 +165,10 @@ test("non-opencode agents never get --port", function()
 	end
 	eq(
 		"/usr/local/bin/claude --dangerously-skip-permissions",
-		claude.command({}, "claude"),
+		claude.command({}, "claude", nil, true),
 		"command"
 	)
-	eq("/usr/local/bin/codex --full-auto", claude.command({}, "codex"), "command")
+	eq("/usr/local/bin/codex --approve-for-me", claude.command({}, "codex", nil, true), "command")
 end)
 
 test("defaults command_name to claude when nil", function()

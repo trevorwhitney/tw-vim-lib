@@ -49,13 +49,15 @@ describe("fullscreen edgy opt-out", function()
 end)
 
 describe("fullscreen agent args", function()
-  local agent, claude_mod, captured
+  local agent, claude_mod, captured, captured_auto_permissions
 
   before_each(function()
     agent, claude_mod = helpers.reset_and_mock(true)
     captured = nil
-    claude_mod.command = function(args)
+    captured_auto_permissions = nil
+    claude_mod.command = function(args, _mode, _context_directories, auto_permissions)
       captured = args
+      captured_auto_permissions = auto_permissions
       return "sleep 30"
     end
     pcall(vim.cmd, "enew")
@@ -96,6 +98,20 @@ describe("fullscreen agent args", function()
     assert.is_not_nil(captured)
     -- Only the project root that start_new_agent_job prepends for opencode.
     assert.equals(1, #captured)
+  end)
+
+  it("does not inject permission flags for fullscreen command launches", function()
+    agent.OpenFullscreen("claude", "--model opus")
+    wait_for_command()
+
+    assert.is_false(captured_auto_permissions)
+  end)
+
+  it("injects permission flags for in-editor launches", function()
+    agent.Toggle("claude")
+    wait_for_command()
+
+    assert.is_true(captured_auto_permissions)
   end)
 
   it(":AgentFullscreen forwards everything after the mode verbatim", function()

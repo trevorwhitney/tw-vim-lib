@@ -23,3 +23,14 @@ done, reviewed (spec + quality per task), and committed: c27edf3..3cf3054.
       force-targets.
 - [x] Merge/PR decision: merged to main (no PR — solo repo, fast-forward).
 
+## vrnsh launcher research
+- [x] Inspect `oc`, `:AgentFullscreen`, argument forwarding, and agent command construction.
+- [x] Check installed OpenCode, Claude, and Codex CLI interfaces.
+- [x] Reserve only the first argument for agent selection; forward all remaining arguments.
+- [x] Disable injected Claude/Codex permission flags for fullscreen command launches.
+- [x] Ship `vrnsh` with the Vim library's default Nix package.
+- [x] Present and approve the bounded implementation design.
+- [x] Add tests for launch-context permission defaults and launcher argument forwarding.
+- [x] Implement `vrnsh` and include it in the default Nix package.
+- [x] Preserve automatic permissions for in-editor launches only.
+- [x] Run the full test, lint, and Nix build verification.

@@ -4,11 +4,9 @@ local SANDBOX_WRAPPER = vim.fn.expand("~/.config/sandbox-exec/run-sandboxed.sh")
 local sandbox_available = vim.fn.executable(SANDBOX_WRAPPER) == 1
 local sandbox_warned = false
 
--- Per-agent permission flags (unconditional — applied with and without sandbox)
-local AGENT_FLAGS = {
+local AUTOMATIC_PERMISSION_FLAGS = {
 	claude = { "--dangerously-skip-permissions" },
-	codex = { "--full-auto" },
-	-- opencode: no permission flags; it gets a dynamic --port (see below)
+	codex = { "--approve-for-me" },
 }
 
 -- Ask the OS for a free TCP port by binding to port 0 and reading the assignment.
@@ -56,7 +54,7 @@ end
 
 -- Build command for any AI coding assistant (claude, codex, opencode)
 -- context_directories: table of {[abs_path] = true} for sandbox --add-dirs
-function M.command(args, command_name, context_directories)
+function M.command(args, command_name, context_directories, automatic_permissions)
 	command_name = command_name or "claude"
 	local command_path = get_command_path(command_name)
 	if command_path == "" then
@@ -106,8 +104,7 @@ function M.command(args, command_name, context_directories)
 		end
 	end
 
-	-- Per-agent permission flags (unconditional)
-	local flags = AGENT_FLAGS[command_name]
+	local flags = automatic_permissions ~= false and AUTOMATIC_PERMISSION_FLAGS[command_name] or nil
 	if flags then
 		for _, flag in ipairs(flags) do
 			table.insert(command, flag)
