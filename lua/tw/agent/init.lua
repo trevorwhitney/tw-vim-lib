@@ -397,9 +397,10 @@ local function close_buffer_windows(buf)
 	end
 end
 
-local function start_new_agent_job(args, window_type, mode, idx)
+local function start_new_agent_job(args, window_type, mode, idx, launch_options)
 	mode = mode or M.default_mode
 	idx = idx or 0
+	launch_options = launch_options or {}
 	log.info("Attempting to start new job in " .. mode .. " mode")
 
 	-- Create a copy of args to avoid mutating the original (especially default_args)
@@ -450,7 +451,7 @@ local function start_new_agent_job(args, window_type, mode, idx)
 		vim.list_extend(final_args, args)
 	end
 	log.debug("Final args before command: " .. vim.inspect(final_args))
-	command = claude.command(final_args, mode, M.context_directories)
+	command = claude.command(final_args, mode, M.context_directories, launch_options.automatic_permissions ~= false)
 	if not command then
 		log.error("Failed to build command for " .. mode, true)
 		return
@@ -561,7 +562,7 @@ local function confirmOpenAndDo(callback, args, window_type, target_mode, target
 	end
 end
 
-function M.Open(mode, args, window_type, idx)
+function M.Open(mode, args, window_type, idx, launch_options)
 	mode = mode or M.default_mode
 	args = args or default_args
 	window_type = window_type or "vsplit"
@@ -586,7 +587,7 @@ function M.Open(mode, args, window_type, idx)
 			terminal.close_terminal_buffer(buf, job_id)
 			clear_instance(mode, idx)
 		end
-		start_new_agent_job(args, window_type, mode, idx)
+		start_new_agent_job(args, window_type, mode, idx, launch_options)
 	end
 	notify_sidebar_refresh()
 end
@@ -1598,7 +1599,7 @@ function M.OpenFullscreen(mode, extra_args)
 		log.info("OpenFullscreen: starting agent in fullscreen, mode=" .. tostring(mode))
 		M.agent_fullscreen = true
 		-- idx defaults to 0; fullscreen always operates on the default instance.
-		M.Open(mode, args, "current")
+		M.Open(mode, args, "current", 0, { automatic_permissions = false })
 	end
 
 	if vim.v.vim_did_enter == 1 then

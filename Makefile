@@ -1,4 +1,4 @@
-.PHONY: help lint lint-lua lint-nix format format-lua format-nix test test-lua test-plenary test-go
+.PHONY: help lint lint-lua lint-nix format format-lua format-nix test test-lua test-shell test-plenary test-go
 
 help:
 	@echo "Available targets:"
@@ -10,6 +10,7 @@ help:
 	@echo "  format-nix    - Format Nix files with nixpkgs-fmt"
 	@echo "  test          - Run all tests (lua, plenary, go)"
 	@echo "  test-lua      - Run standalone Lua unit tests (test/*_test.lua)"
+	@echo "  test-shell    - Run shell launcher tests"
 	@echo "  test-plenary  - Run PlenaryBustedDirectory tests"
 	@echo "  test-go       - Run Go integration tests (from test/)"
 
@@ -55,7 +56,7 @@ format-nix:
 		exit 1; \
 	fi
 
-test: test-lua test-plenary test-go
+test: test-lua test-shell test-plenary test-go
 	@echo "All tests complete"
 
 test-lua:
@@ -70,6 +71,9 @@ test-lua:
 		exit 1; \
 	fi
 
+test-shell:
+	bash test/vrnsh_test.sh
+
 test-plenary:
 	./tests/setup.sh
 	nvim --headless -u tests/minimal_init.lua \
@@ -79,4 +83,3 @@ test-plenary:
 test-go:
 	@echo "Running Go tests..."
 	@cd test && go test ./...
-

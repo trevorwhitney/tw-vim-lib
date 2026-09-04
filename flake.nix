@@ -90,17 +90,27 @@
       rec {
         inherit (pkgs) neovim;
 
-        defaultPackage = pkgs.neovim {
-          inherit
-            goPkg
-            nodeJsPkg
-            delvePkg
-            golangciLintPkg
-            golangciLintLangServerPkg
-            goplsPkg
-            ;
-          withLspSupport = true;
-        };
+        defaultPackage =
+          let
+            neovim = pkgs.neovim {
+              inherit
+                goPkg
+                nodeJsPkg
+                delvePkg
+                golangciLintPkg
+                golangciLintLangServerPkg
+                goplsPkg
+                ;
+              withLspSupport = true;
+            };
+            vrnsh = pkgs.callPackage ./nix/packages/vrnsh {
+              inherit neovim;
+            };
+          in
+          pkgs.symlinkJoin {
+            name = "neovim-with-vrnsh";
+            paths = [ neovim vrnsh ];
+          };
 
         packages = {
           neovim = defaultPackage;

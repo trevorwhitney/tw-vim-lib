@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  printf 'Usage: vrnsh <opencode|claude|codex> [agent args...]\n'
+}
+
+if [[ $# -eq 0 ]]; then
+  usage >&2
+  exit 2
+fi
+
+case $1 in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  opencode | claude | codex)
+    agent=$1
+    shift
+    ;;
+  *)
+    printf 'vrnsh: unknown agent: %s\n' "$1" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
+
+nvim_command="AgentFullscreen $agent"
+for arg in "$@"; do
+  escaped=${arg//\'/\'\\\'\'}
+  nvim_command+=" '$escaped'"
+done
+
+exec nvim "+$nvim_command"
