@@ -8,6 +8,7 @@ local default_options = {
 	extra_path = {},
 	go_build_tags = "",
 	dap_configs = {},
+	colorscheme = require("tw.config").default_colorscheme,
 }
 
 local options = vim.tbl_extend("force", {}, default_options)
@@ -45,7 +46,7 @@ function Config.setup(user_options)
 		spec = { import = "tw.plugins" },
 		install = {
 			missing = true,
-			colorscheme = { "kanagawa" },
+			colorscheme = { options.colorscheme },
 		},
 		performance = {
 			reset_packpath = false, -- preserve Nix-managed packpath (contains lazy.nvim itself)

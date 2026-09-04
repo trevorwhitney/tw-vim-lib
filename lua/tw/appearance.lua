@@ -19,7 +19,7 @@ local function change_colors()
 		-- TODO: call change-background on non macOS systems
 	end
 
-	vim.cmd.colorscheme("kanagawa")
+	vim.cmd.colorscheme(require("tw.config").colorscheme())
 	require("tw.statusline").setup_lualine()
 end
 
