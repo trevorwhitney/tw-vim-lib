@@ -86,55 +86,42 @@
         golangciLintPkg = pkgs.golangci-lint;
         golangciLintLangServerPkg = pkgs.golangci-lint-langserver;
         goplsPkg = pkgs.gopls;
+
+        neovimPkg = pkgs.neovim {
+          inherit
+            goPkg
+            nodeJsPkg
+            delvePkg
+            golangciLintPkg
+            golangciLintLangServerPkg
+            goplsPkg
+            ;
+          withLspSupport = true;
+        };
+
+        vrnshPkg = pkgs.callPackage ./nix/packages/vrnsh {
+          neovim = neovimPkg;
+        };
       in
       rec {
         inherit (pkgs) neovim;
 
-        defaultPackage =
-          let
-            neovim = pkgs.neovim {
-              inherit
-                goPkg
-                nodeJsPkg
-                delvePkg
-                golangciLintPkg
-                golangciLintLangServerPkg
-                goplsPkg
-                ;
-              withLspSupport = true;
-            };
-            vrnsh = pkgs.callPackage ./nix/packages/vrnsh {
-              inherit neovim;
-            };
-          in
-          pkgs.symlinkJoin {
-            name = "neovim-with-vrnsh";
-            paths = [ neovim vrnsh ];
-          };
+        defaultPackage = pkgs.symlinkJoin {
+          name = "neovim-with-vrnsh";
+          paths = [ neovimPkg vrnshPkg ];
+        };
 
         packages = {
           neovim = defaultPackage;
+          vrnsh = vrnshPkg;
         };
 
         devShells.default =
-          let
-            neovim = pkgs.neovim {
-              inherit
-                goPkg
-                delvePkg
-                golangciLintPkg
-                golangciLintLangServerPkg
-                goplsPkg
-                nodeJsPkg
-                ;
-              withLspSupport = true;
-            };
-          in
-
           pkgs.mkShell {
             EDITOR = "nvim";
             packages = [
-              neovim
+              neovimPkg
+              vrnshPkg
             ]
             ++ (with pkgs; [
               # General
