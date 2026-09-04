@@ -4,7 +4,7 @@ local api = vim.api
 local function change_colors()
 	local background
 
-	if vim.fn.has("macunix") then
+	if vim.fn.has("macunix") == 1 then
 		local current_style = vim.fn.system("defaults read -g AppleInterfaceStyle")
 		local dark_re = vim.regex("^Dark")
 		local match = dark_re:match_str(current_style)
