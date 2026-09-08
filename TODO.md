@@ -34,3 +34,8 @@ done, reviewed (spec + quality per task), and committed: c27edf3..3cf3054.
 - [x] Implement `vrnsh` and include it in the default Nix package.
 - [x] Preserve automatic permissions for in-editor launches only.
 - [x] Run the full test, lint, and Nix build verification.
+
+## vrnsh Navigator error
+- [x] Reproduce the `BufEnter` failure and identify Navigator's invalid option assignment.
+- [x] Add a regression test and implement the compatibility fix.
+- [x] Run focused and repository verification, then inspect the final diff.

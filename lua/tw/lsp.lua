@@ -240,42 +240,6 @@ local function restart_lsp()
 	end)
 end
 
-local function setup_navigator(_opts)
-	require("navigator").setup({
-		debug = false,
-		default_mapping = false,
-		lsp = {
-			hover = {
-				enable = false,
-			},
-			-- formatting on save is handled by conform
-			format_on_save = false,
-			code_action = {
-				enable = true,
-				sign = true,
-				virtual_text = false,
-				sign_priority = 19,
-				exclude = {
-					"source.doc",
-					"source.assembly",
-				},
-			},
-			code_lens_action = {
-				enable = true,
-				sign = true,
-				virtual_text = true,
-			},
-			-- disable navigator's built-in LSP setup; we handle it via vim.lsp.config
-			disable_lsp = "all",
-			servers = {},
-		},
-	})
-
-	-- Override navigator's reload_lsp with our native implementation
-	-- so that :LspRestart (from navigator) and direct calls work on Neovim 0.12+
-	require("navigator.lspclient.config").reload_lsp = restart_lsp
-end
-
 -- vim.lsp.config force-merges, so assigning on_attach replaces whatever the
 -- server's own lsp/<name>.lua defined instead of chaining it. eslint's default
 -- on_attach is what registers :LspEslintFixAll, so it has to keep running.
@@ -440,7 +404,7 @@ function M.setup(lsp_options)
 	options = vim.tbl_extend("force", options, lsp_options)
 
 	setup_lsp_keymaps()
-	setup_navigator(options)
+	require("tw.navigator").setup(restart_lsp)
 	setup_lspconfig(options)
 	register_lsp_commands()
 	local go = require("tw.languages.go")
