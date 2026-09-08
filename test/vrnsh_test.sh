@@ -8,11 +8,14 @@ trap 'rm -rf "$tmp"' EXIT
 cat >"$tmp/nvim" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\0' "$@" >"$VRNSH_CAPTURE"
+printf '%s' "$VRNSH_ORIGINAL_PATH" >"$VRNSH_PATH_CAPTURE"
 EOF
 chmod +x "$tmp/nvim"
 
 export VRNSH_CAPTURE="$tmp/capture"
-PATH="$tmp:$PATH" bash "$root/bin/vrnsh" claude \
+export VRNSH_PATH_CAPTURE="$tmp/path-capture"
+launcher_path="$tmp:$PATH"
+PATH="$launcher_path" bash "$root/bin/vrnsh" claude \
   --model opus \
   --prompt "build me a plugin" \
   "quote' and space" \
@@ -34,6 +37,7 @@ literal_command_substitution="\$(printf injected)"
 [[ $5 == "quote' and space" ]]
 [[ $6 == "$literal_command_substitution" ]]
 [[ $7 == "" ]]
+[[ $(<"$VRNSH_PATH_CAPTURE") == "$launcher_path" ]]
 
 if PATH="$tmp:$PATH" bash "$root/bin/vrnsh" unknown 2>"$tmp/error"; then
   printf 'expected unknown agent to fail\n' >&2

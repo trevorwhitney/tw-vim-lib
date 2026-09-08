@@ -7,15 +7,19 @@ local helpers = require("tests.agent.spec_helpers")
 -- claude.command joins args with spaces into a single string for termopen, so
 -- an unescaped path word-splits into extra positionals and opencode rejects the
 -- arguments (prints help, exits 1).
-describe("agent.opencode project path escaping", function()
+describe("agent.opencode launch", function()
   local agent
   local util
   local terminal
   local captured_cmd
+  local captured_opts
+  local original_vrnsh_path
 
   local root_with_spaces = "/Users/me/My Drive/grafana/Loki/wiki"
 
   before_each(function()
+    original_vrnsh_path = vim.env.VRNSH_ORIGINAL_PATH
+    vim.env.VRNSH_ORIGINAL_PATH = nil
     agent = helpers.reset_and_mock(false)
 
     -- Stub on the already-loaded table instance so the upvalue captured by
@@ -33,14 +37,17 @@ describe("agent.opencode project path escaping", function()
     terminal.close_terminal_buffer = function() end
 
     captured_cmd = nil
+    captured_opts = nil
     _G.__orig_termopen = vim.fn.termopen
-    vim.fn.termopen = function(cmd, _opts)
+    vim.fn.termopen = function(cmd, opts)
       captured_cmd = cmd
+      captured_opts = opts
       return 1
     end
   end)
 
   after_each(function()
+    vim.env.VRNSH_ORIGINAL_PATH = original_vrnsh_path
     if _G.__orig_termopen then
       vim.fn.termopen = _G.__orig_termopen
       _G.__orig_termopen = nil
@@ -75,5 +82,19 @@ describe("agent.opencode project path escaping", function()
       without_escaped:find(root_with_spaces, 1, true),
       "raw unescaped path leaks into the command: " .. tostring(captured_cmd)
     )
+  end)
+
+  it("restores the vrnsh caller PATH for the agent process", function()
+    vim.env.VRNSH_ORIGINAL_PATH = "/caller/bin:/usr/bin"
+
+    agent.Open("opencode", {}, "current", 0)
+
+    assert.equals("/caller/bin:/usr/bin", captured_opts.env.PATH)
+  end)
+
+  it("inherits Neovim's PATH outside vrnsh", function()
+    agent.Open("opencode", {}, "current", 0)
+
+    assert.is_nil(captured_opts.env.PATH)
   end)
 end)

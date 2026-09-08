@@ -467,6 +467,8 @@ local function start_new_agent_job(args, window_type, mode, idx, launch_options)
 		on_exit = OnExit(mode, idx),
 		-- TODO: make this configurable
 		env = {
+			-- vrnsh records PATH before the packaged Neovim adds editor tooling.
+			PATH = vim.env.VRNSH_ORIGINAL_PATH,
 			-- Unset TMUX/STY so child processes emit plain OSC 52 clipboard
 			-- sequences instead of wrapping them in tmux DCS passthrough.
 			-- Neovim's terminal emulator handles plain OSC 52 natively but
