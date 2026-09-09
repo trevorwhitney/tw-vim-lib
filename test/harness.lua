@@ -13,6 +13,8 @@
 
 local H = {}
 
+package.path = "lua/?.lua;lua/?/init.lua;" .. package.path
+
 H.pass_count = 0
 H.fail_count = 0
 

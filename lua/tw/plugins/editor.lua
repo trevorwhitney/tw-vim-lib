@@ -1,7 +1,9 @@
+local very_lazy = require("tw.plugin-events").very_lazy()
+
 return {
 	{
 		"folke/which-key.nvim",
-		event = "VeryLazy",
+		event = very_lazy,
 		dependencies = { "echasnovski/mini.nvim" },
 		config = function()
 			require("tw.which-key").setup()
@@ -14,11 +16,11 @@ return {
 			require("nvim-autopairs").setup({})
 		end,
 	},
-	{ "andymass/vim-matchup", event = "VeryLazy" },
-	{ "mg979/vim-visual-multi", branch = "master", event = "VeryLazy" },
+	{ "andymass/vim-matchup", event = very_lazy },
+	{ "mg979/vim-visual-multi", branch = "master", event = very_lazy },
 	{
 		"ThePrimeagen/refactoring.nvim",
-		event = "VeryLazy",
+		event = very_lazy,
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 			"nvim-treesitter/nvim-treesitter",
@@ -28,29 +30,29 @@ return {
 			require("refactoring").setup({})
 		end,
 	},
-	{ "tpope/vim-surround", event = "VeryLazy" },
-	{ "tpope/vim-repeat", event = "VeryLazy" },
-	{ "tpope/vim-rsi", event = "VeryLazy" },
-	{ "tpope/vim-abolish", event = "VeryLazy" },
-	{ "tpope/vim-eunuch", event = "VeryLazy" },
-	{ "kana/vim-textobj-user", event = "VeryLazy" },
+	{ "tpope/vim-surround", event = very_lazy },
+	{ "tpope/vim-repeat", event = very_lazy },
+	{ "tpope/vim-rsi", event = very_lazy },
+	{ "tpope/vim-abolish", event = very_lazy },
+	{ "tpope/vim-eunuch", event = very_lazy },
+	{ "kana/vim-textobj-user", event = very_lazy },
 	{
 		"kana/vim-textobj-entire",
-		event = "VeryLazy",
+		event = very_lazy,
 		dependencies = { "kana/vim-textobj-user" },
 	},
 	{
 		"coachshea/vim-textobj-markdown",
-		event = "VeryLazy",
+		event = very_lazy,
 		dependencies = { "kana/vim-textobj-user" },
 	},
-	{ "chrisbra/NrrwRgn", event = "VeryLazy" },
-	{ "gabrielpoca/replacer.nvim", event = "VeryLazy" },
-	{ "romainl/vim-qf", event = "VeryLazy" },
+	{ "chrisbra/NrrwRgn", event = very_lazy },
+	{ "gabrielpoca/replacer.nvim", event = very_lazy },
+	{ "romainl/vim-qf", event = very_lazy },
 	{ "ii14/neorepl.nvim", cmd = "Repl" },
 	{
 		"stevearc/aerial.nvim",
-		event = "VeryLazy",
+		event = very_lazy,
 		dependencies = { "folke/which-key.nvim" },
 		config = function()
 			local wk = require("which-key")

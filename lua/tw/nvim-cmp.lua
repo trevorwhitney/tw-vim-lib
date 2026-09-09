@@ -56,8 +56,7 @@ local function configure()
 		end, { "i", "s" })
 	end
 	-- selectOnlyOrNext will select the only entry if there is only one entry, otherwise it will select the next entry
-	-- it uses the has_words_before function to check if there are words before the cursor, which fixes the tab behavior
-	-- from copilot suggestions.
+	-- it uses the has_words_before function to check if there are words before the cursor.
 	local has_words_before = function()
 		if vim.bo.buftype == "prompt" then
 			return false
@@ -126,7 +125,6 @@ local function configure()
 		}),
 		sources = cmp.config.sources({
 			{ name = "nvim_lsp", priority = 1000, group_index = 1 },
-			{ name = "copilot", priority = 900, group_index = 1 },
 			{ name = "nvim_lsp_signature_help", priority = 800, group_index = 1 },
 
 			{ name = "luasnip", group_index = 2 },
@@ -147,9 +145,7 @@ local function configure()
 				-- 	path = "[Path]",
 				-- 	luasnip = "[LuaSnip]",
 				-- 	treesitter = "[TS]",
-				-- 	copilot = "[Copilot]",
 				-- },
-				symbol_map = { Copilot = "" },
 			}),
 		},
 	})

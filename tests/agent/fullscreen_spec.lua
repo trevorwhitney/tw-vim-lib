@@ -107,6 +107,21 @@ describe("fullscreen agent args", function()
     assert.is_false(captured_auto_permissions)
   end)
 
+  it("emits TwAgentStarted after launching the fullscreen agent", function()
+    local fired = false
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "TwAgentStarted",
+      once = true,
+      callback = function() fired = true end,
+    })
+
+    agent.OpenFullscreen("opencode")
+    wait_for_command()
+    vim.wait(2000, function() return fired end)
+
+    assert.is_true(fired)
+  end)
+
   it("injects permission flags for in-editor launches", function()
     agent.Toggle("claude")
     wait_for_command()

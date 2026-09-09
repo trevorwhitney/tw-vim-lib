@@ -9,10 +9,12 @@ cat >"$tmp/nvim" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\0' "$@" >"$VRNSH_CAPTURE"
 printf '%s' "$VRNSH_ORIGINAL_PATH" >"$VRNSH_PATH_CAPTURE"
+printf '%s' "$PATH" >"$VRNSH_NVIM_PATH_CAPTURE"
 EOF
 chmod +x "$tmp/nvim"
 
 export VRNSH_CAPTURE="$tmp/capture"
+export VRNSH_NVIM_PATH_CAPTURE="$tmp/nvim-path-capture"
 export VRNSH_PATH_CAPTURE="$tmp/path-capture"
 launcher_path="$tmp:$PATH"
 PATH="$launcher_path" bash "$root/bin/vrnsh" claude \
@@ -38,6 +40,7 @@ literal_command_substitution="\$(printf injected)"
 [[ $6 == "$literal_command_substitution" ]]
 [[ $7 == "" ]]
 [[ $(<"$VRNSH_PATH_CAPTURE") == "$launcher_path" ]]
+[[ $(<"$VRNSH_NVIM_PATH_CAPTURE") == "/usr/bin:/bin" ]]
 
 if PATH="$tmp:$PATH" bash "$root/bin/vrnsh" unknown 2>"$tmp/error"; then
   printf 'expected unknown agent to fail\n' >&2

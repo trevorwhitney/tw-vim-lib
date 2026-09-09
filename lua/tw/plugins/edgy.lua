@@ -1,7 +1,9 @@
+local very_lazy = require("tw.plugin-events").very_lazy()
+
 return {
 	{
 		"folke/edgy.nvim",
-		event = "VeryLazy",
+		event = very_lazy,
 		init = function()
 			vim.opt.laststatus = 3
 			vim.opt.splitkeep = "screen"

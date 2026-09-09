@@ -29,30 +29,26 @@ return {
 			{ "<leader>du", desc = "Step Out" },
 			{ "<leader>dx", desc = "Disconnect" },
 		},
-		dependencies = { "nvim-telescope/telescope-dap.nvim" },
+		dependencies = {
+			"nvim-telescope/telescope-dap.nvim",
+			"leoluz/nvim-dap-go",
+			{
+				"theHamsta/nvim-dap-virtual-text",
+				opts = {
+					commented = true,
+					virt_text_pos = "eol",
+				},
+			},
+			{
+				"rcarriga/nvim-dap-ui",
+				dependencies = { "nvim-neotest/nvim-nio" },
+			},
+		},
 		config = function()
 			local tw_config = require("tw.config")
 			local opts = tw_config.get()
 			require("tw.dap").setup(opts.dap_configs or {})
 		end,
-	},
-	{
-		"leoluz/nvim-dap-go",
-		dependencies = { "mfussenegger/nvim-dap" },
-	},
-	{
-		"theHamsta/nvim-dap-virtual-text",
-		dependencies = { "mfussenegger/nvim-dap" },
-		config = function()
-			require("nvim-dap-virtual-text").setup({
-				commented = true,
-				virt_text_pos = "eol",
-			})
-		end,
-	},
-	{
-		"rcarriga/nvim-dap-ui",
-		dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
 	},
 	{
 		"microsoft/vscode-js-debug",

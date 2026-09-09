@@ -1,3 +1,5 @@
+local very_lazy = require("tw.plugin-events").very_lazy()
+
 return {
 	{
 		"rebelot/kanagawa.nvim",
@@ -42,7 +44,7 @@ return {
 	},
 	{
 		"nvim-lualine/lualine.nvim",
-		event = "VeryLazy",
+		event = very_lazy,
 		dependencies = {
 			"nvim-tree/nvim-web-devicons",
 			"folke/which-key.nvim",
@@ -52,5 +54,5 @@ return {
 		end,
 	},
 	{ "nvim-tree/nvim-web-devicons", lazy = true },
-	{ "chrisbra/colorizer", event = "VeryLazy" },
+	{ "chrisbra/colorizer", event = very_lazy },
 }

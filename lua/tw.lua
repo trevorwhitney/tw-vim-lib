@@ -21,6 +21,10 @@ function Config.setup(user_options)
 
 	local fn = vim.fn
 	local path = table.concat(options.extra_path, ":") .. ":" .. fn.getenv("PATH")
+	local caller_path = vim.env.VRNSH_ORIGINAL_PATH
+	if caller_path and caller_path ~= "" then
+		path = path .. ":" .. caller_path
+	end
 	fn.setenv("PATH", path)
 
 	if not (options.jdtls_home == nil or options.jdtls_home == "") then

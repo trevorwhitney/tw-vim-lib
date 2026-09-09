@@ -32,5 +32,7 @@ for arg in "$@"; do
   nvim_command+=" '$escaped'"
 done
 
+nvim_bin=$(command -v nvim)
 export VRNSH_ORIGINAL_PATH=$PATH
-exec nvim "+$nvim_command"
+export PATH=/usr/bin:/bin
+exec "$nvim_bin" "+$nvim_command"

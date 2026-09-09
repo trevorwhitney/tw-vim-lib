@@ -528,25 +528,27 @@ local function vimMappings()
 	-- ====== Tmux-Navigator =======
 	-- This is done manually instead of automatically via the plugin to make it work with terminals
 	-- The default mappings are disabled in lua/tw/plugins/navigation.lua
-	local buffer_util = require("tw.buffer-util")
-	local function navigate_with_conditional_save(direction)
-		if buffer_util.should_autosave() then
-			vim.cmd("update")
+	if vim.env.TMUX ~= nil and vim.env.TMUX ~= "" then
+		local buffer_util = require("tw.buffer-util")
+		local function navigate_with_conditional_save(direction)
+			if buffer_util.should_autosave() then
+				vim.cmd("update")
+			end
+			vim.cmd("TmuxNavigate" .. direction)
 		end
-		vim.cmd("TmuxNavigate" .. direction)
+		keymap.set("n", "<C-j>", function()
+			navigate_with_conditional_save("Down")
+		end, { noremap = true, silent = true })
+		keymap.set("n", "<C-k>", function()
+			navigate_with_conditional_save("Up")
+		end, { noremap = true, silent = true })
+		keymap.set("n", "<C-h>", function()
+			navigate_with_conditional_save("Left")
+		end, { noremap = true, silent = true })
+		keymap.set("n", "<C-l>", function()
+			navigate_with_conditional_save("Right")
+		end, { noremap = true, silent = true })
 	end
-	keymap.set("n", "<C-j>", function()
-		navigate_with_conditional_save("Down")
-	end, { noremap = true, silent = true })
-	keymap.set("n", "<C-k>", function()
-		navigate_with_conditional_save("Up")
-	end, { noremap = true, silent = true })
-	keymap.set("n", "<C-h>", function()
-		navigate_with_conditional_save("Left")
-	end, { noremap = true, silent = true })
-	keymap.set("n", "<C-l>", function()
-		navigate_with_conditional_save("Right")
-	end, { noremap = true, silent = true })
 	keymap.set("t", "<C-j>", "<C-\\><C-n><C-W><C-J>", { noremap = true })
 	keymap.set("t", "<C-k>", "<C-\\><C-n><C-W><C-k>", { noremap = true })
 	keymap.set("t", "<C-h>", "<C-\\><C-n><C-W><C-h>", { noremap = true })

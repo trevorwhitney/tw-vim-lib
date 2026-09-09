@@ -1600,6 +1600,9 @@ function M.OpenFullscreen(mode, extra_args)
 	local function start()
 		log.info("OpenFullscreen: starting agent in fullscreen, mode=" .. tostring(mode))
 		M.agent_fullscreen = true
+		vim.schedule(function()
+			require("tw.plugin-events").emit_agent_started()
+		end)
 		-- idx defaults to 0; fullscreen always operates on the default instance.
 		M.Open(mode, args, "current", 0, { automatic_permissions = false })
 	end
@@ -1685,7 +1688,7 @@ function M.setup(opts)
 	if opts.log_level then
 		log.set_level(opts.log_level)
 	end
-	configureClaudeKeymap()
+	require("tw.plugin-events").on_very_lazy(configureClaudeKeymap)
 
 	-- Sidebar
 	local sidebar_ok, sidebar_mod = pcall(require, "tw.agent.sidebar")

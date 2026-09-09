@@ -1,7 +1,9 @@
+local very_lazy = require("tw.plugin-events").very_lazy()
+
 return {
 	{
 		"tpope/vim-fugitive",
-		event = "VeryLazy",
+		event = very_lazy,
 		dependencies = { "tpope/vim-rhubarb" },
 	},
 	{
