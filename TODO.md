@@ -44,3 +44,8 @@ done, reviewed (spec + quality per task), and committed: c27edf3..3cf3054.
 - [x] Add regression coverage for OpenCode-only terminal wheel mappings.
 - [x] Map wheel events to PageUp and PageDown in OpenCode agent buffers.
 - [x] Run focused tests, lint, and final diff verification.
+
+## Global git branch picker keymap
+- [x] Add regression coverage for `<leader>gg` before gitsigns loads and in terminal mode.
+- [x] Register `<leader>gg` as a Telescope lazy key for normal and terminal modes.
+- [x] Run focused and repository verification, then inspect the final diff.

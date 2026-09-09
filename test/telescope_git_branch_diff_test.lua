@@ -63,4 +63,26 @@ test("build_diff_command returns nil for nil/empty branch", function()
 	eq(nil, util.build_diff_command(""), "empty")
 end)
 
+test("branch picker registers normal and terminal lazy keys", function()
+	local telescope_plugin = dofile("lua/tw/plugins/telescope.lua")[1]
+	local modes = {}
+
+	for _, key in ipairs(telescope_plugin.keys or {}) do
+		if key[1] == "<leader>gg" then
+			modes[key.mode or "n"] = key[2]
+		end
+	end
+
+	eq(
+		"<cmd>lua require('tw.telescope-git-branch-diff').git_branch_diff_picker()<cr>",
+		modes.n,
+		"normal mapping"
+	)
+	eq(
+		"<C-\\><C-n><cmd>lua require('tw.telescope-git-branch-diff').git_branch_diff_picker()<cr>",
+		modes.t,
+		"terminal mapping"
+	)
+end)
+
 H.finish()
