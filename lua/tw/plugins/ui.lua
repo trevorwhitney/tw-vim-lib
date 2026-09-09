@@ -5,12 +5,29 @@ return {
 		priority = 1000,
 		lazy = false,
 	},
-  {
-    'projekt0n/github-nvim-theme',
-    name = 'github-theme',
-    lazy = false,    -- make sure we load this during startup if it is your main colorscheme
-    priority = 1000, -- make sure to load this before all the other start plugins
-  },
+	{
+		"projekt0n/github-nvim-theme",
+		name = "github-theme",
+		lazy = false,
+		priority = 1000,
+		opts = {
+			options = {
+				modules = {
+					diffchar = false,
+				},
+			},
+			groups = {
+				all = {
+					DiffAdd = { bg = "palette.success.subtle" },
+					DiffDelete = { bg = "palette.danger.subtle" },
+					DiffChange = { bg = "palette.attention.subtle" },
+					DiffText = { bg = "palette.attention.muted" },
+					TwDiffviewAddText = { bg = "palette.success.muted" },
+					TwDiffviewDeleteText = { bg = "palette.danger.muted" },
+				},
+			},
+		},
+	},
 	{
 		"catppuccin/nvim",
 		name = "catppuccin",

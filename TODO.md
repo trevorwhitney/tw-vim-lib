@@ -49,3 +49,15 @@ done, reviewed (spec + quality per task), and committed: c27edf3..3cf3054.
 - [x] Add regression coverage for `<leader>gg` before gitsigns loads and in terminal mode.
 - [x] Register `<leader>gg` as a Telescope lazy key for normal and terminal modes.
 - [x] Run focused and repository verification, then inspect the final diff.
+
+## GitHub Diffview colors
+- [x] Identify the GitHub theme highlight causing the incorrect Diffview colors.
+- [x] Add a regression test for the GitHub Diffview overrides.
+- [x] Configure the GitHub theme for Diffview-compatible highlights.
+- [x] Run focused and repository verification, then inspect the final diff.
+- [x] Add regression coverage for GitHub-style red/green paired changes.
+- [x] Apply side-specific Diffview highlights for GitHub themes.
+- [x] Re-run verification and inspect the updated diff.
+- [x] Add regression coverage for cycling to unified inline diffs.
+- [x] Add `diff1_inline` to the standard Diffview layout cycle.
+- [x] Verify the layout configuration and final diff.

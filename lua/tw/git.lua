@@ -157,13 +157,52 @@ end
 
 local pending_jump_to_hunk = false
 
+local github_diffview_highlights = {
+	a = {
+		{ "DiffChange", "DiffDelete" },
+		{ "DiffText", "TwDiffviewDeleteText" },
+	},
+	b = {
+		{ "DiffChange", "DiffAdd" },
+		{ "DiffText", "TwDiffviewAddText" },
+	},
+}
+
+local function set_diffview_highlights(winid, ctx)
+	local colorscheme = vim.g.colors_name or ""
+	local highlights = github_diffview_highlights[ctx.symbol]
+	if not colorscheme:match("^github_") or not ctx.layout_name:match("^diff2_") or not highlights then
+		return
+	end
+
+	local winhl = vim.wo[winid].winhl or ""
+	for _, mapping in ipairs(highlights) do
+		local replacement = mapping[1] .. ":" .. mapping[2]
+		local count
+		winhl, count = winhl:gsub(mapping[1] .. ":[^,]*", replacement, 1)
+		if count == 0 then
+			winhl = winhl .. (winhl == "" and "" or ",") .. replacement
+		end
+	end
+	vim.wo[winid].winhl = winhl
+end
+
 local function configureDiffview()
 	local actions = require("diffview.actions")
 	require("diffview").setup({
+		view = {
+			cycle_layouts = {
+				default = { "diff2_horizontal", "diff1_inline", "diff2_vertical" },
+			},
+			inline = {
+				style = "unified",
+			},
+		},
 		hooks = {
 			-- After staging/reverting a hunk, diffview refreshes and re-enters
 			-- the diff buffer windows. Jump to the next change when that happens.
-			diff_buf_win_enter = function(_bufnr, _winid, ctx)
+			diff_buf_win_enter = function(_bufnr, winid, ctx)
+				set_diffview_highlights(winid, ctx)
 				if pending_jump_to_hunk and ctx.symbol == "b" then
 					pending_jump_to_hunk = false
 					vim.schedule(function()
