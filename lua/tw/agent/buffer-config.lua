@@ -15,7 +15,7 @@ M.cursor_positions = {} -- Track cursor positions for each buffer
 M.buffer_autocmds = {} -- Track buffer-local autocommand IDs
 
 -- Setup buffer-specific configuration for Claude terminal buffers
-function M.setup_buffer(buf, opts)
+function M.setup_buffer(buf, opts, mode)
 	opts = opts or {}
 	local config = vim.tbl_extend("force", M.config, opts)
 
@@ -40,6 +40,11 @@ function M.setup_buffer(buf, opts)
 	vim.keymap.set("n", "gf", function()
 		require("tw.agent.gf").gf()
 	end, { buffer = buf, silent = true, desc = "Open file under cursor in editor pane" })
+
+	if mode == "opencode" then
+		vim.keymap.set("t", "<ScrollWheelUp>", "<PageUp>", { buffer = buf, silent = true })
+		vim.keymap.set("t", "<ScrollWheelDown>", "<PageDown>", { buffer = buf, silent = true })
+	end
 
 	-- Create buffer-local autocmds for this specific buffer
 	local augroup = vim.api.nvim_create_augroup("ClaudeBuffer_" .. buf, { clear = true })

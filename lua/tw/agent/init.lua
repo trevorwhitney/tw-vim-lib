@@ -486,7 +486,7 @@ local function start_new_agent_job(args, window_type, mode, idx, launch_options)
 	vim.bo[buf].bufhidden = "hide"
 
 	-- Configure the buffer with scrollback and resize handling
-	buffer_config.setup_buffer(buf, M.buffer_config)
+	buffer_config.setup_buffer(buf, M.buffer_config, mode)
 
 	if M.agent_fullscreen then
 		vim.b[buf].edgy_disable = true

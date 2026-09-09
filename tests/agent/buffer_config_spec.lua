@@ -45,6 +45,45 @@ describe("buffer-config last_change_at tracking", function()
   end)
 end)
 
+describe("buffer-config OpenCode scrolling", function()
+  local buffer_config
+
+  before_each(function()
+    package.loaded["tw.agent.buffer-config"] = nil
+    package.loaded["tw.log"] = {
+      info = function() end, warn = function() end,
+      error = function() end, debug = function() end,
+    }
+    buffer_config = require("tw.agent.buffer-config")
+  end)
+
+  local function terminal_mapping(buf, lhs)
+    for _, mapping in ipairs(vim.api.nvim_buf_get_keymap(buf, "t")) do
+      if mapping.lhs == lhs then
+        return mapping
+      end
+    end
+  end
+
+  it("maps the mouse wheel to page keys for OpenCode buffers", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    buffer_config.setup_buffer(buf, {}, "opencode")
+
+    assert.equals("<PageUp>", terminal_mapping(buf, "<ScrollWheelUp>").rhs)
+    assert.equals("<PageDown>", terminal_mapping(buf, "<ScrollWheelDown>").rhs)
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+
+  it("does not map the mouse wheel for other agent buffers", function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    buffer_config.setup_buffer(buf, {}, "claude")
+
+    assert.is_nil(terminal_mapping(buf, "<ScrollWheelUp>"))
+    assert.is_nil(terminal_mapping(buf, "<ScrollWheelDown>"))
+    vim.api.nvim_buf_delete(buf, { force = true })
+  end)
+end)
+
 describe("spec_helpers.mock_terminal_buffer", function()
   local helpers = require("tests.agent.spec_helpers")
 

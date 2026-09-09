@@ -39,3 +39,8 @@ done, reviewed (spec + quality per task), and committed: c27edf3..3cf3054.
 - [x] Reproduce the `BufEnter` failure and identify Navigator's invalid option assignment.
 - [x] Add a regression test and implement the compatibility fix.
 - [x] Run focused and repository verification, then inspect the final diff.
+
+## OpenCode mouse wheel scrolling
+- [x] Add regression coverage for OpenCode-only terminal wheel mappings.
+- [x] Map wheel events to PageUp and PageDown in OpenCode agent buffers.
+- [x] Run focused tests, lint, and final diff verification.
