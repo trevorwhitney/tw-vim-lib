@@ -51,6 +51,10 @@ end
 local git = dofile("lua/tw/git.lua")
 git.setup()
 
+test("shows old-side insertions as deletions", function()
+	eq(true, diffview_config.enhanced_diff_hl)
+end)
+
 test("layout cycle exposes unified inline diffs", function()
 	eq_list({
 		"diff2_horizontal",

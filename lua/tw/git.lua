@@ -190,6 +190,8 @@ end
 local function configureDiffview()
 	local actions = require("diffview.actions")
 	require("diffview").setup({
+		-- Lines unique to the old buffer are removals, even though Vim labels them DiffAdd.
+		enhanced_diff_hl = true,
 		view = {
 			cycle_layouts = {
 				default = { "diff2_horizontal", "diff1_inline", "diff2_vertical" },
