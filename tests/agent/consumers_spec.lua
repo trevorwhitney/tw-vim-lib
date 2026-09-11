@@ -43,6 +43,7 @@ end)
 describe("updatetime optimization (direct call + agent:// TermClose)", function()
   local helpers = require("tests.agent.spec_helpers")
   local agent, claude_mod, commands
+  local delete_first_group
 
   before_each(function()
     agent, claude_mod = helpers.reset_and_mock(true)
@@ -56,6 +57,10 @@ describe("updatetime optimization (direct call + agent:// TermClose)", function(
   end)
 
   after_each(function()
+    if delete_first_group then
+      pcall(vim.api.nvim_del_augroup_by_id, delete_first_group)
+      delete_first_group = nil
+    end
     for _, _, _, job_id in agent._iter_all_instances() do
       if job_id then pcall(vim.fn.jobstop, job_id) end
     end
@@ -87,6 +92,36 @@ describe("updatetime optimization (direct call + agent:// TermClose)", function(
       "instance should be cleared by OnExit after jobstop")
     assert.equals(4000, vim.o.updatetime,
       "TermClose autocmd should have restored updatetime")
+  end)
+
+  it("handles TermClose after an earlier handler deletes the event buffer", function()
+    local restore_calls = 0
+    agent._restore_agent_updatetime_if_no_agents = function()
+      restore_calls = restore_calls + 1
+    end
+
+    delete_first_group = vim.api.nvim_create_augroup("test_delete_agent_on_term_close", { clear = true })
+    vim.api.nvim_create_autocmd("TermClose", {
+      group = delete_first_group,
+      pattern = "agent://*",
+      callback = function(args)
+        vim.api.nvim_buf_delete(args.buf, { force = true })
+      end,
+    })
+
+    -- Re-register after the deleting handler so this reproduces the race that
+    -- occurs when terminal teardown removes the buffer before our callback.
+    commands.setup_autocmds(agent)
+
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_name(buf, "agent://term-close-race#0")
+    vim.api.nvim_exec_autocmds("TermClose", {
+      buffer = buf,
+      data = { status = 0 },
+    })
+
+    assert.is_false(vim.api.nvim_buf_is_valid(buf))
+    assert.equals(1, restore_calls)
   end)
 end)
 

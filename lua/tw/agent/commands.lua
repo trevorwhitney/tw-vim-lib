@@ -182,12 +182,11 @@ function M.setup_autocmds(claude_module)
 	-- Set a shorter updatetime while Claude Code is open
 	vim.api.nvim_create_autocmd("TermClose", {
 		group = refresh_group,
-		pattern = "*",
-		callback = function(args)
-			local buf_name = vim.api.nvim_buf_get_name(args.buf)
-			if buf_name:match("^agent://") then
-				claude_module._restore_agent_updatetime_if_no_agents()
-			end
+		-- Match the event name instead of reading args.buf: the terminal buffer
+		-- may already have been deleted by an earlier TermClose handler.
+		pattern = "agent://*",
+		callback = function()
+			claude_module._restore_agent_updatetime_if_no_agents()
 		end,
 		desc = "Restore updatetime when an agent terminal closes (if no agents remain)",
 	})
