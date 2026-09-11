@@ -61,3 +61,8 @@ done, reviewed (spec + quality per task), and committed: c27edf3..3cf3054.
 - [x] Add regression coverage for cycling to unified inline diffs.
 - [x] Add `diff1_inline` to the standard Diffview layout cycle.
 - [x] Verify the layout configuration and final diff.
+
+## OpenCode mini mode
+- [x] Replace OpenCode's free-port injection with `--mini`.
+- [x] Update command construction tests for mini mode.
+- [x] Run focused and repository verification, then inspect the final diff.
