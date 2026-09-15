@@ -6,7 +6,6 @@ local util = require("tw.agent.util")
 local log = require("tw.log")
 local commands = require("tw.agent.commands")
 local buffer_config = require("tw.agent.buffer-config")
-local publish = require("tw.agent.publish")
 local default_args = {}
 
 -- Notify the sidebar that something in the instance/active state changed.
@@ -37,7 +36,7 @@ M.active_job_id = nil
 
 M.saved_updatetime = nil
 
--- Workmux fullscreen state: when true, opencode occupies the full viewport
+-- Fullscreen state: when true, the agent occupies the full viewport
 -- and will revert to a vsplit when a non-terminal buffer is opened.
 M.agent_fullscreen = false
 
@@ -61,87 +60,6 @@ M.instances = {
 	codex = {},
 }
 
--- Per-panel opencode session capture state, keyed by "<mode>#<idx>". Kept at
--- module scope because set_instance replaces M.instances[mode][idx], which would
--- otherwise drop these across restarts.
-M._opencode_launch_ts = {}
-M._opencode_capture_attempts = {}
-
--- Whether a session id has already been captured for the CURRENT launch of a
--- slot, keyed by "<mode>#<idx>". Reset on every (re)launch so a restarted
--- opencode process (new session id) is re-captured instead of being blocked by
--- the stale id still held in the per-worktree registry.
-M._opencode_captured = {}
-
--- Upper bound on capture retries per launch. Each attempt spawns a synchronous
--- `opencode session list`; the cap prevents an unbounded once-per-second storm
--- when a panel never produces a session.
-M._MAX_CAPTURE_ATTEMPTS = 10
-
-local function epoch_ms()
-	local seconds, microseconds = vim.uv.gettimeofday()
-	return seconds * 1000 + math.floor((microseconds or 0) / 1000)
-end
-
--- resume is looked up through this seam so specs can inject a stub.
-local _resume_override = nil
-local function get_resume()
-	if _resume_override then
-		return _resume_override
-	end
-	local ok, resume = pcall(require, "tw.agent.resume")
-	if ok then
-		return resume
-	end
-	return nil
-end
-
-function M._set_resume(stub)
-	_resume_override = stub
-end
-
--- Record the launch time for an opencode panel slot and reset its capture
--- attempt counter. Called before the opencode process starts, so a session
--- created after launch always has created >= this value. epoch_ms gives
--- wall-clock milliseconds, comparable to opencode's created/updated fields.
-function M._note_opencode_launch(mode, idx)
-	if mode ~= "opencode" then
-		return
-	end
-	local key = string.format("%s#%d", mode, idx)
-	M._opencode_launch_ts[key] = epoch_ms()
-	M._opencode_capture_attempts[key] = 0
-	M._opencode_captured[key] = nil
-end
-
-function M._reset_opencode_capture()
-	M._opencode_launch_ts = {}
-	M._opencode_capture_attempts = {}
-	M._opencode_captured = {}
-	_resume_override = nil
-end
-
--- Throttled mirror reap. The publish timer fires every second, but listing the
--- agents dir and stat-ing each worktree that often is wasteful, so the reaper
--- runs at most once per REAP_INTERVAL_MS. opts.now / opts.reap are injectable
--- so the throttle is unit-testable without a real clock or filesystem.
-M._REAP_INTERVAL_MS = 60000
-M._last_reap_ts = 0
-
-function M._maybe_reap(opts)
-	opts = opts or {}
-	local now_ms = opts.now or epoch_ms()
-	if M._last_reap_ts ~= 0 and (now_ms - M._last_reap_ts) < M._REAP_INTERVAL_MS then
-		return false
-	end
-	M._last_reap_ts = now_ms
-	local reap = opts.reap or function()
-		require("tw.agent.global").reap()
-	end
-	pcall(reap)
-	return true
-end
-
 local function get_instance(mode, idx)
 	idx = idx or 0
 	M.instances[mode] = M.instances[mode] or {}
@@ -152,7 +70,6 @@ local function set_instance(mode, idx, buf, job_id)
 	idx = idx or 0
 	M.instances[mode] = M.instances[mode] or {}
 	M.instances[mode][idx] = { buf = buf, job_id = job_id, mode = mode }
-	M._publish_record(mode, idx, buf)
 end
 
 local function clear_instance(mode, idx)
@@ -195,159 +112,6 @@ M._set_instance = set_instance
 M._clear_instance = clear_instance
 M._iter_all_instances = iter_all_instances
 
--- Resolve the worktree root used as the registry location and cwd. Falls back
--- to the current working directory when git root resolution fails.
-local function resolve_root()
-	local root = util.get_git_root()
-	if root and root ~= "" then
-		return root
-	end
-	return vim.fn.getcwd()
-end
-
--- Best-effort capture of the opencode session id for a panel slot. Returns the
--- id to record, or nil to leave it unset (restore then falls back to
--- cwd+recency). Capture is scoped to the current launch: the per-launch
--- "captured" flag (reset by _note_opencode_launch) is the guard, NOT the
--- persisted registry id. Guarding on the registry id blocked recapture forever
--- after a restart, because opencode issues a NEW session id while the registry
--- still held the OLD one. The created >= launch_ts filter in capture_session_id
--- guarantees any id we get here belongs to the current launch. Logs once when
--- the retry budget is exhausted.
-function M._capture_opencode_session(registry, mode, idx, root)
-	local key = registry._key_for(mode, idx)
-
-	if M._opencode_captured[key] then
-		return nil
-	end
-
-	local launch_ts = M._opencode_launch_ts[key]
-	if not launch_ts then
-		return nil
-	end
-
-	local attempts = M._opencode_capture_attempts[key] or 0
-	if attempts >= M._MAX_CAPTURE_ATTEMPTS then
-		return nil
-	end
-
-	local resume = get_resume()
-	if not resume or not resume.capture_session_id then
-		return nil
-	end
-
-	local claimed = registry.claimed_session_ids(root, key)
-	local id = resume.capture_session_id(root, launch_ts, claimed, {})
-	if id then
-		M._opencode_captured[key] = true
-		return id
-	end
-	attempts = attempts + 1
-	M._opencode_capture_attempts[key] = attempts
-	if attempts == M._MAX_CAPTURE_ATTEMPTS then
-		log.warn("resume: gave up capturing opencode session id for " .. key)
-	end
-	return nil
-end
-
--- Timer-driven capture attempt for one live opencode instance. Persists the
--- captured session id via publish.record so restore can use it. No-op for
--- non-opencode modes and once an id is already stored.
-function M._capture_tick(mode, idx)
-	if mode ~= "opencode" then
-		return
-	end
-	pcall(function()
-		local root = resolve_root()
-		local registry = require("tw.agent.registry")
-		local session_id = M._capture_opencode_session(registry, mode, idx, root)
-		if session_id then
-			publish.record({
-				root = root,
-				mode = mode,
-				idx = idx,
-				cwd = root,
-				status = "working",
-				session_id = session_id,
-			})
-		end
-	end)
-end
-
-function M._publish_record(mode, idx, buf)
-	pcall(function()
-		local root = resolve_root()
-		local session_id = nil
-		if mode == "opencode" then
-			local registry = require("tw.agent.registry")
-			session_id = M._capture_opencode_session(registry, mode, idx, root)
-		end
-		local desc = nil
-		local ok, description = pcall(require, "tw.agent.description")
-		if ok and description and description.get then
-			desc = description.get(buf)
-		end
-		local status = "working"
-		local ok_status, status_mod = pcall(require, "tw.agent.status")
-		if ok_status and status_mod and status_mod.detect then
-			status = status_mod.detect({
-				mode = mode,
-				idx = idx,
-				buf = buf,
-				job_id = (M.instances[mode][idx] or {}).job_id,
-			})
-		end
-		publish.record({
-			root = root,
-			mode = mode,
-			idx = idx,
-			cwd = root,
-			status = status,
-			description = desc,
-			session_id = session_id,
-		})
-		M._start_publish_timer()
-	end)
-end
-
-function M._publish_exit(mode, idx)
-	pcall(function()
-		local root = resolve_root()
-		publish.record_exit({ root = root, mode = mode, idx = idx, cwd = root })
-	end)
-end
-
-function M._live_instances()
-	local root = resolve_root()
-	local live = {}
-	for mode, idx, buf, job_id in iter_all_instances() do
-		if job_id and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
-			table.insert(live, { mode = mode, idx = idx, buf = buf, job_id = job_id, root = root })
-		end
-	end
-	return live
-end
-
-function M._start_publish_timer()
-	publish._set_capture_hook(function(mode, idx)
-		M._capture_tick(mode, idx)
-	end)
-	publish._set_reap_hook(function()
-		M._maybe_reap()
-	end)
-	publish.start_timer(function()
-		return M._live_instances()
-	end, 1000)
-end
-
-function M._stop_publish_timer_if_idle()
-	pcall(function()
-		if #M._live_instances() == 0 then
-			publish.stop_timer()
-		end
-	end)
-end
-
 -- Find the plugin installation path
 local function _get_plugin_root()
 	local source = debug.getinfo(1, "S").source
@@ -367,8 +131,7 @@ local function OnExit(mode, idx)
 			return
 		end
 		clear_instance(mode, idx)
-		M._publish_exit(mode, idx)
-		M._stop_publish_timer_if_idle()
+		notify_sidebar_refresh()
 		if M.active_mode == mode and M.active_index == idx then
 			M.active_mode = "none"
 			M.active_index = 0
@@ -429,14 +192,6 @@ local function start_new_agent_job(args, window_type, mode, idx, launch_options)
 			if #args > 0 then
 				log.debug("Args: " .. vim.inspect(args))
 			end
-
-			local resume = get_resume()
-			if resume and resume.explicit_session_args then
-				local explicit = resume.explicit_session_args()
-				if explicit then
-					vim.list_extend(args, explicit)
-				end
-			end
 		end
 	end
 
@@ -462,7 +217,6 @@ local function start_new_agent_job(args, window_type, mode, idx, launch_options)
 
 	terminal.open_window(window_type)
 	buf = vim.api.nvim_get_current_buf()
-	M._note_opencode_launch(mode, idx)
 	job_id = vim.fn.termopen(command, {
 		on_exit = OnExit(mode, idx),
 		-- TODO: make this configurable
@@ -476,10 +230,7 @@ local function start_new_agent_job(args, window_type, mode, idx, launch_options)
 			-- onto the display.
 			TMUX = "",
 			STY = "",
-			-- Identifies this agent's slot within its worktree so the
-			-- agent-messaging plugin keys its server record per-slot
-			-- (multiple agents can share a worktree). Matches the mirror
-			-- record's mode+idx that the send side reconstructs.
+			-- Stable panel identifier for external integrations.
 			TW_AGENT_SLOT = mode .. "#" .. idx,
 		},
 	})
@@ -1349,218 +1100,6 @@ function M.get_status()
 	}
 end
 
---- Query workmux for the authoritative set of worktree handles.
---- Returns a set table { [handle] = true, ... } on success, or nil on failure.
---- Uses io.popen (synchronous) which is acceptable because workmux list is fast
---- and this runs on the main loop where blocking I/O is already permitted.
-local function get_workmux_handles()
-	if vim.fn.executable("workmux") ~= 1 then
-		return nil
-	end
-	local pipe = io.popen("workmux list --json 2>/dev/null")
-	if not pipe then
-		return nil
-	end
-	local output = pipe:read("*a")
-	pipe:close()
-	if not output or output == "" then
-		return nil
-	end
-	local decode_ok, worktrees = pcall(vim.json.decode, output)
-	if not decode_ok or type(worktrees) ~= "table" then
-		log.warn("get_workmux_handles: failed to decode workmux list output")
-		return nil
-	end
-	local handles = {}
-	for _, wt in ipairs(worktrees) do
-		if type(wt) == "table" and type(wt.handle) == "string" then
-			handles[wt.handle] = true
-		end
-	end
-	return handles
-end
-
---- Persist a worktree description to worktrees.json in the parent directory.
---- Fire-and-forget: errors are logged but never disrupt the user.
---- This function runs synchronously on the main loop; blocking I/O is acceptable
---- because the file is a few hundred bytes at most.
-local function persist_worktree_description(worktree_name, parent_dir, desc)
-	local path = parent_dir .. "/worktrees.json"
-	local tmp_path = parent_dir .. "/worktrees.json.tmp"
-
-	-- Read existing entries
-	local entries = {}
-	local ok, err = pcall(function()
-		local file = io.open(path, "r")
-		if file then
-			local content = file:read("*a")
-			file:close()
-			if content and content ~= "" then
-				local decoded = vim.json.decode(content)
-				if type(decoded) == "table" then
-					entries = decoded
-				else
-					log.warn("persist_worktree_description: decoded non-table type, resetting")
-				end
-			end
-		end
-	end)
-	if not ok then
-		log.warn("persist_worktree_description: read/decode failed: " .. tostring(err))
-		entries = {}
-	end
-
-	-- Upsert
-	entries[worktree_name] = desc
-
-	-- Prune entries for worktrees that no longer exist according to workmux.
-	-- Uses `workmux list --json` as the authoritative source instead of
-	-- filesystem checks, which can give false negatives inside containers
-	-- or during concurrent startup races.
-	-- If workmux is unavailable, pruning is skipped entirely (append-only
-	-- fallback) to avoid deleting valid entries we cannot verify.
-	local handles = get_workmux_handles()
-	if handles then
-		for key, _ in pairs(entries) do
-			if key ~= worktree_name and not handles[key] then
-				entries[key] = nil
-			end
-		end
-	end
-
-	-- Atomic write: tmp file -> rename.
-	-- Concurrent instances may race on read-modify-write (last writer wins),
-	-- but os.rename is atomic on POSIX so the file is never left corrupt.
-	-- Lost entries self-heal on the next prompt from that worktree.
-	local write_ok, write_err = pcall(function()
-		local file = io.open(tmp_path, "w")
-		if not file then
-			error("failed to open tmp file for writing")
-		end
-		file:write(vim.json.encode(entries))
-		file:close()
-		local rename_ok, rename_err = os.rename(tmp_path, path)
-		if not rename_ok then
-			error("rename failed: " .. tostring(rename_err))
-		end
-	end)
-	if not write_ok then
-		log.warn("persist_worktree_description: write failed: " .. tostring(write_err))
-		pcall(os.remove, tmp_path)
-	end
-end
-
---- Generate a short pane description from prompt text via LLM and set @desc.
---- Fire-and-forget: errors are logged but never disrupt the user.
-local function generate_pane_description(prompt_text, cwd)
-	if not prompt_text or prompt_text == "" then
-		return
-	end
-	if vim.fn.executable("opencode") ~= 1 then
-		log.debug("generate_pane_description: opencode not found, skipping")
-		return
-	end
-	if not os.getenv("TMUX") then
-		log.debug("generate_pane_description: not in tmux, skipping")
-		return
-	end
-
-	-- Capture the pane ID for this vim instance so we target the correct pane
-	-- even when vim loads in a non-focused tab (e.g. via workmux).
-	-- $TMUX_PANE is set by tmux when the shell is spawned and is stable
-	-- regardless of which pane currently has focus.
-	local pane_id = os.getenv("TMUX_PANE")
-	if not pane_id then
-		log.debug("generate_pane_description: TMUX_PANE not set, skipping")
-		return
-	end
-
-	-- Derive worktree info for file persistence.
-	-- Must be captured synchronously here, not inside the async callback,
-	-- because the user's cwd could change before the callback fires.
-	local worktree_name = cwd and vim.fn.fnamemodify(cwd, ":t") or nil
-	local parent_dir = cwd and vim.fn.fnamemodify(cwd, ":h") or nil
-	local parent_name = parent_dir and vim.fn.fnamemodify(parent_dir, ":t") or nil
-	local is_main_worktree = (worktree_name == parent_name)
-
-	-- Clear any stale description before the async call
-	vim.system({ "tmux", "set", "-pt", pane_id, "@desc" })
-
-	local instructions = "Summarize this task in 3-5 words. "
-		.. "Output ONLY the summary, nothing else. "
-		.. "No quotes, no punctuation, no explanation."
-	local capped_prompt = prompt_text:sub(1, 2000)
-	local message = instructions .. " The task: " .. capped_prompt
-
-	vim.system(
-		-- --pure: skip external plugins for this throwaway title generator so it
-		-- doesn't load agent-messaging and retract the live agent's server record
-		-- (both run in the same worktree) on exit.
-		{ "opencode", "--pure", "run", "--format", "json", "--model", "anthropic/claude-haiku-4-5", message },
-		{ timeout = 45000 },
-		function(result)
-			vim.schedule(function()
-				if result.code ~= 0 then
-					local stderr_info = ""
-					if result.stderr and result.stderr ~= "" then
-						stderr_info = " stderr: " .. result.stderr:sub(1, 500)
-					end
-					log.warn(
-						"generate_pane_description: opencode exited with code " .. tostring(result.code) .. stderr_info
-					)
-					return
-				end
-
-				local stdout = result.stdout or ""
-				if stdout == "" then
-					log.warn("generate_pane_description: empty output")
-					return
-				end
-
-				-- Parse NDJSON: collect .part.text from all type=="text" objects
-				local parts = {}
-				for line in stdout:gmatch("[^\n]+") do
-					local ok, decoded = pcall(vim.json.decode, line)
-					if ok and type(decoded) == "table" and decoded.type == "text" then
-						local text = decoded.part and decoded.part.text
-						if text then
-							table.insert(parts, text)
-						end
-					end
-				end
-
-				local desc = vim.trim(table.concat(parts, " "))
-				desc = desc:gsub("[%c]", "")
-				desc = desc:sub(1, 50)
-				desc = vim.trim(desc)
-
-				if desc == "" then
-					log.warn("generate_pane_description: empty after sanitization")
-					return
-				end
-
-				-- Persist description to worktrees.json (fire-and-forget)
-				if worktree_name and parent_dir and not is_main_worktree then
-					persist_worktree_description(worktree_name, parent_dir, desc)
-				end
-
-				log.info("generate_pane_description: @desc = " .. desc)
-				vim.system({ "tmux", "set", "-pt", pane_id, "@desc", desc }, {}, function(tmux_result)
-					vim.schedule(function()
-						if tmux_result.code ~= 0 then
-							log.warn("generate_pane_description: tmux set failed: " .. tostring(tmux_result.code))
-						end
-					end)
-				end)
-			end)
-		end
-	)
-end
-
--- Normalize the extra agent args accepted by OpenFullscreen. They are expected
--- to be shell-escaped already: claude.command joins the arg list with spaces
--- into a single string for termopen, so a raw string is appended verbatim and a
--- list is passed through element by element.
 local function normalize_extra_args(extra)
 	if type(extra) == "string" then
 		extra = vim.trim(extra)
@@ -1649,9 +1188,6 @@ function M.WorkmuxPrompt()
 	end
 	local prompt_text = table.concat(lines, "\n")
 
-	-- Generate a short pane description asynchronously (fire-and-forget)
-	generate_pane_description(prompt_text, cwd)
-
 	-- Clean up all prompt files so they aren't re-sent on restart
 	for _, f in ipairs(prompt_files) do
 		vim.fn.delete(f)
@@ -1711,12 +1247,6 @@ function M.setup(opts)
 	-- Setup autocmds and user commands
 	commands.setup_autocmds(M)
 	commands.setup_user_commands(M)
-
-	-- Prune mirror records for worktrees that no longer exist. Runs once here on
-	-- startup; the publish timer then reaps periodically while agents are live.
-	pcall(function()
-		require("tw.agent.global").reap()
-	end)
 end
 
 return M

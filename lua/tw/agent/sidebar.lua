@@ -5,10 +5,8 @@ local DEFAULTS = {
 	width = 45,
 	refresh_ms = 1000,
 	icons = {
-		working = "", -- nf-fa-cog (\uf013)
-		waiting = "", -- nf-fa-comment (\uf075)
+		running = "",
 		dead = "", -- nf-fa-times-circle (\uf057)
-		restorable = "", -- nf-fa-history (\uf1da)
 	},
 	mode_abbrev = {
 		opencode = "oc",
@@ -30,7 +28,6 @@ local state = {
 	line_to_entry = {},
 	data_start_line = 3,
 	config = nil,
-	editing = false,
 }
 
 function M._state()
@@ -83,13 +80,7 @@ function M.setup(opts)
 	vim.api.nvim_create_autocmd("TermClose", {
 		group = augroup,
 		pattern = "agent://*",
-		callback = function(args)
-			pcall(function()
-				local status = require("tw.agent.status")
-				if status and status.invalidate then
-					status.invalidate(args.buf)
-				end
-			end)
+		callback = function()
 			pcall(M.refresh)
 		end,
 		desc = "Refresh sidebar on agent terminal close",
@@ -130,11 +121,11 @@ end
 local LOCAL_MODES = { "opencode", "claude", "codex", "pi" }
 
 local function entry_header_row(data_start_line, i)
-	return data_start_line + (i - 1) * 2
+	return data_start_line + i - 1
 end
 
 local function is_header_row(data_start_line, row)
-	return row >= data_start_line and (row - data_start_line) % 2 == 0
+	return row >= data_start_line
 end
 
 -- Helper functions for navigation and keymaps.
@@ -205,9 +196,6 @@ local function set_buffer_keymaps(buf)
 	map("o", function()
 		M._activate_under_cursor()
 	end, "Sidebar: activate session")
-	map("c", function()
-		M._edit_under_cursor()
-	end, "Sidebar: edit description")
 	map("q", function()
 		M.close()
 	end, "Sidebar: close")
@@ -234,9 +222,6 @@ local function set_buffer_keymaps(buf)
 	map("a", function()
 		M.new_session()
 	end, "Sidebar: new session (next free index)")
-	map("d", function()
-		M.delete_under_cursor()
-	end, "Sidebar: delete restorable session")
 	map("g?", function()
 		M._show_help()
 	end, "Sidebar: keybinding help")
@@ -271,7 +256,7 @@ function M.open()
 		callback = function()
 			M._apply_cursor_highlight()
 		end,
-		desc = "Highlight both rows of the agent entry under the cursor",
+		desc = "Highlight the agent entry under the cursor",
 	})
 
 	M.refresh()
@@ -305,31 +290,14 @@ end
 -- Highlight groups applied to each status. Defined later in the module
 -- (define_highlights) so they exist before any caller calls refresh().
 local STATUS_HL = {
-	working = "TwAgentSidebarWorking",
-	waiting = "TwAgentSidebarWaiting",
+	running = "TwAgentSidebarRunning",
 	dead = "TwAgentSidebarDead",
-	restorable = "TwAgentSidebarRestorable",
 }
 
-local function resolve_registry_root(root)
-	if root and root ~= "" then
-		return root
-	end
-	local ok, util = pcall(require, "tw.agent.util")
-	if ok and util and util.get_git_root then
-		local git_root = util.get_git_root()
-		if git_root and git_root ~= "" then
-			return git_root
-		end
-	end
-	return vim.fn.getcwd()
-end
-
-local function collect_entries(root)
+local function collect_entries()
 	local agent = require("tw.agent")
 	local status = require("tw.agent.status")
 	local entries = {}
-	local live_keys = {}
 
 	for _, mode in ipairs(LOCAL_MODES) do
 		local instances = agent.instances[mode] or {}
@@ -341,9 +309,6 @@ local function collect_entries(root)
 		for _, idx in ipairs(indices) do
 			local inst = instances[idx]
 			if inst and inst.buf and vim.api.nvim_buf_is_valid(inst.buf) and inst.job_id then
-				local key = string.format("%s#%d", mode, idx)
-				live_keys[key] = true
-
 				local s = status.detect({
 					mode = mode,
 					idx = idx,
@@ -351,48 +316,14 @@ local function collect_entries(root)
 					job_id = inst.job_id,
 				})
 				if s ~= "dead" or state.config.show_dead then
-					local desc = nil
-					local ok_desc, description = pcall(require, "tw.agent.description")
-					if ok_desc and description and description.get then
-						desc = description.get(inst.buf)
-					end
-
 					table.insert(entries, {
 						mode = mode,
 						idx = idx,
 						status = s,
 						buf = inst.buf,
 						is_active = (mode == agent.active_mode and idx == agent.active_index),
-						description = desc,
-						restorable = false,
 					})
 				end
-			end
-		end
-	end
-
-	local ok_reg, registry = pcall(require, "tw.agent.registry")
-	if ok_reg and registry and registry.load then
-		local reg_root = resolve_registry_root(root)
-		local saved = registry.load(reg_root)
-		local keys = {}
-		for key, _ in pairs(saved) do
-			table.insert(keys, key)
-		end
-		table.sort(keys)
-		for _, key in ipairs(keys) do
-			local rec = saved[key]
-			if not live_keys[key] then
-				table.insert(entries, {
-					mode = rec.mode,
-					idx = rec.idx,
-					status = "restorable",
-					buf = nil,
-					is_active = false,
-					description = rec.description,
-					session_id = rec.session_id,
-					restorable = true,
-				})
 			end
 		end
 	end
@@ -412,15 +343,6 @@ local function build_lines(entries, config)
 		local icon = icons[e.status] or "?"
 		local mode_short = abbrev[e.mode] or e.mode
 		table.insert(lines, string.format("%s %s#%d  %s", icon, mode_short, e.idx, e.status))
-		local desc_str = "    "
-		if e.description == "loading" then
-			desc_str = "    ⋯ loading..."
-		elseif e.description == "error" then
-			desc_str = "    ⚠ failed"
-		elseif e.description and e.description ~= "" then
-			desc_str = "    " .. e.description:gsub("[\r\n]+", " ")
-		end
-		table.insert(lines, desc_str)
 	end
 	return lines
 end
@@ -441,15 +363,8 @@ local function apply_highlights(buf, entries)
 			hl_group = hl,
 			hl_eol = false,
 		})
-		vim.api.nvim_buf_set_extmark(buf, state.ns, row + 1, 0, {
-			end_row = row + 2,
-			end_col = 0,
-			hl_group = "TwAgentSidebarDesc",
-			hl_eol = false,
-		})
 		if e.is_active then
 			vim.api.nvim_buf_set_extmark(buf, state.ns, row, 0, {
-				end_row = row + 1,
 				line_hl_group = "TwAgentSidebarActive",
 			})
 		end
@@ -472,7 +387,6 @@ function M._apply_cursor_highlight()
 	end
 	local header = entry_header_row(state.data_start_line, entry_idx) - 1
 	vim.api.nvim_buf_set_extmark(state.buf, state.cursor_ns, header, 0, {
-		end_row = header + 1,
 		line_hl_group = "TwAgentSidebarCursor",
 	})
 end
@@ -482,7 +396,6 @@ local function build_map(entries, data_start_line)
 	for i = 1, #entries do
 		local header = entry_header_row(data_start_line, i)
 		map[header] = i
-		map[header + 1] = i
 	end
 	return map
 end
@@ -506,37 +419,16 @@ function M._activate_under_cursor()
 	if not ok then
 		return
 	end
-	if entry.restorable then
-		local resume_args = {}
-		local ok_resume, resume = pcall(require, "tw.agent.resume")
-		if ok_resume and resume and resume.args_for then
-			resume_args = resume.args_for(entry.mode, entry.idx, resolve_registry_root(nil), {
-				session_id = entry.session_id,
-			})
-		end
-		agent.Open(entry.mode, resume_args, "vsplit", entry.idx)
-	else
-		agent.Open(entry.mode, nil, "vsplit", entry.idx)
-	end
+	agent.Open(entry.mode, nil, "vsplit", entry.idx)
 end
 
--- Lowest index in 0..9 not held by a live instance or a restorable registry
--- entry for the given mode. Returns nil when every slot is taken.
+-- Lowest unused local panel index in 0..9. Returns nil when all slots are taken.
 function M.next_free_index(mode)
 	local used = {}
 	local ok_agent, agent = pcall(require, "tw.agent")
 	if ok_agent and agent and agent.instances then
 		for idx, _ in pairs(agent.instances[mode] or {}) do
 			used[idx] = true
-		end
-	end
-	local ok_reg, registry = pcall(require, "tw.agent.registry")
-	if ok_reg and registry and registry.load then
-		local saved = registry.load(resolve_registry_root(nil))
-		for _, rec in pairs(saved) do
-			if rec.mode == mode and rec.idx ~= nil then
-				used[rec.idx] = true
-			end
 		end
 	end
 	for idx = 0, 9 do
@@ -561,68 +453,6 @@ function M.new_session()
 	agent.Open(mode, nil, "vsplit", idx)
 end
 
-function M.delete_under_cursor()
-	local win = sidebar_win()
-	if win == -1 then
-		return
-	end
-	local row = vim.api.nvim_win_get_cursor(win)[1]
-	local entry_idx = state.line_to_entry[row]
-	if not entry_idx then
-		return
-	end
-	local entry = state.entries[entry_idx]
-	if not entry or not entry.restorable then
-		return
-	end
-	local ok, registry = pcall(require, "tw.agent.registry")
-	if ok and registry and registry.delete then
-		registry.delete(resolve_registry_root(nil), entry.mode, entry.idx)
-	end
-	M.refresh()
-end
-
-function M._edit_under_cursor()
-	local win = sidebar_win()
-	if win == -1 then
-		return
-	end
-	local row = vim.api.nvim_win_get_cursor(win)[1]
-	local entry_idx = state.line_to_entry[row]
-	if not entry_idx then
-		return
-	end
-	local entry = state.entries[entry_idx]
-	if not entry or not entry.buf then
-		return
-	end
-
-	local description = require("tw.agent.description")
-	local current = description.get(entry.buf)
-	local default = ""
-	if type(current) == "string" and current ~= "loading" and current ~= "error" then
-		default = current
-	end
-
-	state.editing = true
-	local ok = pcall(vim.ui.input, { prompt = "Description: ", default = default }, function(input)
-		state.editing = false
-		if input == nil then
-			return
-		end
-		local trimmed = vim.trim(input)
-		if trimmed == "" then
-			description.clear_override(entry.buf)
-		else
-			description.set(entry.buf, trimmed)
-		end
-		M.refresh()
-	end)
-	if not ok then
-		state.editing = false
-	end
-end
-
 function M._show_help()
 	local keys = {
 		"Agent Sidebar — keys",
@@ -630,8 +460,6 @@ function M._show_help()
 		"j / k        move between agents",
 		"<CR> / o     open agent under cursor",
 		"a            new session (next free index)",
-		"c            edit description",
-		"d            delete restorable session",
 		"r            refresh",
 		"gg / G       first / last agent",
 		"q / <Esc>    close sidebar",
@@ -675,9 +503,6 @@ function M._show_help()
 end
 
 function M.refresh()
-	if state.editing then
-		return
-	end
 	local win = sidebar_win()
 	if win == -1 then
 		return
@@ -703,22 +528,6 @@ function M.refresh()
 
 	local entries = collect_entries()
 	local lines = build_lines(entries, state.config)
-
-	-- Lazy generation: trigger for entries with nil descriptions. The
-	-- description module's loading/cache guards prevent re-triggering, so the
-	-- refresh() call inside the callback won't loop.
-	local ok_desc, description = pcall(require, "tw.agent.description")
-	if ok_desc and description and description.generate then
-		for _, e in ipairs(entries) do
-			if e.buf and e.description == nil then
-				description.generate(e.buf, function(_result)
-					vim.schedule(function()
-						M.refresh()
-					end)
-				end)
-			end
-		end
-	end
 
 	vim.bo[state.buf].modifiable = true
 	vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
@@ -761,12 +570,9 @@ end
 local function define_highlights()
 	local groups = {
 		TwAgentSidebarHeader = "Title",
-		TwAgentSidebarWorking = "String",
-		TwAgentSidebarWaiting = "WarningMsg",
+		TwAgentSidebarRunning = "String",
 		TwAgentSidebarDead = "ErrorMsg",
-		TwAgentSidebarRestorable = "Comment",
 		TwAgentSidebarActive = "Visual",
-		TwAgentSidebarDesc = "Comment",
 		TwAgentSidebarCursor = "CursorLine",
 	}
 	for name, link in pairs(groups) do

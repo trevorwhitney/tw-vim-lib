@@ -50,100 +50,30 @@ local function load_sidebar()
 end
 
 local config = {
-	icons = { working = "W", waiting = "A", dead = "D" },
+	icons = { running = "R", dead = "D" },
 	mode_abbrev = { opencode = "oc", claude = "cl" },
 }
 
-print("sidebar render tests:")
-print()
-
-test("render_lines emits header then indented description per entry", function()
+test("each terminal occupies exactly one row", function()
 	local sidebar = load_sidebar()
 	local entries = {
-		{ mode = "opencode", idx = 0, status = "working", description = "doing x" },
+		{ mode = "opencode", idx = 0, status = "running" },
+		{ mode = "claude", idx = 1, status = "dead" },
 	}
 	local lines = sidebar._render_lines(entries, config)
-	eq("⌬ Agents", lines[1], "header line 1")
-	eq("─────────", lines[2], "header line 2")
-	eq("W oc#0  working", lines[3], "header row has no description")
-	eq("    doing x", lines[4], "description row is indented 4 spaces")
-end)
-
-test("render_lines renders loading and error on the description row", function()
-	local sidebar = load_sidebar()
-	local entries = {
-		{ mode = "opencode", idx = 0, status = "working", description = "loading" },
-		{ mode = "claude", idx = 1, status = "waiting", description = "error" },
-	}
-	local lines = sidebar._render_lines(entries, config)
-	eq("    ⋯ loading...", lines[4], "loading on first entry's desc row")
-	eq("    ⚠ failed", lines[6], "error on second entry's desc row")
-end)
-
-test("render_lines renders nil description as indent-only blank row", function()
-	local sidebar = load_sidebar()
-	local entries = {
-		{ mode = "opencode", idx = 0, status = "working", description = nil },
-	}
-	local lines = sidebar._render_lines(entries, config)
-	eq("    ", lines[4], "nil description renders as indent only")
-end)
-
-test("render_lines flattens newlines in description to a single row", function()
-	local sidebar = load_sidebar()
-	local entries = {
-		{ mode = "opencode", idx = 0, status = "working", description = "line one\nline two\r\nline three" },
-	}
-	local lines = sidebar._render_lines(entries, config)
-	eq("    line one line two line three", lines[4], "embedded newlines collapse to spaces")
-	eq(nil, lines[5], "description stays a single row")
-end)
-
-test("render_lines keeps single-row empty state", function()
-	local sidebar = load_sidebar()
-	local lines = sidebar._render_lines({}, config)
-	eq("(no active sessions)", lines[3], "empty-state row")
-	eq(nil, lines[4], "no extra rows when empty")
-end)
-
-test("entry_header_row uses a stride of 2", function()
-	local sidebar = load_sidebar()
-	eq(3, sidebar._entry_header_row(3, 1), "entry 1 header at data_start_line")
-	eq(5, sidebar._entry_header_row(3, 2), "entry 2 header two rows down")
-	eq(7, sidebar._entry_header_row(3, 3), "entry 3 header four rows down")
-end)
-
-test("build_line_to_entry maps both header and description rows", function()
-	local sidebar = load_sidebar()
-	local entries = { { idx = 0 }, { idx = 1 } }
+	eq("R oc#0  running", lines[3])
+	eq("D cl#1  dead", lines[4])
+	eq(nil, lines[5])
 	local map = sidebar._build_line_to_entry(entries, 3)
-	eq(1, map[3], "entry 1 header row")
-	eq(1, map[4], "entry 1 description row")
-	eq(2, map[5], "entry 2 header row")
-	eq(2, map[6], "entry 2 description row")
+	eq(1, map[3])
+	eq(2, map[4])
+	eq(nil, map[5])
 end)
 
-test("is_header_row is true only on header rows", function()
-	local sidebar = load_sidebar()
-	eq(true, sidebar._is_header_row(3, 3), "row 3 is a header")
-	eq(false, sidebar._is_header_row(3, 4), "row 4 is a description")
-	eq(true, sidebar._is_header_row(3, 5), "row 5 is a header")
-	eq(false, sidebar._is_header_row(3, 6), "row 6 is a description")
-	eq(false, sidebar._is_header_row(3, 1), "rows before data_start_line are not headers")
-end)
-
-print("sidebar editing guard tests:")
-print()
-
-test("refresh is suppressed while editing", function()
-	local sidebar = load_sidebar()
-	local st = sidebar._state()
-	st.win = 1
-	st.buf = 1
-	st.editing = true
-	st.entries = { "sentinel" }
-	sidebar.refresh()
-	eq("sentinel", st.entries[1], "entries are not rebuilt while editing")
+test("empty sidebar has a single placeholder", function()
+	local lines = load_sidebar()._render_lines({}, config)
+	eq("(no active sessions)", lines[3])
+	eq(nil, lines[4])
 end)
 
 H.finish()

@@ -25,64 +25,82 @@ command! -nargs=* Test call v:lua.require("example").test(<q-args>)
 command! -nargs=* TestTwo call v:lua.require("example").testTwo(<f-args>)
 ```
 
-## Agent Sidebar
+## Agent terminals
 
-The agent sidebar lists all active agent sessions (opencode, claude, codex, pi)
-with a live status indicator and an AI-generated summary of what each agent is
-working on.
+The agent integration provides local Neovim terminals for OpenCode, Claude,
+Codex, and Pi: toggle panels, send selections and file context, and use `gf`
+on a path in agent output to open it in an editor pane. Fullscreen agents
+switch to a split when you open a file.
 
-### Features
+### Sidebar
 
-- **Status indicators** &mdash; an icon per session shows whether the agent is
-  working, waiting for input, or dead.
-- **Task descriptions** &mdash; a short (≤30 char) AI-generated summary of what
-  each agent is doing, scraped from the terminal and summarized via the
-  Anthropic Claude API (Haiku).
-- **Loading state** &mdash; `⋯ loading...` while a description is being
-  generated.
-- **Error state** &mdash; `⚠ failed` when generation fails (network/auth). Rate
-  limits (HTTP 429) are not cached, so they retry on the next refresh.
+- `<leader>cv` toggles the agent sidebar.
+- `<leader>\` toggles the file tree and agent sidebar together.
+- Each local terminal gets one row with its agent name, panel number, and
+  process state (`running` or `dead`). `running` means the process is alive;
+  it may be waiting for input.
+- `j`/`k` navigate, Enter or `o` opens a panel, `a` starts a fresh session in
+  the next free slot, `r` refreshes, and `q` closes the sidebar.
 
-Descriptions are generated lazily on first display and cached per buffer. The
-cache is cleared automatically when an agent terminal exits.
-
-### Toggling
-
-- `<leader>cv` &mdash; toggle the agent sidebar on its own.
-- `<leader>\` &mdash; toggle the unified drawer (file tree + agent sidebar
-  stacked below it).
-
-### Configuration
-
-Set your Anthropic API key in the environment to enable descriptions:
-
-```bash
-export ANTHROPIC_API_KEY="your-key-here"
+```text
+⌬ Agents
+─────────
+ oc#0  running
+ cl#1  running
+ cx#0  running
 ```
-
-If the key is not set, the sidebar still works &mdash; status and session rows
-render normally, the description column is just left blank.
-
-Sidebar options are passed through `require("tw.agent").setup`:
 
 ```lua
 require("tw.agent").setup({
   sidebar = {
-    width = 45,        -- default; wide enough to fit descriptions
-    position = "left", -- or "right"
-    refresh_ms = 1000,
+    enabled = true,
+    width = 45,
+    refresh_ms = 1000, -- process checks only, while the sidebar is open
     show_dead = false,
   },
 })
 ```
 
-### Troubleshooting
+### Explicit continuation
 
-- **Descriptions show `⚠ failed`** &mdash; confirm `ANTHROPIC_API_KEY` is set
-  correctly and that `api.anthropic.com` is reachable. Transient rate limits
-  (429) are not cached and retry automatically.
-- **Descriptions are blank** &mdash; ensure `ANTHROPIC_API_KEY` is exported in
-  the environment Neovim was launched from, then restart Neovim.
+Pass the agent's native resume arguments through `vrnsh`:
+
+```sh
+vrnsh claude --resume SESSION_ID
+vrnsh codex resume SESSION_ID
+vrnsh opencode --session SESSION_ID
+```
+
+Or continue the latest conversation:
+
+```sh
+vrnsh claude --continue
+vrnsh codex resume --last
+vrnsh opencode --continue
+```
+
+Inside Neovim the equivalent is `:AgentFullscreen codex resume SESSION_ID`
+(or the corresponding Claude/OpenCode arguments). This command uses panel 0;
+if that panel already has a live agent, it shows the existing terminal.
+Continue-latest follows the CLI's session selection rules and does not restore
+individual panel identities when multiple sessions share a directory.
+
+### Simplification and compatibility
+
+Session orchestration belongs to the external session manager. This plugin no
+longer captures session IDs, restores saved sidebar entries, infers turn status,
+generates AI descriptions, or publishes status/heartbeats to agentmux or Workmux.
+No API key or agent hooks are needed. The old description-edit and saved-session
+delete sidebar bindings (`c` and `d`) are removed.
+
+Existing `.workmux/agent-sessions.json` and agentmux mirror files are left on disk
+but are no longer read or updated here. `AGENTD_SESSION_ID` is no longer injected
+into OpenCode arguments; callers should pass `--session` explicitly. The
+`TW_AGENT_SLOT` environment tag is retained for external integrations.
+
+Workmux's `.workmux/PROMPT-*.md` startup loader remains available for existing
+launchers; it sends the prompt without generating tmux titles or worktree
+summaries.
 
 ## Troubleshooting
 
