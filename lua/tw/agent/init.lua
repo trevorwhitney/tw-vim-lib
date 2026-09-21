@@ -918,9 +918,11 @@ local function configureClaudeKeymap()
 			{
 				"<leader>cx",
 				function()
-					require("tw.agent").Toggle("codex")
+					local m = vim.fn.mode()
+					local is_visual = m == "v" or m == "V" or m == "\22"
+					require("tw.agent")._toggle_with_count("codex", is_visual)
 				end,
-				desc = "Toggle Codex",
+				desc = "Toggle Codex (count = instance index, 0 = default)",
 			},
 			{
 				"<leader>co",
