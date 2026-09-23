@@ -131,13 +131,13 @@ test("format_block emits @path:range then body", function()
 	eq("@src/a.lua:10-12\nfix this", block, "block")
 end)
 
-test("build_blob joins blocks with header and blank-line separators", function()
+test("build_blob joins blocks with blank-line separators", function()
 	local comments = dofile("lua/tw/agent/comments.lua")
 	local blob = comments._build_blob({
 		{ file = "a.lua", start_line = 1, end_line = 1, body = "one" },
 		{ file = "b.lua", start_line = 5, end_line = 7, body = "two" },
 	})
-	eq("Review comments:\n\n@a.lua:1\none\n\n@b.lua:5-7\ntwo", blob, "blob")
+	eq("@a.lua:1\none\n\n@b.lua:5-7\ntwo", blob, "blob")
 end)
 
 test("resolve_entry_range uses the live extmark range when available", function()
@@ -178,7 +178,7 @@ test("flush sends the assembled blob via the send seam and clears", function()
 	end
 	comments.flush(3)
 	eq(3, sent.count, "count forwarded")
-	eq("Review comments:\n\n@a.lua:10-12\none\n\n@b.lua:5\ntwo", sent.blob, "blob")
+	eq("@a.lua:10-12\none\n\n@b.lua:5\ntwo", sent.blob, "blob")
 	eq(0, #comments._batch, "batch cleared after flush")
 end)
 

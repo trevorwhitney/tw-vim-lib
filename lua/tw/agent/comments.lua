@@ -80,7 +80,7 @@ function M._build_blob(entries)
 	for _, entry in ipairs(entries) do
 		blocks[#blocks + 1] = M._format_block(entry)
 	end
-	return "Review comments:\n\n" .. table.concat(blocks, "\n\n")
+	return table.concat(blocks, "\n\n")
 end
 
 function M._resolve_entry_range(entry)

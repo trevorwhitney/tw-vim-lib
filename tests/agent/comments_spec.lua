@@ -96,7 +96,7 @@ describe("comments add + anchor", function()
 		assert.equals("SendText", captured.fn_name)
 		assert.equals(2, captured.count)
 		assert.equals(false, captured.submit_after)
-		assert.equals("Review comments:\n\n@src/a.lua:2-3\nfix this", captured.blob)
+		assert.equals("@src/a.lua:2-3\nfix this", captured.blob)
 		assert.equals(0, #comments._batch)
 
 		package.loaded["tw.agent"] = nil
