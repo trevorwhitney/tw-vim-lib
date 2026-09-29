@@ -4,6 +4,11 @@ return {
 		cmd = "Telescope",
 		keys = {
 			{
+				"<leader>gG",
+				"<cmd>lua require('tw.telescope-git-branch-diff').git_branch_diff_picker({ current_file = true })<cr>",
+				desc = "Diff Current File Against Branch (Branch Picker)",
+			},
+			{
 				"<leader>gg",
 				"<cmd>lua require('tw.telescope-git-branch-diff').git_branch_diff_picker()<cr>",
 				desc = "Diff Against Branch (Branch Picker)",

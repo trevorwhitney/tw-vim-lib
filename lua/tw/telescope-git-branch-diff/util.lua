@@ -41,12 +41,18 @@ end
 --- DiffviewOpen <branch> diffs the working tree against that branch, which is
 --- the "how does my branch compare to <branch>" view.
 --- @param branch string|nil
+--- @param current_file_path string|nil
+--- @param fnameescape fun(path: string): string
 --- @return string|nil
-function M.build_diff_command(branch)
+function M.build_diff_command(branch, current_file_path, fnameescape)
 	if not branch or branch == "" then
 		return nil
 	end
-	return "DiffviewOpen " .. branch
+	local cmd = "DiffviewOpen " .. branch
+	if current_file_path and current_file_path ~= "" then
+		cmd = cmd .. " -- " .. fnameescape(current_file_path)
+	end
+	return cmd
 end
 
 return M
