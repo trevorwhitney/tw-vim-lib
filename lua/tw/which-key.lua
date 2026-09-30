@@ -375,6 +375,14 @@ local function mapKeys(wk)
 		},
 
 		{
+			"\\t",
+			"<cmd>sp | terminal<cr>",
+			desc = "Terminal (Horizontal Split)",
+			nowait = true,
+			remap = false,
+		},
+
+		{
 			mode = { "v" },
 			{
 				"<leader>*",
