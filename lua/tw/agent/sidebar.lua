@@ -221,7 +221,7 @@ local function set_buffer_keymaps(buf)
 	end, "Sidebar: last session")
 	map("a", function()
 		M.new_session()
-	end, "Sidebar: new session (next free index)")
+	end, "Sidebar: choose agent for new session")
 	map("g?", function()
 		M._show_help()
 	end, "Sidebar: keybinding help")
@@ -444,13 +444,17 @@ function M.new_session()
 	if not ok then
 		return
 	end
-	local mode = agent.default_mode
-	local idx = M.next_free_index(mode)
-	if idx == nil then
-		vim.notify("No free agent index (0-9) available", vim.log.levels.WARN)
-		return
-	end
-	agent.Open(mode, nil, "vsplit", idx)
+	vim.ui.select(LOCAL_MODES, { prompt = "Start agent:" }, function(mode)
+		if not mode then
+			return
+		end
+		local idx = M.next_free_index(mode)
+		if idx == nil then
+			vim.notify("No free agent index (0-9) available for " .. mode, vim.log.levels.WARN)
+			return
+		end
+		agent.Open(mode, nil, "vsplit", idx)
+	end)
 end
 
 function M._show_help()
@@ -459,7 +463,7 @@ function M._show_help()
 		"",
 		"j / k        move between agents",
 		"<CR> / o     open agent under cursor",
-		"a            new session (next free index)",
+		"a            choose agent, start new session",
 		"r            refresh",
 		"gg / G       first / last agent",
 		"q / <Esc>    close sidebar",
