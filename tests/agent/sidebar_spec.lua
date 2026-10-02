@@ -511,9 +511,11 @@ describe("sidebar TermClose autocmd", function()
 end)
 
 describe("sidebar new session (a)", function()
-	local sidebar, agent
+	local sidebar, agent, original_select, original_notify
 
 	before_each(function()
+		original_select = vim.ui.select
+		original_notify = vim.notify
 		agent = helpers.reset_and_mock(false)
 		package.loaded["tw.agent.sidebar"] = nil
 		package.loaded["tw.log"] = {
@@ -527,6 +529,8 @@ describe("sidebar new session (a)", function()
 	end)
 
 	after_each(function()
+		vim.ui.select = original_select
+		vim.notify = original_notify
 		pcall(sidebar.close)
 	end)
 
@@ -545,18 +549,56 @@ describe("sidebar new session (a)", function()
 		assert.equals(1, sidebar.next_free_index("opencode"))
 	end)
 
-	it("opens a new default-mode session at the next free index", function()
+	it("prompts for an agent and allocates its next free index after selection", function()
 		helpers.set_instance(agent, "opencode", 0, vim.api.nvim_create_buf(false, true), 999)
+		helpers.set_instance(agent, "claude", 0, vim.api.nvim_create_buf(false, true), 997)
+		local choose
+		vim.ui.select = function(items, opts, callback)
+			assert.same({ "opencode", "claude", "codex", "pi" }, items)
+			assert.equals("Start agent:", opts.prompt)
+			choose = callback
+		end
 		local captured
 		local orig_open = agent.Open
 		agent.Open = function(mode, args, window_type, idx)
 			captured = { mode = mode, args = args, window_type = window_type, idx = idx }
 		end
 		sidebar.new_session()
+		assert.is_nil(captured)
+		helpers.set_instance(agent, "claude", 1, vim.api.nvim_create_buf(false, true), 996)
+		choose("claude")
 		agent.Open = orig_open
-		assert.equals("opencode", captured.mode)
-		assert.equals(1, captured.idx)
+		assert.equals("claude", captured.mode)
+		assert.equals(2, captured.idx)
 		assert.is_nil(captured.args)
+	end)
+
+	it("does not open a session when the picker is cancelled", function()
+		vim.ui.select = function(_, _, callback)
+			callback(nil)
+		end
+		agent.Open = function()
+			error("cancelled picker must not open an agent")
+		end
+		sidebar.new_session()
+	end)
+
+	it("warns without opening when the selected agent has no free index", function()
+		for idx = 0, 9 do
+			helpers.set_instance(agent, "claude", idx, vim.api.nvim_create_buf(false, true), 999)
+		end
+		vim.ui.select = function(_, _, callback)
+			callback("claude")
+		end
+		local warning
+		vim.notify = function(message)
+			warning = message
+		end
+		agent.Open = function()
+			error("full agent slots must not open an agent")
+		end
+		sidebar.new_session()
+		assert.equals("No free agent index (0-9) available for claude", warning)
 	end)
 
 	it("'a' keymap invokes new-session", function()
