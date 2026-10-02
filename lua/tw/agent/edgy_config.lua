@@ -19,7 +19,7 @@ return {
 		{ ft = "NvimTree", title = "Files", size = { width = 40 } },
 		-- Width is what this view used to inherit from the edgebar default, kept
 		-- explicit now that the default is only a floor.
-		{ ft = "tw-agent-sidebar", title = "Agents", size = { width = 30, height = 23 } },
+		{ ft = "tw-agent-sidebar", title = "Agents", size = { width = 30, height = require("tw.layout").bottom_height } },
 	},
 	right = {
 		{ ft = "AgentConsole", title = agent_title, size = { width = 0.4 } },

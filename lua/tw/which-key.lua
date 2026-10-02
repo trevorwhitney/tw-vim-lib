@@ -376,7 +376,7 @@ local function mapKeys(wk)
 
 		{
 			"\\t",
-			"<cmd>sp | terminal<cr>",
+			("<cmd>%dsp | terminal<cr>"):format(require("tw.layout").bottom_height),
 			desc = "Terminal (Horizontal Split)",
 			nowait = true,
 			remap = false,
