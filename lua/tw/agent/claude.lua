@@ -9,6 +9,31 @@ local AUTOMATIC_PERMISSION_FLAGS = {
 	codex = { "--approve-for-me" },
 }
 
+local AUTOMATIC_PERMISSION_CONFLICTS = {
+	claude = { "--dangerously-skip-permissions" },
+	codex = {
+		"--approve-for-me",
+		"--dangerously-bypass-approvals-and-sandbox",
+		"--yolo",
+		"--full-auto", -- Legacy approval preset, no longer accepted by Codex 0.160.
+		"--ask-for-approval",
+		"-a",
+		"--sandbox",
+		"-s",
+	},
+}
+
+local function has_permission_conflict(args, command_name)
+	for _, arg in ipairs(args) do
+		for _, flag in ipairs(AUTOMATIC_PERMISSION_CONFLICTS[command_name] or {}) do
+			if arg == flag or arg:sub(1, #flag + 1) == flag .. "=" then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 local get_command_path = function(command_name)
 	local handle = io.popen(table.concat({ "command", "-v", command_name }, " "))
 	local command_path = ""
@@ -69,7 +94,7 @@ function M.command(args, command_name, context_directories, automatic_permission
 	end
 
 	local flags = automatic_permissions ~= false and AUTOMATIC_PERMISSION_FLAGS[command_name] or nil
-	if flags then
+	if flags and not has_permission_conflict(args, command_name) then
 		for _, flag in ipairs(flags) do
 			table.insert(command, flag)
 		end
