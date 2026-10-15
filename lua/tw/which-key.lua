@@ -495,7 +495,11 @@ local function vimMappings()
 
 	keymap.set("n", "<C-j>", "<C-W><C-J>", { noremap = true })
 	keymap.set("n", "<C-k>", "<C-W><C-K>", { noremap = true })
-	keymap.set("n", "<C-l>", "<C-W><C-L>", { noremap = true })
+	keymap.set("n", "<C-l>", function()
+		if not require("tw.agent").FocusAgentOnRight() then
+			vim.cmd("wincmd l")
+		end
+	end, { noremap = true })
 	keymap.set("n", "<C-h>", "<C-W><C-H>", { noremap = true })
 	keymap.set("n", "<C-w>q", ":window close<cr>", { noremap = true })
 
@@ -551,6 +555,9 @@ local function vimMappings()
 			if buffer_util.should_autosave() then
 				vim.cmd("update")
 			end
+			if direction == "Right" and require("tw.agent").FocusAgentOnRight() then
+				return
+			end
 			vim.cmd("TmuxNavigate" .. direction)
 		end
 		keymap.set("n", "<C-j>", function()
@@ -569,7 +576,12 @@ local function vimMappings()
 	keymap.set("t", "<C-j>", "<C-\\><C-n><C-W><C-J>", { noremap = true })
 	keymap.set("t", "<C-k>", "<C-\\><C-n><C-W><C-k>", { noremap = true })
 	keymap.set("t", "<C-h>", "<C-\\><C-n><C-W><C-h>", { noremap = true })
-	keymap.set("t", "<C-l>", "<C-\\><C-n><C-W><C-l>", { noremap = true })
+	keymap.set(
+		"t",
+		"<C-l>",
+		"<C-\\><C-n><cmd>lua if not require('tw.agent').FocusAgentOnRight() then vim.cmd('wincmd l') end<cr>",
+		{ noremap = true }
+	)
 end
 
 function M.setup()

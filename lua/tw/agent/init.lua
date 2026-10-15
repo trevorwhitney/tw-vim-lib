@@ -594,33 +594,72 @@ end
 
 M._resolve_send_target = resolve_send_target
 
--- Collapse an agent edgy pane. count is passed in directly so this is testable
--- without a read-only vim.v.count. With count 0 it hides the current pane; with
--- count N it hides index N of the current pane's mode (when that pane is shown).
-function M._collapse_pane_explicit(current_win, count)
-	if count == 0 then
-		if current_win and current_win.hide then
-			current_win:hide()
-		end
-		return
+-- Use screen order rather than window creation order for pane navigation.
+local function ordered_visible_agent_wins()
+	local wins = visible_agent_wins()
+	table.sort(wins, function(a, b)
+		local apos = vim.api.nvim_win_get_position(a.win)
+		local bpos = vim.api.nvim_win_get_position(b.win)
+		return apos[1] == bpos[1] and apos[2] < bpos[2] or apos[1] < bpos[1]
+	end)
+	return wins
+end
+
+-- Intercept entry into the agent drawer before WinEnter can expand a hidden pane.
+-- Return false when ordinary window/tmux navigation should handle the move.
+function M.FocusAgentOnRight()
+	local current = vim.api.nvim_get_current_win()
+	local target = vim.fn.win_getid(vim.fn.winnr("l"))
+	if target == current or vim.bo[vim.api.nvim_win_get_buf(target)].filetype ~= "AgentConsole" then
+		return false
 	end
+	local wins = ordered_visible_agent_wins()
+	if #wins > 0 then
+		vim.api.nvim_set_current_win(wins[1].win)
+	else
+		M.CloseDrawer()
+	end
+	return true
+end
+
+-- Collapse the requested pane, then focus the next expanded pane (wrapping).
+function M._collapse_pane_explicit(current_win, count)
+	local pane = current_win
 	local mode
 	if current_win and current_win.win and vim.api.nvim_win_is_valid(current_win.win) then
-		local name = vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(current_win.win))
-		mode = parse_agent_buf_name(name)
+		mode = parse_agent_buf_name(vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(current_win.win)))
 	end
-	if not mode then
+	if count > 0 then
+		local target = mode and agent_win_for(mode, count)
+		local ok, edgy = pcall(require, "edgy")
+		if not target or not ok or not edgy.get_win then
+			return
+		end
+		pane = edgy.get_win(target)
+	end
+	if not pane or not pane.hide then
 		return
 	end
-	local target = agent_win_for(mode, count)
-	if not target then
-		return
+	local remaining, next_win = {}, nil
+	if mode then
+		local passed = false
+		for _, entry in ipairs(ordered_visible_agent_wins()) do
+			if entry.win == pane.win then
+				passed = true
+			else
+				remaining[#remaining + 1] = entry.win
+				if passed and not next_win then
+					next_win = entry.win
+				end
+			end
+		end
 	end
-	local ok, edgy = pcall(require, "edgy")
-	if ok and edgy.get_win then
-		local ewin = edgy.get_win(target)
-		if ewin and ewin.hide then
-			ewin:hide()
+	pane:hide()
+	if mode then
+		if #remaining == 0 then
+			M.CloseDrawer()
+		else
+			vim.api.nvim_set_current_win(next_win or remaining[1])
 		end
 	end
 end
