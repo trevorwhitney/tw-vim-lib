@@ -291,6 +291,15 @@ local function mapKeys(wk)
 
 		{ "\\", group = "Windows", nowait = true, remap = false },
 		{
+			"\\a",
+			function()
+				require("tw.agent").ToggleDrawer()
+			end,
+			desc = "Toggle Agent Sidebar",
+			nowait = true,
+			remap = false,
+		},
+		{
 			"\\D",
 			function()
 				local trouble = require("trouble")

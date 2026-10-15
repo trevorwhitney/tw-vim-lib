@@ -627,8 +627,7 @@ end
 
 -- Entry point for the edgy buffer-local <leader>q keymap. Reads vim.v.count
 -- then delegates: no count hides the current pane, N hides index N of its mode.
--- count 0 means "no count" here (hide current), unlike the drawer toggle where
--- a typed 0 closes the whole drawer.
+-- count 0 means "no count" here (hide current).
 function M.CollapsePane(current_win)
 	M._collapse_pane_explicit(current_win, vim.v.count)
 end
@@ -665,25 +664,40 @@ function M.CloseDrawer()
 	return true
 end
 
--- Explicit-count entry point used by tests and by _toggle_with_count.
--- count is passed in directly so callers don't need to manipulate the
--- read-only vim.v.count.
-function M._toggle_with_count_explicit(mode, count, visual)
+-- Remember the visible stack so toggling the drawer restores the same agents.
+local drawer_instances = {}
+function M.ToggleDrawer()
+	local wins = agent_console_wins()
+	if #wins > 0 then
+		drawer_instances = {}
+		for _, win in ipairs(wins) do
+			local mode, idx = parse_agent_buf_name(vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win)))
+			if mode then
+				drawer_instances[#drawer_instances + 1] = { mode = mode, idx = idx }
+			end
+		end
+		M.CloseDrawer()
+	elseif #drawer_instances > 0 then
+		for _, instance in ipairs(drawer_instances) do
+			M.Open(instance.mode, nil, "vsplit", instance.idx)
+		end
+	else
+		M.Open(M.default_mode, nil, "vsplit", 0)
+	end
+end
+
+-- Explicit count keeps selection testable without changing read-only vim.v.count.
+function M._focus_with_count_explicit(mode, count, visual)
 	local idx = visual and 0 or count
 	if idx > 9 then
 		vim.notify(string.format("Agent instance index must be 0-9 (got %d)", idx), vim.log.levels.WARN)
 		return
 	end
-	if not visual and count == 0 and #agent_console_wins() > 0 then
-		M.CloseDrawer()
-		return
-	end
-	M.Toggle(mode, nil, "vsplit", idx)
+	M.Open(mode, nil, "vsplit", idx)
 end
 
--- Keymap entry point. Reads vim.v.count then delegates.
-function M._toggle_with_count(mode, visual)
-	M._toggle_with_count_explicit(mode, vim.v.count, visual)
+function M._focus_with_count(mode, visual)
+	M._focus_with_count_explicit(mode, vim.v.count, visual)
 end
 
 --- Cycle through alive sessions of default_mode.
@@ -913,45 +927,36 @@ local function configureClaudeKeymap()
 				function()
 					local m = vim.fn.mode()
 					local is_visual = m == "v" or m == "V" or m == "\22"
-					require("tw.agent")._toggle_with_count("claude", is_visual)
+					require("tw.agent")._focus_with_count("claude", is_visual)
 				end,
-				desc = "Toggle Claude (count = instance index, 0 = default)",
+				desc = "Focus Claude (count = instance index, 0 = default)",
 			},
 			{
 				"<leader>cx",
 				function()
 					local m = vim.fn.mode()
 					local is_visual = m == "v" or m == "V" or m == "\22"
-					require("tw.agent")._toggle_with_count("codex", is_visual)
+					require("tw.agent")._focus_with_count("codex", is_visual)
 				end,
-				desc = "Toggle Codex (count = instance index, 0 = default)",
+				desc = "Focus Codex (count = instance index, 0 = default)",
 			},
 			{
 				"<leader>co",
 				function()
 					local m = vim.fn.mode()
 					local is_visual = m == "v" or m == "V" or m == "\22"
-					require("tw.agent")._toggle_with_count("opencode", is_visual)
+					require("tw.agent")._focus_with_count("opencode", is_visual)
 				end,
-				desc = "Toggle OpenCode (count = instance index, 0 = default)",
-			},
-			{
-				"<leader>]",
-				function()
-					local m = vim.fn.mode()
-					local is_visual = m == "v" or m == "V" or m == "\22"
-					require("tw.agent")._toggle_with_count("opencode", is_visual)
-				end,
-				desc = "Toggle OpenCode (count = instance index, 0 = default)",
+				desc = "Focus OpenCode (count = instance index, 0 = default)",
 			},
 			{
 				"<leader>cp",
 				function()
 					local m = vim.fn.mode()
 					local is_visual = m == "v" or m == "V" or m == "\22"
-					require("tw.agent")._toggle_with_count("pi", is_visual)
+					require("tw.agent")._focus_with_count("pi", is_visual)
 				end,
-				desc = "Toggle Pi (count = instance index, 0 = default)",
+				desc = "Focus Pi (count = instance index, 0 = default)",
 			},
 		},
 		{

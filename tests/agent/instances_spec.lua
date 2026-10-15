@@ -119,7 +119,7 @@ describe("agent instance lifecycle (Open / Toggle)", function()
   end)
 end)
 
-describe("toggle_with_count wrappers", function()
+describe("focus_with_count wrappers", function()
   local helpers = require("tests.agent.spec_helpers")
   local agent, claude_mod
 
@@ -141,44 +141,44 @@ describe("toggle_with_count wrappers", function()
     end
   end)
 
-  it("_toggle_with_count_explicit(pi, 0, false) toggles pi#0", function()
-    agent._toggle_with_count_explicit("pi", 0, false)
+  it("_focus_with_count_explicit(pi, 0, false) focuses pi#0", function()
+    agent._focus_with_count_explicit("pi", 0, false)
     assert.is_table(agent._get_instance("pi", 0))
     assert.equals("pi", agent.active_mode)
     assert.equals(0, agent.active_index)
   end)
 
-  it("_toggle_with_count_explicit(pi, 3, false) toggles pi#3", function()
-    agent._toggle_with_count_explicit("pi", 3, false)
+  it("_focus_with_count_explicit(pi, 3, false) focuses pi#3", function()
+    agent._focus_with_count_explicit("pi", 3, false)
     assert.is_table(agent._get_instance("pi", 3))
     assert.equals(3, agent.active_index)
   end)
 
-  it("_toggle_with_count_explicit(pi, 10, false) notifies and does nothing", function()
+  it("_focus_with_count_explicit(pi, 10, false) notifies and does nothing", function()
     local notified
     local original = vim.notify
     vim.notify = function(msg, _) notified = msg end
-    agent._toggle_with_count_explicit("pi", 10, false)
+    agent._focus_with_count_explicit("pi", 10, false)
     vim.notify = original
     assert.is_nil(agent._get_instance("pi", 10))
     assert.is_string(notified)
     assert.is_truthy(notified:find("0%-9"))
   end)
 
-  it("_toggle_with_count_explicit in visual mode forces idx 0", function()
-    agent._toggle_with_count_explicit("pi", 5, true)
+  it("_focus_with_count_explicit in visual mode forces idx 0", function()
+    agent._focus_with_count_explicit("pi", 5, true)
     assert.is_table(agent._get_instance("pi", 0))
     assert.is_nil(agent._get_instance("pi", 5))
   end)
 
-  it("_toggle_with_count_explicit(opencode, 2, false) toggles opencode#2", function()
-    agent._toggle_with_count_explicit("opencode", 2, false)
+  it("_focus_with_count_explicit(opencode, 2, false) focuses opencode#2", function()
+    agent._focus_with_count_explicit("opencode", 2, false)
     assert.is_table(agent._get_instance("opencode", 2))
     assert.equals("opencode", agent.active_mode)
     assert.equals(2, agent.active_index)
   end)
 
-  it("bare toggle (count 0) closes the whole drawer when agents are stacked", function()
+  it("drawer toggle closes all panes and restores them", function()
     vim.cmd("only")
     vim.cmd("enew")
     agent.Open("opencode", nil, "vsplit", 0)
@@ -188,38 +188,44 @@ describe("toggle_with_count wrappers", function()
     assert.is_true(helpers.buf_visible(i0.buf))
     assert.is_true(helpers.buf_visible(i1.buf))
 
-    agent._toggle_with_count_explicit("opencode", 0, false)
+    agent.ToggleDrawer()
 
     assert.is_false(helpers.buf_visible(i0.buf))
     assert.is_false(helpers.buf_visible(i1.buf))
     assert.is_table(agent._get_instance("opencode", 0), "instances stay alive in background")
     assert.is_table(agent._get_instance("opencode", 1))
     assert.equals("none", agent.active_mode)
+    agent.ToggleDrawer()
+    assert.is_true(helpers.buf_visible(i0.buf))
+    assert.is_true(helpers.buf_visible(i1.buf))
   end)
 
-  it("bare toggle (count 0) opens the default instance when no drawer is open", function()
+  it("bare focus opens instance zero", function()
     vim.cmd("only")
     vim.cmd("enew")
-    agent._toggle_with_count_explicit("opencode", 0, false)
+    agent._focus_with_count_explicit("opencode", 0, false)
     assert.is_table(agent._get_instance("opencode", 0))
     assert.equals("opencode", agent.active_mode)
     assert.equals(0, agent.active_index)
   end)
 
-  -- count 0 is both "no count" and a typed "0": with the drawer open it closes
-  -- the whole drawer rather than toggling only instance 0.
-  it("count 0 with an open drawer closes the drawer, not just instance 0", function()
-    vim.cmd("only")
-    vim.cmd("enew")
-    agent.Open("opencode", nil, "vsplit", 0)
-    agent.Open("opencode", nil, "vsplit", 1)
-    local i0 = agent._get_instance("opencode", 0)
-    local i1 = agent._get_instance("opencode", 1)
-
-    agent._toggle_with_count_explicit("opencode", 0, false)
-
-    assert.is_false(helpers.buf_visible(i0.buf))
-    assert.is_false(helpers.buf_visible(i1.buf))
+  it("focus preserves another agent and repeatedly focuses the requested instance", function()
+    agent.Open("claude", nil, "vsplit", 0)
+    local claude = agent._get_instance("claude", 0)
+    for _, idx in ipairs({ 0, 2 }) do
+      agent._focus_with_count_explicit("codex", idx, false)
+      local codex = agent._get_instance("codex", idx)
+      assert.is_true(helpers.buf_visible(claude.buf))
+      assert.equals(codex.buf, vim.api.nvim_get_current_buf())
+      local wins = #vim.api.nvim_list_wins()
+      agent._focus_with_count_explicit("codex", idx, false)
+      assert.equals(wins, #vim.api.nvim_list_wins())
+      assert.equals(codex.buf, vim.api.nvim_get_current_buf())
+      agent.Toggle("codex", nil, "vsplit", idx)
+      agent._focus_with_count_explicit("codex", idx, false)
+      assert.equals(codex.buf, vim.api.nvim_get_current_buf())
+      assert.is_true(helpers.buf_visible(claude.buf))
+    end
   end)
 
   it("_collapse_pane_explicit with count 0 hides the current pane", function()
