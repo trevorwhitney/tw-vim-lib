@@ -6,7 +6,7 @@
 -- vim.fn.findfile / fnamemodify / getcwd to exercise the branches.
 
 local H = dofile("test/harness.lua")
-local test, eq = H.test, H.eq
+local test, eq, eq_list = H.test, H.eq, H.eq_list
 
 package.path = "lua/?.lua;lua/?/init.lua;" .. package.path
 
@@ -120,6 +120,73 @@ test("empty filetype returns cwd", function()
 	local m = load_testing()
 	eq("/x/y", m.get_test_project_root(), "root")
 	eq(0, #queried, "no markers queried")
+end)
+
+-- ---------------------------------------------------------------------------
+-- M.dispatch: closes/reopens the agent sidebar around `:Dispatch <cmd>` so a
+-- fixed-height sidebar view doesn't collide with edgy's layout pass when
+-- Dispatch's quickfix-fallback window shrinks the available rows.
+-- ---------------------------------------------------------------------------
+local function fake_sidebar(initially_open)
+	local calls = {}
+	local open = initially_open
+	return {
+		is_open = function()
+			return open
+		end,
+		open = function()
+			open = true
+			table.insert(calls, "open")
+		end,
+		close = function()
+			open = false
+			table.insert(calls, "close")
+		end,
+	}, calls
+end
+
+test("dispatch closes and reopens the sidebar when it was open", function()
+	local sidebar, calls = fake_sidebar(true)
+	package.loaded["tw.agent.sidebar"] = sidebar
+	local cmds = {}
+	vim = {
+		cmd = function(c)
+			table.insert(cmds, c)
+		end,
+	}
+	local m = load_testing()
+	m.dispatch("GoTest")
+	eq_list({ "close", "open" }, calls, "sidebar calls")
+	eq_list({ "Dispatch GoTest" }, cmds, "vim.cmd calls")
+	package.loaded["tw.agent.sidebar"] = nil
+end)
+
+test("dispatch leaves the sidebar alone when it was already closed", function()
+	local sidebar, calls = fake_sidebar(false)
+	package.loaded["tw.agent.sidebar"] = sidebar
+	vim = {
+		cmd = function() end,
+	}
+	local m = load_testing()
+	m.dispatch("GoTest")
+	eq_list({}, calls, "sidebar calls")
+	package.loaded["tw.agent.sidebar"] = nil
+end)
+
+test("dispatch reopens the sidebar even if :Dispatch errors, then reraises", function()
+	local sidebar, calls = fake_sidebar(true)
+	package.loaded["tw.agent.sidebar"] = sidebar
+	vim = {
+		cmd = function()
+			error("boom")
+		end,
+	}
+	local m = load_testing()
+	local ok, err = pcall(m.dispatch, "GoTest")
+	eq(false, ok, "dispatch should reraise")
+	eq(true, tostring(err):find("boom") ~= nil, "error message preserved")
+	eq_list({ "close", "open" }, calls, "sidebar still reopened")
+	package.loaded["tw.agent.sidebar"] = nil
 end)
 
 H.finish()

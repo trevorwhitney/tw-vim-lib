@@ -35,11 +35,33 @@ function M.get_test_project_root()
 	return vim.fn.getcwd()
 end
 
+-- Without a multiplexer, :Dispatch falls back to running the command
+-- synchronously and popping open a quickfix window. That window shrinks the
+-- rows available to every edgebar, and the agent sidebar's fixed-height view
+-- (lua/tw/agent/edgy_config.lua) doesn't fit what's left, so edgy throws
+-- "Failed to layout windows". Closing the sidebar first keeps it out of that
+-- layout pass; it reopens once Dispatch returns, synchronous case or not.
+function M.dispatch(cmd)
+	local sidebar = require("tw.agent.sidebar")
+	local was_open = sidebar.is_open()
+	if was_open then
+		sidebar.close()
+	end
+	local ok, err = pcall(vim.cmd, "Dispatch " .. cmd)
+	if was_open then
+		sidebar.open()
+	end
+	if not ok then
+		error(err, 0)
+	end
+end
+
 local function configure_vim_test()
 	vim.g["test#custom_strategies"] = {
 		claude = require("tw.agent").VimTestStrategy,
+		tw_dispatch = M.dispatch,
 	}
-	vim.g["test#strategy"] = "dispatch"
+	vim.g["test#strategy"] = "tw_dispatch"
 	vim.g["test#go#gotest#options"] = "-v"
 	vim.g["test#javascript#jest#options"] = "--no-coverage"
 	-- Custom project root function for better test runner detection
