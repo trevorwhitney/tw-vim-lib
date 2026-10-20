@@ -67,6 +67,21 @@ local function create_picker(opts)
 					vim.cmd(cmd)
 				end)
 
+				-- Diff the selected commit against the base branch (merge-base...commit)
+				map({ "i", "n" }, "<C-b>", function()
+					local entry = action_state.get_selected_entry()
+					if not entry then
+						return
+					end
+					local base = util.base_branch()
+					if not base then
+						vim.notify("Could not determine base branch (main/master)", vim.log.levels.WARN)
+						return
+					end
+					actions.close(prompt_bufnr)
+					vim.cmd(util.build_base_diff_command(entry, base, current_file_path, vim.fn.fnameescape))
+				end, { desc = "Diff selected commit against main" })
+
 				-- Toggle between unpushed and all commits
 				map({ "i", "n" }, "<C-o>", function()
 					if no_upstream then

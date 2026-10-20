@@ -11,6 +11,43 @@ function M.has_upstream()
 	return vim.v.shell_error == 0 and #result > 0 and result[1] ~= ""
 end
 
+--- Resolve the repo's base branch (e.g. "origin/main", "main", "master").
+--- Prefers the remote's default branch (origin/HEAD), then local main/master.
+--- Depends on `vim.fn.systemlist` / `vim.v.shell_error` (stubbable in tests).
+--- @return string|nil
+function M.base_branch()
+	local result = vim.fn.systemlist("git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null")
+	if vim.v.shell_error == 0 and #result > 0 and result[1] ~= "" then
+		return result[1]
+	end
+	for _, name in ipairs({ "main", "master" }) do
+		vim.fn.systemlist("git rev-parse --verify --quiet refs/heads/" .. name)
+		if vim.v.shell_error == 0 then
+			return name
+		end
+	end
+	return nil
+end
+
+--- Build the DiffviewOpen command comparing a single commit against a base
+--- branch. Uses the symmetric "..." range so the diff is taken from the
+--- merge-base, ignoring commits that landed on base after the branch point.
+--- @param entry table  entry with .value (sha)
+--- @param base string  base branch ref
+--- @param current_file_path string|nil  optional file to scope the diff to
+--- @param fnameescape fun(path: string): string  escaper (defaults to identity)
+--- @return string
+function M.build_base_diff_command(entry, base, current_file_path, fnameescape)
+	fnameescape = fnameescape or function(p)
+		return p
+	end
+	local cmd = "DiffviewOpen " .. base .. "..." .. entry.value
+	if current_file_path then
+		cmd = cmd .. " -- " .. fnameescape(current_file_path)
+	end
+	return cmd
+end
+
 --- Build the git log command for the given mode.
 --- @param show_all boolean Whether to show all commits or just unpushed
 --- @return string[]

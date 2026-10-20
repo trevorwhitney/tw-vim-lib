@@ -183,4 +183,73 @@ test("has_upstream false when first line is empty", function()
 	end)
 end)
 
+-- ---------------------------------------------------------------------------
+-- build_base_diff_command
+-- ---------------------------------------------------------------------------
+test("build_base_diff_command uses merge-base range base...sha", function()
+	local entry = { value = "abc1234", index = 3 }
+	eq("DiffviewOpen origin/main...abc1234", util.build_base_diff_command(entry, "origin/main", nil), "cmd")
+end)
+
+test("build_base_diff_command scopes to (escaped) current file", function()
+	local entry = { value = "abc1234", index = 3 }
+	local cmd = util.build_base_diff_command(entry, "main", "weird name.lua", function(p)
+		return (p:gsub(" ", "\\ "))
+	end)
+	eq("DiffviewOpen main...abc1234 -- weird\\ name.lua", cmd, "cmd")
+end)
+
+-- ---------------------------------------------------------------------------
+-- base_branch (stub systemlist; shell_error set per command)
+-- ---------------------------------------------------------------------------
+-- responses maps a command substring to { shell_error, output }.
+local function with_git_stub(responses, fn)
+	local old_fn, old_v = vim.fn, vim.v
+	vim.v = { shell_error = 1 }
+	vim.fn = {
+		systemlist = function(cmd)
+			for pattern, resp in pairs(responses) do
+				if cmd:find(pattern, 1, true) then
+					vim.v.shell_error = resp[1]
+					return resp[2]
+				end
+			end
+			vim.v.shell_error = 1
+			return {}
+		end,
+	}
+	local ok, err = pcall(fn)
+	vim.fn, vim.v = old_fn, old_v
+	if not ok then
+		error(err)
+	end
+end
+
+test("base_branch prefers origin/HEAD", function()
+	with_git_stub({
+		["refs/remotes/origin/HEAD"] = { 0, { "origin/main" } },
+		["refs/heads/main"] = { 0, { "deadbeef" } },
+	}, function()
+		eq("origin/main", util.base_branch(), "base")
+	end)
+end)
+
+test("base_branch falls back to local main", function()
+	with_git_stub({ ["refs/heads/main"] = { 0, { "deadbeef" } } }, function()
+		eq("main", util.base_branch(), "base")
+	end)
+end)
+
+test("base_branch falls back to local master", function()
+	with_git_stub({ ["refs/heads/master"] = { 0, { "deadbeef" } } }, function()
+		eq("master", util.base_branch(), "base")
+	end)
+end)
+
+test("base_branch nil when nothing resolves", function()
+	with_git_stub({}, function()
+		eq(nil, util.base_branch(), "base")
+	end)
+end)
+
 H.finish()
