@@ -143,6 +143,31 @@ test("build_diff_command applies fnameescape to current file", function()
 	eq("DiffviewOpen abc1234~1 -- weird\\ name.lua", escaped, "cmd")
 end)
 
+test("build_diff_command exact single selection compares commit as-is", function()
+	local sel = { { value = "abc1234", index = 1 } }
+	eq("DiffviewOpen abc1234", util.build_diff_command(sel, nil, nil, true), "cmd")
+end)
+
+test("build_diff_command exact two selections orders older..newer without ~1", function()
+	local sel = {
+		{ value = "newsha", index = 1 },
+		{ value = "oldsha", index = 5 },
+	}
+	eq("DiffviewOpen oldsha..newsha", util.build_diff_command(sel, nil, nil, true), "cmd")
+end)
+
+test("build_diff_command exact with current file", function()
+	local sel = {
+		{ value = "oldsha", index = 5 },
+		{ value = "newsha", index = 1 },
+	}
+	eq(
+		"DiffviewOpen oldsha..newsha -- /path/to/file.lua",
+		util.build_diff_command(sel, "/path/to/file.lua", nil, true),
+		"cmd"
+	)
+end)
+
 -- ---------------------------------------------------------------------------
 -- has_upstream (stub vim.fn.systemlist + vim.v.shell_error)
 -- ---------------------------------------------------------------------------

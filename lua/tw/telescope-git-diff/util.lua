@@ -104,11 +104,17 @@ end
 --- One selection  -> "DiffviewOpen <sha>~1"
 --- Two selections -> ordered "<older>~1..<newer>" by log index (higher index
 ---                   = older).
+---
+--- With `exact`, the "~1" is dropped so the selected commits are compared
+--- as-is (e.g. reviewing a stacked PR against the one beneath it):
+--- One selection  -> "DiffviewOpen <sha>" (commit vs working tree)
+--- Two selections -> "<older>..<newer>"
 --- @param selections table[]  list of entries with .value (sha) and .index
 --- @param current_file_path string|nil  optional file to scope the diff to
 --- @param fnameescape fun(path: string): string  escaper (defaults to identity)
+--- @param exact boolean|nil  compare the selected commits without "~1"
 --- @return string|nil  the command string, or nil if no selections
-function M.build_diff_command(selections, current_file_path, fnameescape)
+function M.build_diff_command(selections, current_file_path, fnameescape, exact)
 	if not selections or #selections == 0 then
 		return nil
 	end
@@ -116,9 +122,10 @@ function M.build_diff_command(selections, current_file_path, fnameescape)
 		return p
 	end
 
+	local parent = exact and "" or "~1"
 	local cmd
 	if #selections == 1 then
-		cmd = "DiffviewOpen " .. selections[1].value .. "~1"
+		cmd = "DiffviewOpen " .. selections[1].value .. parent
 	else
 		-- Sort by index: higher index = older (further down the log).
 		-- Copy first so we don't mutate the caller's table.
@@ -131,7 +138,7 @@ function M.build_diff_command(selections, current_file_path, fnameescape)
 		end)
 		local older = sorted[1].value
 		local newer = sorted[2].value
-		cmd = "DiffviewOpen " .. older .. "~1.." .. newer
+		cmd = "DiffviewOpen " .. older .. parent .. ".." .. newer
 	end
 
 	if current_file_path then

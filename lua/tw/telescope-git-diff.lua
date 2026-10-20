@@ -35,7 +35,9 @@ local function create_picker(opts)
 			finder = make_finder(show_all),
 			sorter = conf.generic_sorter({}),
 			attach_mappings = function(prompt_bufnr, map)
-				actions.select_default:replace(function()
+				--- Open a diff for the selected commit(s).
+				--- @param exact boolean compare the commits as-is instead of from the older one's parent
+				local function open_diff(exact)
 					local picker = action_state.get_current_picker(prompt_bufnr)
 					local multi = picker:get_multi_selection()
 					local selections = {}
@@ -62,10 +64,19 @@ local function create_picker(opts)
 
 					actions.close(prompt_bufnr)
 
-					local cmd = util.build_diff_command(selections, current_file_path, vim.fn.fnameescape)
+					local cmd = util.build_diff_command(selections, current_file_path, vim.fn.fnameescape, exact)
 
 					vim.cmd(cmd)
+				end
+
+				actions.select_default:replace(function()
+					open_diff(false)
 				end)
+
+				-- Compare selected commits exactly (older..newer, no ~1), e.g. stacked PRs
+				map({ "i", "n" }, "<C-e>", function()
+					open_diff(true)
+				end, { desc = "Diff selected commits exactly (no parent)" })
 
 				-- Diff the selected commit against the base branch (merge-base...commit)
 				map({ "i", "n" }, "<C-b>", function()
