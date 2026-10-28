@@ -739,6 +739,56 @@ function M._focus_with_count(mode, visual)
 	M._focus_with_count_explicit(mode, vim.v.count, visual)
 end
 
+-- First window in the tabpage (current one preferred) that isn't floating or
+-- an edgy pane, so a fullscreen agent never lands inside a drawer.
+local function editor_win()
+	local ok, edgy = pcall(require, "edgy")
+	local wins = { vim.api.nvim_get_current_win() }
+	vim.list_extend(wins, vim.api.nvim_tabpage_list_wins(0))
+	for _, win in ipairs(wins) do
+		local floating = vim.api.nvim_win_get_config(win).relative ~= ""
+		if not floating and not (ok and edgy.get_win and edgy.get_win(win)) then
+			return win
+		end
+	end
+	return wins[1]
+end
+
+-- Show the instance alone in the tab. The BufEnter autocmd in commands.lua
+-- reverts to a [file] | [agent] split the next time a file is opened.
+function M._fullscreen_with_count_explicit(mode, count, visual)
+	local idx = visual and 0 or count
+	if idx > 9 then
+		vim.notify(string.format("Agent instance index must be 0-9 (got %d)", idx), vim.log.levels.WARN)
+		return
+	end
+	M.CloseDrawer()
+	vim.api.nvim_set_current_win(editor_win())
+
+	local inst = get_instance(mode, idx)
+	local alive = inst
+		and inst.buf
+		and vim.api.nvim_buf_is_valid(inst.buf)
+		and inst.job_id
+		and vim.fn.jobwait({ inst.job_id }, 0)[1] == -1
+	if alive then
+		vim.b[inst.buf].edgy_disable = true
+		close_buffer_windows(inst.buf)
+	else
+		-- termopen converts the current buffer, so give it an empty one rather
+		-- than the file being edited. Done before setting agent_fullscreen so
+		-- the revert autocmd ignores this BufEnter.
+		vim.cmd("enew")
+	end
+	M.agent_fullscreen = true
+	M.Open(mode, nil, "current", idx)
+	pcall(vim.cmd, "only")
+end
+
+function M._fullscreen_with_count(mode, visual)
+	M._fullscreen_with_count_explicit(mode, vim.v.count, visual)
+end
+
 --- Cycle through alive sessions of default_mode.
 --- direction: 1 for next, -1 for previous.
 function M.CycleSession(direction)
@@ -996,6 +1046,42 @@ local function configureClaudeKeymap()
 					require("tw.agent")._focus_with_count("pi", is_visual)
 				end,
 				desc = "Focus Pi (count = instance index, 0 = default)",
+			},
+			{
+				"<leader>cL",
+				function()
+					local m = vim.fn.mode()
+					local is_visual = m == "v" or m == "V" or m == "\22"
+					require("tw.agent")._fullscreen_with_count("claude", is_visual)
+				end,
+				desc = "Fullscreen Claude (count = instance index, 0 = default)",
+			},
+			{
+				"<leader>cX",
+				function()
+					local m = vim.fn.mode()
+					local is_visual = m == "v" or m == "V" or m == "\22"
+					require("tw.agent")._fullscreen_with_count("codex", is_visual)
+				end,
+				desc = "Fullscreen Codex (count = instance index, 0 = default)",
+			},
+			{
+				"<leader>cO",
+				function()
+					local m = vim.fn.mode()
+					local is_visual = m == "v" or m == "V" or m == "\22"
+					require("tw.agent")._fullscreen_with_count("opencode", is_visual)
+				end,
+				desc = "Fullscreen OpenCode (count = instance index, 0 = default)",
+			},
+			{
+				"<leader>cP",
+				function()
+					local m = vim.fn.mode()
+					local is_visual = m == "v" or m == "V" or m == "\22"
+					require("tw.agent")._fullscreen_with_count("pi", is_visual)
+				end,
+				desc = "Fullscreen Pi (count = instance index, 0 = default)",
 			},
 		},
 		{

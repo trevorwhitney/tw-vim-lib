@@ -306,7 +306,7 @@ function M.setup(_)
 			desc = "Remove agent comment under cursor",
 		},
 		{
-			"<leader>cX",
+			"<leader>cR",
 			function()
 				M.clear()
 			end,

@@ -84,7 +84,12 @@ function M.setup_autocmds(claude_module)
 			-- Disable the flag so this only fires once
 			claude_module.agent_fullscreen = false
 
-			local agent_buf = resolve_default_agent_buf()
+			-- Prefer the instance that went fullscreen (it may not be the
+			-- default mode or idx 0, e.g. <leader>cX or 2<leader>cL).
+			local agent_buf = claude_module.active_buf
+			if not is_agent_buf(agent_buf) then
+				agent_buf = resolve_default_agent_buf()
+			end
 			if not agent_buf or not vim.api.nvim_buf_is_valid(agent_buf) then
 				return
 			end
