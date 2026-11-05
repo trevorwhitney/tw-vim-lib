@@ -96,6 +96,17 @@ function M.setup_autocmds(claude_module)
 
 			vim.b[agent_buf].edgy_disable = false
 
+			-- A split taken from the fullscreen agent (e.g. `\t` runs
+			-- `sp | terminal`, whose new buffer fires BufEnter before it becomes
+			-- a terminal) leaves the agent visible in its old window. Close it so
+			-- the vsplit below is the only one edgy picks up; otherwise the
+			-- right bar shows the same instance twice.
+			for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+				if vim.api.nvim_win_get_buf(win) == agent_buf and vim.api.nvim_win_get_config(win).relative == "" then
+					pcall(vim.api.nvim_win_close, win, false)
+				end
+			end
+
 			-- The file buffer is now in the current window. Open the agent
 			-- buffer in a right-side vsplit so the layout becomes:
 			--   [file (left)]  |  [opencode (right)]

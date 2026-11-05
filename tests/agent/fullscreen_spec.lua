@@ -50,6 +50,24 @@ describe("fullscreen edgy opt-out", function()
 
 		assert.is_false(vim.b[inst.buf].edgy_disable)
 	end)
+
+	it("shows the agent once after splitting a terminal off the fullscreen agent", function()
+		require("tw.agent.commands").setup_autocmds(agent)
+		agent.agent_fullscreen = true
+		agent.Open("opencode", nil, "current", 0)
+		local inst = agent._get_instance("opencode", 0)
+
+		-- What `\t` runs: :terminal fires BufEnter while its buffer is still
+		-- buftype="", which trips the revert with the agent still in the split.
+		vim.cmd("20sp | terminal")
+
+		local agent_wins = vim.tbl_filter(function(win)
+			return vim.api.nvim_win_get_buf(win) == inst.buf
+		end, vim.api.nvim_tabpage_list_wins(0))
+		assert.are.equal(1, #agent_wins)
+		assert.are.equal("terminal", vim.bo.buftype)
+		pcall(vim.cmd, "bwipeout!")
+	end)
 end)
 
 describe("fullscreen agent args", function()
