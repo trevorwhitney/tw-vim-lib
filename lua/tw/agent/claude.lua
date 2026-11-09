@@ -69,6 +69,7 @@ function M.command(args, command_name, context_directories, automatic_permission
 	-- Sandbox wrapper (if available)
 	if sandbox_available then
 		table.insert(command, SANDBOX_WRAPPER)
+		table.insert(command, "--agent=" .. command_name)
 
 		-- --add-dirs for context directories (sorted for determinism)
 		if context_directories and not vim.tbl_isempty(context_directories) then
